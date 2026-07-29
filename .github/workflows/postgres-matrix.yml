@@ -2,9 +2,9 @@ name: PostgreSQL Matrix
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "internal/persistence/**"
       - "tests/integration/postgres/**"
