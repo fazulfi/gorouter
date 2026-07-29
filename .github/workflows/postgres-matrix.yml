@@ -80,7 +80,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-pg${{ matrix.pg-version }}${{ matrix.race == 'on' && '-race' || '' }}
           path: coverage.out
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: postgres-${{ matrix.pg-version }}${{ matrix.race == 'on' && '-race' || '' }}-results
           path: |
