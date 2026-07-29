@@ -73,6 +73,7 @@ func newTestPool(t *testing.T, handler queryHandlerFunc) *pgxpool.Pool {
 		t.Fatalf("parse config: %v", err)
 	}
 
+	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeCacheDescribe
 	cfg.MaxConns = 1
 	cfg.MinConns = 0
 	cfg.HealthCheckPeriod = time.Hour
@@ -99,7 +100,8 @@ func handlePGConnection(ctx context.Context, backend *pgproto3.Backend, handler 
 	}
 
 	backend.Send(&pgproto3.AuthenticationOk{})
-	backend.Send(&pgproto3.BackendKeyData{ProcessID: 42, SecretKey: 12345})
+	backend.Send(&pgproto3.ParameterStatus{Name: "client_encoding", Value: "UTF8"})
+	backend.Send(&pgproto3.BackendKeyData{ProcessID: 42, SecretKey: []byte{0, 0, 48, 57}})
 	backend.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
 	if err := backend.Flush(); err != nil {
 		return fmt.Errorf("startup flush: %w", err)
@@ -678,7 +680,7 @@ func TestOpen_Success(t *testing.T) {
 			return
 		}
 		backend.Send(&pgproto3.AuthenticationOk{})
-		backend.Send(&pgproto3.BackendKeyData{ProcessID: 1, SecretKey: 1})
+		backend.Send(&pgproto3.BackendKeyData{ProcessID: 1, SecretKey: []byte{0, 0, 0, 1}})
 		backend.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
 		backend.Flush()
 
