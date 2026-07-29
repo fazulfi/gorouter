@@ -44,7 +44,10 @@ func newTestPool(t *testing.T, handler queryHandlerFunc) *pgxpool.Pool {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	done := make(chan struct{})
+
 	go func() {
+		defer close(done)
 		conn, err := ln.Accept()
 		if err != nil {
 			return
@@ -88,6 +91,11 @@ func newTestPool(t *testing.T, handler queryHandlerFunc) *pgxpool.Pool {
 	t.Cleanup(func() {
 		pool.Close()
 		ln.Close()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Logf("mock PG: timed out waiting for server goroutine")
+		}
 	})
 
 	return pool
