@@ -273,7 +273,15 @@ func run() int {
 // runCmd executes a command in the given directory and returns its combined
 // output. If the command fails, the output is still returned alongside the error.
 func runCmd(dir, name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+	switch name {
+	case "go", "npm", "govulncheck", "ssh", "cyclonedx-gomod", "go-licenses":
+		// Commands and arguments originate from the fixed Phase 1 gate definitions
+		// above, not from request or environment input.
+	default:
+		return "", fmt.Errorf("gate command %q is not allowed", name)
+	}
+
+	cmd := exec.Command(name, args...) // #nosec G204,G702 -- fixed gate commands validated by the allowlist above
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	return string(out), err
