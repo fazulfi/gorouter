@@ -34,13 +34,13 @@ type Provider struct {
 
 // ProviderConfig holds typed configuration for a provider type.
 type ProviderConfig struct {
-	ID           uuid.UUID
-	ProviderID   uuid.UUID
-	ConfigType   string
-	ConfigValue  json.RawMessage
-	IsActive     bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID          uuid.UUID
+	ProviderID  uuid.UUID
+	ConfigType  string
+	ConfigValue json.RawMessage
+	IsActive    bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // ProviderRepository defines persistence operations for providers.
