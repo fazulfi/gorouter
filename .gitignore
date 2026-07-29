@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+
+# Upstream clone (read-only reference)
+upstream-original/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.idea/
+*.swp
+*.swo
+.vscode/
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+go.work
+go.work.sum
+
+# PostgreSQL data
+pgdata/
+pgdata-*/
+
+# Backups
+*.backup
+*.bak
+backups/
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Secrets - never commit
+*.key
+*.pem
+*.crt
+*.cert
+!internal/host/mitm/testdata/*.pem
+*.secret
+
+# Coverage
+coverage/
+coverage.out
+coverage.html
+*.coverprofile
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.tsbuildinfo
+
+# Tooling
+tools/*/bin/
+tools/*/dist/
+
+# Test artifacts
+tests/fixtures/upstream/output/
