@@ -1,0 +1,237 @@
+# gorouter Decision Status
+# Tracks each active DECISIONS.md reference to owning phase/task/tests/docs.
+# Cancelled decisions are excluded.
+
+baseline_commit: "79918c7830695bbca4a45c9fea4a42c3e9fd73d1"
+
+active_decisions:
+  - id: 2
+    title: "PostgreSQL directly (pgx)"
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+
+  - id: 13
+    title: "Structured JSON logging + /metrics"
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+
+  - id: 22
+    title: "Kontrak sama, internals diperbaiki"
+    phase: 1
+    task: "P1-T01"
+    status: "pending"
+
+  - id: 40
+    title: "PostgreSQL 16+ support"
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+
+  - id: 44
+    title: "Bind 127.0.0.1 default"
+    phase: 1
+    task: "P1-T02"
+    status: "pending"
+
+  - id: 47
+    title: "Password lokal, cookie session, CSRF, lockout"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 59
+    title: "Append-only audit trail"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 60
+    title: "Full Admin API versioned"
+    phase: 1
+    task: "P1-T09"
+    status: "pending"
+
+  - id: 63
+    title: "PAT khusus Admin API"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 64
+    title: "PAT full access"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 65
+    title: "PAT optional expiry"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 66
+    title: "PAT recovery (login dashboard + revoke)"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 67
+    title: "PAT hash-only storage"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 70
+    title: "Model API key full access"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 71
+    title: "Model API key hash-only, one-time reveal"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 72
+    title: "API key tetap wajib dari localhost"
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+
+  - id: 74
+    title: "Password reset CLI local"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 76
+    title: "Session sliding expiry 30 hari"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 77
+    title: "Tidak ada halaman session per perangkat"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 79
+    title: "Satu server, satu binary, multi-goroutine"
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+
+  - id: 128
+    title: "CORS: Model API vs Admin dipisah"
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+
+  - id: 134
+    title: "Trusted proxy CIDR eksplisit"
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+
+  - id: 147
+    title: "Retensi audit trail selamanya"
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+
+  - id: 152
+    title: "Migration backward-compatible expand-first"
+    phase: 1
+    task: "P1-T04"
+    status: "pending"
+
+  - id: 154
+    title: "Tolak proses kedua via advisory lock"
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+
+  - id: 199
+    title: "Public vs detailed health"
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+
+  - id: 306
+    title: "Trusted proxy implementation"
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+
+  - id: 313
+    title: "Forwarded header invariance"
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+
+  - id: 317
+    title: "Migration expand-first pattern"
+    phase: 1
+    task: "P1-T04"
+    status: "pending"
+
+  - id: 323
+    title: "Second process rejection"
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+
+  # Decisions referenced by parity rows for Phase 1 awareness
+  - id: 29
+    title: "PostgreSQL desktop bundled and otomatis"
+    phase: 5
+    task: "P1-T03"
+    status: "awareness"
+
+  - id: 146
+    title: "Log retention 90 hari"
+    phase: 4
+    task: "awareness"
+    status: "awareness"
+
+  - id: 150
+    title: "PostgreSQL eksternal pada desktop"
+    phase: 5
+    task: "P1-T03"
+    status: "awareness"
+
+  - id: 153
+    title: "Migration startup otomatis dengan backup"
+    phase: 4
+    task: "awareness"
+    status: "awareness"
+
+  - id: 209
+    title: "PostgreSQL version support matrix"
+    phase: 5
+    task: "P1-T03"
+    status: "awareness"
+
+  - id: 210
+    title: "Linux PostgreSQL packaging"
+    phase: 5
+    task: "awareness"
+    status: "awareness"
+
+  - id: 211
+    title: "macOS PostgreSQL packaging"
+    phase: 5
+    task: "awareness"
+    status: "awareness"
+
+  - id: 212
+    title: "Windows PostgreSQL packaging"
+    phase: 5
+    task: "awareness"
+    status: "awareness"
+
+entries: []

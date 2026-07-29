@@ -1,0 +1,72 @@
+# gorouter Upstream Map
+# Baseline: decolua/9router @ 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+# 
+# Maps upstream files/symbols to gorouter packages and tasks.
+# Phase 1 covers only governance, bootstrap, config, PostgreSQL, 
+# security middleware, auth primitives, and contracts.
+
+baseline:
+  repository: "decolua/9router"
+  commit: "79918c7830695bbca4a45c9fea4a42c3e9fd73d1"
+  product: "9router-app"
+  version: "0.5.40"
+
+upstream_files:
+  # Governance & foundation
+  - file: "custom-server.js"
+    responsibility: "Trusted proxy, socket-derived client identity"
+    gorouter_package: "internal/transport/httpserver/middleware"
+    task: "P1-T06"
+    status: "pending"
+
+  - file: "src/dashboardGuard.js"
+    responsibility: "Central gate proxy, local-only routes, auth zones"
+    gorouter_package: "internal/transport/httpserver/middleware"
+    task: "P1-T06"
+    status: "pending"
+
+  - file: "src/lib/auth/dashboardSession.js"
+    responsibility: "Dashboard session, JWT-style management"
+    gorouter_package: "internal/domain/auth"
+    task: "P1-T07"
+    status: "pending"
+
+  - file: "src/lib/auth/loginLimiter.js"
+    responsibility: "Login brute-force lockout"
+    gorouter_package: "internal/app/auth"
+    task: "P1-T07"
+    status: "pending"
+
+  - file: "src/shared/utils/apiKey.js"
+    responsibility: "API key generation and verification"
+    gorouter_package: "internal/domain/keys"
+    task: "P1-T07"
+    status: "pending"
+
+  - file: "src/sse/services/auth.js"
+    responsibility: "Provider credential selection, extraction, lock"
+    gorouter_package: "internal/domain/keys"
+    task: "P1-T07"
+    status: "pending"
+
+  - file: "src/lib/network/ssrfGuard.js"
+    responsibility: "SSRF guard (removed in gorouter per decision #136/#376)"
+    gorouter_package: null
+    task: "P1-T06"
+    status: "removed-by-decision"
+    decision_refs: [136, 376]
+
+  # Config & env
+  - file: ".env.example"
+    responsibility: "Configuration reference"
+    gorouter_package: "internal/bootstrap"
+    task: "P1-T02"
+    status: "pending"
+
+  - file: "src/config/appConstants.js"
+    responsibility: "Application constants"
+    gorouter_package: "internal/bootstrap"
+    task: "P1-T02"
+    status: "pending"
+
+entries: []

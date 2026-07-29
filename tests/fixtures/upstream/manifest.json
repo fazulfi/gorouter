@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "baseline": {
+    "repository": "decolua/9router",
+    "commit": "79918c7830695bbca4a45c9fea4a42c3e9fd73d1",
+    "product": "9router-app",
+    "version": "0.5.40"
+  },
+  "fixtures": [
+    {
+      "id": "custom-server-trusted-proxy",
+      "upstreamFile": "custom-server.js",
+      "description": "Socket-derived client identity, forwarding header trust boundary",
+      "phase": 1,
+      "task": "P1-T06",
+      "type": "behavioral-contract",
+      "sanitized": true
+    },
+    {
+      "id": "dashboard-guard-local-only",
+      "upstreamFile": "src/dashboardGuard.js",
+      "description": "Local-only route classification and access control zones",
+      "phase": 1,
+      "task": "P1-T06",
+      "type": "behavioral-contract",
+      "sanitized": true
+    },
+    {
+      "id": "dashboard-session-jwt",
+      "upstreamFile": "src/lib/auth/dashboardSession.js",
+      "description": "Dashboard session management patterns",
+      "phase": 1,
+      "task": "P1-T07",
+      "type": "behavioral-contract",
+      "sanitized": true
+    },
+    {
+      "id": "login-limiter",
+      "upstreamFile": "src/lib/auth/loginLimiter.js",
+      "description": "Brute-force login lockout behavior",
+      "phase": 1,
+      "task": "P1-T07",
+      "type": "behavioral-contract",
+      "sanitized": true
+    },
+    {
+      "id": "api-key-generation",
+      "upstreamFile": "src/shared/utils/apiKey.js",
+      "description": "API key generation and CRC verification",
+      "phase": 1,
+      "task": "P1-T07",
+      "type": "behavioral-contract",
+      "sanitized": true
+    }
+  ]
+}

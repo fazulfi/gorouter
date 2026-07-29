@@ -1,0 +1,178 @@
+# gorouter Parity Status
+# Tracks every PARITY-LEDGER.md row through implementation phases.
+# Phase 1: Foundation - all parity items here are governance/interface/test level.
+
+baseline_commit: "79918c7830695bbca4a45c9fea4a42c3e9fd73d1"
+
+parity_rows:
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-01"
+    capability: "Trusted-proxy forwarding header invariance"
+    disposition: "Preserve and harden"
+    decisions: [22, 134, 306, 313]
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+    required_evidence: "Socket-level direct/proxy spoof tests"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-02"
+    capability: "Public health (liveness, readiness, version)"
+    disposition: "Change/harden"
+    decisions: [199]
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+    required_evidence: "Sanitized response, no sensitive diagnostics"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-03"
+    capability: "Detailed health (authn/authz required)"
+    disposition: "Change/harden"
+    decisions: [199]
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+    required_evidence: "Authn/authz tests, complete diagnostics contract"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-04"
+    capability: "Model API CORS (broad client-compatible)"
+    disposition: "Preserve"
+    decisions: [128]
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+    required_evidence: "Browser preflight and actual-request tests"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-05"
+    capability: "Dashboard/Admin CORS (same-origin or configured)"
+    disposition: "Change/harden"
+    decisions: [128]
+    phase: 1
+    task: "P1-T06"
+    status: "pending"
+    required_evidence: "Origin allow/deny and CSRF tests"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-01"
+    capability: "Password storage (strong one-way hash)"
+    disposition: "Change/harden"
+    decisions: [47, 74]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Hash verification, no plaintext recovery"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-02"
+    capability: "Dashboard sessions (PG-backed, 30-day sliding expiry)"
+    disposition: "Change"
+    decisions: [47, 76, 77]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Sliding expiry, revocation, concurrent session tests"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-03"
+    capability: "PAT authentication (hash-only, optional expiry)"
+    disposition: "Change: approved addition"
+    decisions: [63, 64, 65, 66, 67]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "One-time reveal, hashing, expiry, revocation, audit"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-04"
+    capability: "Model API keys (hash-only, one-time reveal)"
+    disposition: "Change/harden"
+    decisions: [70, 71]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Hash, expiry, last-used, revoke, route-access tests"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-05"
+    capability: "Login abuse protection (lockout/backoff)"
+    disposition: "Preserve/harden"
+    decisions: [47]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Fake-clock threshold, reset, source-IP, audit tests"
+
+  - area: "Trust, authentication, and authorization"
+    id: "AUTH-06"
+    capability: "CSRF (required for cookie-authenticated mutations)"
+    disposition: "Change/harden"
+    decisions: [47]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Same-site, cross-site, missing/invalid token tests"
+
+  - area: "Persistence, usage, and operational data"
+    id: "DB-01"
+    capability: "Primary database (PostgreSQL 16-18)"
+    disposition: "Change"
+    decisions: [2, 29, 40, 150, 209, 210, 211, 212]
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+    required_evidence: "Migration/schema/repository tests across PG 16/17/18"
+
+  - area: "Persistence, usage, and operational data"
+    id: "DB-02"
+    capability: "Schema migration (embedded, expand-first)"
+    disposition: "Change/harden"
+    decisions: [152, 153, 317]
+    phase: 1
+    task: "P1-T04"
+    status: "pending"
+    required_evidence: "Upgrade/downgrade, safe-mode tests"
+
+  - area: "Persistence, usage, and operational data"
+    id: "DB-03"
+    capability: "Second process (reject via advisory lock)"
+    disposition: "Change/harden"
+    decisions: [79, 154, 323]
+    phase: 1
+    task: "P1-T03"
+    status: "pending"
+    required_evidence: "Concurrent startup tests"
+
+  - area: "Observability and auditing"
+    id: "OBS-01"
+    capability: "Structured logs (JSON stdout)"
+    disposition: "Change/extend"
+    decisions: [13, 146]
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+    required_evidence: "Schema, redaction, correlation tests"
+
+  - area: "Observability and auditing"
+    id: "OBS-02"
+    capability: "Prometheus /metrics endpoint"
+    disposition: "Change: approved addition"
+    decisions: [13]
+    phase: 1
+    task: "P1-T08"
+    status: "pending"
+    required_evidence: "Metric names, cardinality, security tests"
+
+  - area: "Observability and auditing"
+    id: "OBS-03"
+    capability: "Audit trail (append-only, forever)"
+    disposition: "Change: approved addition"
+    decisions: [59, 147]
+    phase: 1
+    task: "P1-T07"
+    status: "pending"
+    required_evidence: "Immutability, export, redaction, actor tests"
+
+entries: []
