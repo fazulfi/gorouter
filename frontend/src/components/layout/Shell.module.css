@@ -1,6 +1,8 @@
 .shell {
   display: flex;
   height: 100vh;
+  max-width: 100%;
+  overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);

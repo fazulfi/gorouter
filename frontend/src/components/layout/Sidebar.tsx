@@ -14,8 +14,8 @@ export default function Sidebar() {
       <div className={styles.logo}>gorouter</div>
       <nav className={styles.nav}>
         {navItems.map((item) => (
-          <a key={item.href} href={item.href} className={styles.link}>
-            <span className={styles.icon}>{item.icon}</span>
+          <a key={item.href} href={item.href} className={styles.link} aria-label={item.label}>
+            <span className={styles.icon} aria-hidden="true">{item.icon}</span>
             {item.label}
           </a>
         ))}

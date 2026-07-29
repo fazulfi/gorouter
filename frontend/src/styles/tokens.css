@@ -6,6 +6,16 @@
   - Accent: teal/cyan (hsl(190, 50%, ...))
 */
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
 :root {
   /* Light theme (default) */
   --color-bg: hsl(225, 20%, 99%);
@@ -15,7 +25,7 @@
 
   --color-text: hsl(220, 15%, 10%);
   --color-text-secondary: hsl(220, 10%, 40%);
-  --color-text-muted: hsl(220, 8%, 55%);
+  --color-text-muted: hsl(220, 8%, 42%);
   --color-text-inverse: hsl(0, 0%, 100%);
 
   --color-border: hsl(220, 12%, 88%);
