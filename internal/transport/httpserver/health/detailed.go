@@ -30,7 +30,7 @@ type DBPoolStats struct {
 
 // DBHealth represents the database health status.
 type DBHealth struct {
-	Connected bool        `json:"connected"`
+	Connected bool         `json:"connected"`
 	PoolStats *DBPoolStats `json:"pool_stats,omitempty"`
 }
 
@@ -83,7 +83,7 @@ func DetailedHandler(cfg DetailedHandlerConfig) http.HandlerFunc {
 		if cfg.AuthCheck != nil && !cfg.AuthCheck(r) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"status":"error","message":"unauthorized"}`))
+			_, _ = w.Write([]byte(`{"status":"error","message":"unauthorized"}`))
 			return
 		}
 
@@ -125,7 +125,7 @@ func DetailedHandler(cfg DetailedHandlerConfig) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(httpStatus)
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 
