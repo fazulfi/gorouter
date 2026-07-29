@@ -38,8 +38,8 @@ type AppError struct {
 	Code       ErrorCode   `json:"code"`
 	Message    string      `json:"message"`
 	Details    interface{} `json:"details,omitempty"`
-	HTTPStatus int         `json:"-"`             // not serialized
-	Err        error       `json:"-"`             // wrapped error, redacted from JSON
+	HTTPStatus int         `json:"-"` // not serialized
+	Err        error       `json:"-"` // wrapped error, redacted from JSON
 	RequestID  string      `json:"request_id,omitempty"`
 }
 

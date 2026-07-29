@@ -77,7 +77,7 @@ func Open(ctx context.Context, cfg PoolConfig) (*Pool, error) {
 
 	poolCfg.MaxConns = cfg.MaxConns
 	poolCfg.HealthCheckPeriod = cfg.HealthCheckInterval
-	poolCfg.MaxConnLifetime = 0          // no max lifetime
+	poolCfg.MaxConnLifetime = 0 // no max lifetime
 	poolCfg.MaxConnIdleTime = cfg.HealthCheckInterval * 2
 
 	// Apply connection timeout to the context

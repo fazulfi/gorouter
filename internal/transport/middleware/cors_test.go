@@ -142,8 +142,8 @@ func TestAdminCORS_LocalhostDefault(t *testing.T) {
 	}))
 
 	tests := []struct {
-		origin   string
-		allowed  bool
+		origin  string
+		allowed bool
 	}{
 		{"http://localhost:8080", true},
 		{"http://127.0.0.1:8080", true},

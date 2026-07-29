@@ -21,8 +21,8 @@ var ErrLockReleased = errors.New("advisory lock already released")
 
 // AdvisoryLock represents a held PostgreSQL advisory lock.
 type AdvisoryLock struct {
-	conn    *pgxpool.Conn
-	lockID  int64
+	conn     *pgxpool.Conn
+	lockID   int64
 	released bool
 }
 
