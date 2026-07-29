@@ -13,14 +13,14 @@ import (
 
 // ManifestEntry represents a single fixture entry with provenance metadata.
 type ManifestEntry struct {
-	ID              string `json:"id"`
-	Source          string `json:"source"`
-	UpstreamCommit  string `json:"upstream_commit"`
-	CapturedAt      string `json:"captured_at"`
-	ContentType     string `json:"content_type"`
-	Endpoint        string `json:"endpoint"`
-	Description     string `json:"description"`
-	SchemaChecksum  string `json:"schema_checksum"`
+	ID             string `json:"id"`
+	Source         string `json:"source"`
+	UpstreamCommit string `json:"upstream_commit"`
+	CapturedAt     string `json:"captured_at"`
+	ContentType    string `json:"content_type"`
+	Endpoint       string `json:"endpoint"`
+	Description    string `json:"description"`
+	SchemaChecksum string `json:"schema_checksum"`
 }
 
 // Manifest is the fixture registry.
