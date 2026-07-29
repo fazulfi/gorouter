@@ -1,7 +1,7 @@
 {
   "phase": "1",
   "status": "pass",
-  "timestamp": "2026-07-30T02:30:00+07:00",
+  "timestamp": "2026-07-30T03:15:00+07:00",
   "duration_seconds": 845.0,
   "checks": [
     {
@@ -127,19 +127,19 @@
     {
       "name": "sbom-generate",
       "status": "fail",
-      "output": "INFORMATIONAL — Cannot install cyclonedx-gomod: requires Go ≥1.25 (current 1.23.0). SBOM generation entirely blocked until Go toolchain upgrade. CI step in security.yml also always fails. Manual alternative: go list -m all available.",
+      "output": "INFORMATIONAL VPS HISTORY — The original VPS Go 1.23 toolchain could not install cyclonedx-gomod. The project and CI now use Go 1.25; final Security CI run 30484828353 generated and uploaded the CycloneDX SBOM successfully. This informational entry preserves the earlier VPS limitation and does not block the required gate.",
       "duration_seconds": 0.0
     },
     {
       "name": "license-check",
       "status": "fail",
-      "output": "INFORMATIONAL — go-licenses v1.6.0 crashes on stdlib packages (known Go 1.23+ module layout issue). All 10 direct dependencies manually verified as permissive (MIT/BSD/Apache-2.0). No GPL/AGPL detected. Automated check blocked; manual inventory passes.",
+      "output": "INFORMATIONAL VPS HISTORY — go-licenses v1.6.0 previously crashed against the VPS toolchain. Final Security CI run 30484828353 completed the restricted license check successfully under Go 1.25. The manual inventory also found only permissive MIT/BSD/Apache-2.0 direct dependencies and no GPL/AGPL packages.",
       "duration_seconds": 0.0
     },
     {
       "name": "pr-ci-runs",
       "status": "pass",
-      "output": "All 4 required PR CI checks PASS at head c11e45f46e738cbe172e418a829b5bc689d3ed33. This evidence edit produces a later SHA and will trigger a final rerun to reconfirm.\n\nFrontend (run 30482836387): https://github.com/fazulfi/gorouter/actions/runs/30482836387\n  - Job: Frontend build + test — PASS (typecheck, vitest unit, Playwright E2E, build, dist artifact)\n\nTest (run 30482836718): https://github.com/fazulfi/gorouter/actions/runs/30482836718\n  - Job: Go test + lint — PASS (go mod tidy, formatting, vet, build, test+coverage, enforce threshold)\n  - Job: Go race detection — PASS (race test on Go 1.25)\n\nPostgreSQL Matrix (run 30482837063): https://github.com/fazulfi/gorouter/actions/runs/30482837063\n  - PG16 normal + race — PASS (integration tests, coverage, containers)\n  - PG17 normal + race — PASS\n  - PG18 normal + race — PASS\n\nSecurity (run 30482837043): https://github.com/fazulfi/gorouter/actions/runs/30482837043\n  - Job: Security scan — PASS (gosec, govulncheck, gitleaks, cyclonedx SBOM, go-licenses)\n\nNote: GH Actions Security run succeeded for SBOM and license check (Go 1.25 on ubuntu-latest); VPS SBOM/license remain informational fail per local Go 1.23.0 limitation. VPS evidence preserved intact.",
+      "output": "All 4 required PR CI workflows PASS at final code head f5eb4e042f56110d5ad96053b23313937c5c0810.\n\nFrontend (run 30484828351): https://github.com/fazulfi/gorouter/actions/runs/30484828351\n  - Job 90687763707 — PASS (typecheck, Vitest unit, Playwright E2E, build, dist artifact)\n\nTest (run 30484828352): https://github.com/fazulfi/gorouter/actions/runs/30484828352\n  - Job 90687763645 — PASS (go mod tidy, formatting, vet, build, short tests, coverage threshold)\n  - Job 90687763662 — PASS (full Go race detection)\n\nPostgreSQL Matrix (run 30484828443): https://github.com/fazulfi/gorouter/actions/runs/30484828443\n  - PG16 job 90687764304 and PG16+race job 90687764363 — PASS\n  - PG17 job 90687764235 and PG17+race job 90687764354 — PASS\n  - PG18 job 90687764346 and PG18+race job 90687764279 — PASS\n\nSecurity (run 30484828353): https://github.com/fazulfi/gorouter/actions/runs/30484828353\n  - Job 90687763631 — PASS (gosec, govulncheck, gitleaks, CycloneDX SBOM, restricted license check).\n\nThis evidence-only edit creates a later documentation SHA; the recorded code head is the exact revision validated by every listed workflow. VPS evidence and historical informational limitations remain preserved separately.",
       "duration_seconds": 0.0
     }
   ]
