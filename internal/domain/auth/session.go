@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	ErrSessionExpired = errors.New("session has expired")
-	ErrSessionRevoked = errors.New("session has been revoked")
+	ErrSessionExpired  = errors.New("session has expired")
+	ErrSessionRevoked  = errors.New("session has been revoked")
 	ErrSessionNotFound = errors.New("session not found")
 )
 
 const (
-	defaultSessionDuration = 24 * time.Hour
+	defaultSessionDuration = 30 * 24 * time.Hour
 	tokenBytes             = 32
 )
 
@@ -30,7 +30,7 @@ type SessionService struct {
 	sessionDur time.Duration
 }
 
-// NewSessionService creates a SessionService. If sessionDur is zero, defaults to 24h.
+// NewSessionService creates a SessionService. If sessionDur is zero, defaults to 30d.
 func NewSessionService(repo SessionRepository, sessionDur time.Duration) *SessionService {
 	if sessionDur <= 0 {
 		sessionDur = defaultSessionDuration
@@ -74,7 +74,11 @@ func (s *SessionService) Create(ctx context.Context, userID uuid.UUID, ip net.IP
 }
 
 // Validate checks that the raw token corresponds to a valid (non-expired,
-// non-revoked) session. Returns the session on success.
+// non-revoked) session. Returns the session on success. On success it also
+// extends the session expiry (sliding window) so that active sessions do not
+// expire after 30 days of continuous activity. To avoid a database write on
+// every request, the extension is throttled: the expiry is only extended when
+// less than half of the session duration remains.
 func (s *SessionService) Validate(ctx context.Context, rawToken string) (*Session, error) {
 	tokenHash := hashToken(rawToken)
 
@@ -86,12 +90,25 @@ func (s *SessionService) Validate(ctx context.Context, rawToken string) (*Sessio
 		return nil, ErrSessionNotFound
 	}
 
-	if time.Now().After(session.ExpiresAt) {
+	now := time.Now()
+	if now.After(session.ExpiresAt) {
 		return nil, ErrSessionExpired
 	}
 
 	if session.RevokedAt != nil {
 		return nil, ErrSessionRevoked
+	}
+
+	// Throttled sliding expiry: only extend when less than half of the session
+	// duration remains. This preserves the 30-day sliding window for active
+	// users while avoiding a database write on every request.
+	remaining := session.ExpiresAt.Sub(now)
+	if remaining < s.sessionDur/2 {
+		newExpiry := now.Add(s.sessionDur)
+		if err := s.repo.UpdateExpiry(ctx, session.ID, newExpiry); err != nil {
+			return nil, fmt.Errorf("extend session expiry: %w", err)
+		}
+		session.ExpiresAt = newExpiry
 	}
 
 	return session, nil

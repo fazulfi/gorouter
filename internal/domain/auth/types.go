@@ -76,6 +76,7 @@ type SessionRepository interface {
 	FindByTokenHash(ctx context.Context, hash string) (*Session, error)
 	Create(ctx context.Context, session *Session) error
 	Revoke(ctx context.Context, id uuid.UUID) error
+	UpdateExpiry(ctx context.Context, id uuid.UUID, expiresAt time.Time) error
 	DeleteExpired(ctx context.Context) error
 }
 

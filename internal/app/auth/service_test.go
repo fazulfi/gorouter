@@ -14,8 +14,8 @@ import (
 
 // mockUserRepo implements domain.UserRepository in-memory for testing.
 type mockUserRepo struct {
-	mu    sync.RWMutex
-	users map[uuid.UUID]*domain.User
+	mu      sync.RWMutex
+	users   map[uuid.UUID]*domain.User
 	byEmail map[string]*domain.User
 }
 
@@ -125,6 +125,17 @@ func (r *mockSessionRepo) Revoke(_ context.Context, id uuid.UUID) error {
 	}
 	now := time.Now()
 	s.RevokedAt = &now
+	return nil
+}
+
+func (r *mockSessionRepo) UpdateExpiry(_ context.Context, id uuid.UUID, expiresAt time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	s, ok := r.sessions[id]
+	if !ok {
+		return nil
+	}
+	s.ExpiresAt = expiresAt
 	return nil
 }
 

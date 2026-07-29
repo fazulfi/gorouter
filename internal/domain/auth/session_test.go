@@ -64,6 +64,17 @@ func (r *inMemorySessionRepo) Revoke(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (r *inMemorySessionRepo) UpdateExpiry(_ context.Context, id uuid.UUID, expiresAt time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	s, ok := r.sessions[id]
+	if !ok {
+		return nil
+	}
+	s.ExpiresAt = expiresAt
+	return nil
+}
+
 func (r *inMemorySessionRepo) DeleteExpired(_ context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -219,6 +230,111 @@ func TestSessionService_Revoke(t *testing.T) {
 	}
 	if stored.RevokedAt == nil {
 		t.Fatal("expected RevokedAt to be set after revoke")
+	}
+}
+
+func TestSessionService_DefaultExpiry_30Days(t *testing.T) {
+	repo := newInMemorySessionRepo()
+	svc := NewSessionService(repo, 0) // zero duration triggers default
+
+	userID := uuid.New()
+	session, _, err := svc.Create(context.Background(), userID, nil, "", 0)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	expectedMin := time.Now().Add(29 * 24 * time.Hour) // ~29 days from now
+	expectedMax := time.Now().Add(31 * 24 * time.Hour) // ~31 days from now
+
+	if session.ExpiresAt.Before(expectedMin) {
+		t.Errorf("session ExpiresAt %v is before minimum expected %v (indicates <30-day default)",
+			session.ExpiresAt, expectedMin)
+	}
+	if session.ExpiresAt.After(expectedMax) {
+		t.Errorf("session ExpiresAt %v is after maximum expected %v (indicates >30-day default)",
+			session.ExpiresAt, expectedMax)
+	}
+}
+
+func TestSessionService_SlidingExpiry_ValidateExtendsExpiry(t *testing.T) {
+	repo := newInMemorySessionRepo()
+	svc := NewSessionService(repo, 1*time.Hour) // short duration for test
+
+	userID := uuid.New()
+	session, rawToken, err := svc.Create(context.Background(), userID, nil, "", 1*time.Hour)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	// Manually set expiry close to expiration to trigger extension (past halfway point)
+	now := time.Now()
+	session.ExpiresAt = now.Add(10 * time.Minute) // 10 min remaining, less than 30 min (half of 1h)
+
+	// Validate should extend the expiry since we're past the halfway point
+	validated, err := svc.Validate(context.Background(), rawToken)
+	if err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+
+	// After validation, expiry should be approximately now + 1h, not the original now + 10m
+	expectedMin := now.Add(50 * time.Minute)
+	if validated.ExpiresAt.Before(expectedMin) {
+		t.Errorf("sliding expiry: expected ExpiresAt after %v (now+50m), got %v (original was set to now+10m)",
+			expectedMin, validated.ExpiresAt)
+	}
+}
+
+func TestSessionService_SlidingExpiry_ThrottledWithinHalfWindow(t *testing.T) {
+	repo := newInMemorySessionRepo()
+	svc := NewSessionService(repo, 30*24*time.Hour)
+
+	userID := uuid.New()
+	session, rawToken, err := svc.Create(context.Background(), userID, nil, "", 0)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	originalExpiry := session.ExpiresAt
+
+	// Validate shortly after creation — still within the first half of the window,
+	// so the expiry should NOT be extended (throttled).
+	validated, err := svc.Validate(context.Background(), rawToken)
+	if err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+
+	if !validated.ExpiresAt.Equal(originalExpiry) {
+		t.Errorf("throttled sliding: expected ExpiresAt %v unchanged (within first half), got %v",
+			originalExpiry, validated.ExpiresAt)
+	}
+}
+
+func TestSessionService_SlidingExpiry_ExtendsPastHalfWindow(t *testing.T) {
+	repo := newInMemorySessionRepo()
+	svc := NewSessionService(repo, 1*time.Hour) // short duration for test
+
+	userID := uuid.New()
+	session, rawToken, err := svc.Create(context.Background(), userID, nil, "", 1*time.Hour)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	originalExpiry := session.ExpiresAt
+
+	// Advance clock past the halfway point (35 minutes into a 60-minute session)
+	// We need to manually set the expiry to simulate time passing
+	session.ExpiresAt = time.Now().Add(25 * time.Minute) // 25 min remaining, less than 30 min (half)
+
+	validated, err := svc.Validate(context.Background(), rawToken)
+	if err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+
+	// Expiry should have been extended to roughly now + 1 hour
+	expectedMin := time.Now().Add(59 * time.Minute)
+	expectedMax := time.Now().Add(61 * time.Minute)
+	if validated.ExpiresAt.Before(expectedMin) || validated.ExpiresAt.After(expectedMax) {
+		t.Errorf("expected expiry near now+1h, got %v (original was %v)", validated.ExpiresAt, originalExpiry)
 	}
 }
 
