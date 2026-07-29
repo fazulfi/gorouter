@@ -574,15 +574,20 @@ func TestFoundationSchema_ProvidersTypeCheck(t *testing.T) {
 	}
 }
 
-// TestFoundationSchema_RLSEnabled checks Row-Level Security is active on user data tables.
-func TestFoundationSchema_RLSEnabled(t *testing.T) {
+// TestFoundationSchema_RLSBaseline confirms that Row-Level Security is NOT
+// enabled in Phase 1. Phase 1 relies on PostgreSQL roles and filesystem
+// permissions per DECISIONS.md #27 and ARCHITECTURE.md §13. RLS enablement
+// is deferred to a future phase and must be explicitly approved.
+func TestFoundationSchema_RLSBaseline(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping schema contract test in short mode")
 	}
 	ctx := context.Background()
 	pool := getTestPool(t)
 
-	// Tables expected to have RLS enabled
+	// These tables would be RLS candidates, but Phase 1 does not enable RLS.
+	// This test documents the baseline; the assertion flips when RLS is later
+	// approved and implemented.
 	tables := []string{
 		"gorouter_users",
 		"gorouter_sessions",
@@ -591,16 +596,15 @@ func TestFoundationSchema_RLSEnabled(t *testing.T) {
 		"gorouter_audit_log",
 	}
 	for _, tbl := range tables {
-		var rlsEnabled string
+		var rlsEnabled bool
 		err := pool.QueryRow(ctx,
-			`SELECT relrowse FROM pg_class WHERE relname = $1`, tbl,
+			`SELECT relrowsecurity FROM pg_class WHERE relname = $1`, tbl,
 		).Scan(&rlsEnabled)
 		if err != nil {
-			t.Logf("table %s: RLS check skipped (%v)", tbl, err)
-			continue
+			t.Fatalf("table %s: query RLS status: %v", tbl, err)
 		}
-		if rlsEnabled != "t" {
-			t.Errorf("table %s: RLS = %q, want 't'", tbl, rlsEnabled)
+		if rlsEnabled {
+			t.Errorf("table %s: RLS unexpectedly enabled in Phase 1 (Phase 1 does not enable RLS)", tbl)
 		}
 	}
 }
