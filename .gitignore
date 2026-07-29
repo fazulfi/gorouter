@@ -76,3 +76,4 @@ tools/*/dist/
 
 # Test artifacts
 tests/fixtures/upstream/output/
+frontend/tsconfig.tsbuildinfo
