@@ -18,7 +18,7 @@ type apiKeyRepo struct {
 func (r *apiKeyRepo) FindByID(ctx context.Context, id uuid.UUID) (*keys.APIKey, error) {
 	row := r.tx.QueryRow(ctx,
 		`SELECT id, user_id, key_prefix, key_hash, name, scopes, expires_at, last_used_at, revoked_at, created_at
-		 FROM api_keys WHERE id = $1`, id)
+		 FROM gorouter_api_keys WHERE id = $1`, id)
 	k := &keys.APIKey{}
 	err := row.Scan(&k.ID, &k.UserID, &k.KeyPrefix, &k.KeyHash, &k.Name, &k.Scopes,
 		&k.ExpiresAt, &k.LastUsedAt, &k.RevokedAt, &k.CreatedAt)
@@ -34,7 +34,7 @@ func (r *apiKeyRepo) FindByID(ctx context.Context, id uuid.UUID) (*keys.APIKey, 
 func (r *apiKeyRepo) FindByHash(ctx context.Context, hash string) (*keys.APIKey, error) {
 	row := r.tx.QueryRow(ctx,
 		`SELECT id, user_id, key_prefix, key_hash, name, scopes, expires_at, last_used_at, revoked_at, created_at
-		 FROM api_keys WHERE key_hash = $1`, hash)
+		 FROM gorouter_api_keys WHERE key_hash = $1`, hash)
 	k := &keys.APIKey{}
 	err := row.Scan(&k.ID, &k.UserID, &k.KeyPrefix, &k.KeyHash, &k.Name, &k.Scopes,
 		&k.ExpiresAt, &k.LastUsedAt, &k.RevokedAt, &k.CreatedAt)
@@ -50,7 +50,7 @@ func (r *apiKeyRepo) FindByHash(ctx context.Context, hash string) (*keys.APIKey,
 func (r *apiKeyRepo) FindByUserID(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error) {
 	rows, err := r.tx.Query(ctx,
 		`SELECT id, user_id, key_prefix, key_hash, name, scopes, expires_at, last_used_at, revoked_at, created_at
-		 FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+		 FROM gorouter_api_keys WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (r *apiKeyRepo) FindByUserID(ctx context.Context, userID uuid.UUID) ([]keys
 
 func (r *apiKeyRepo) Create(ctx context.Context, key *keys.APIKey) error {
 	_, err := r.tx.Exec(ctx,
-		`INSERT INTO api_keys (id, user_id, key_prefix, key_hash, name, scopes, expires_at, created_at)
+		`INSERT INTO gorouter_api_keys (id, user_id, key_prefix, key_hash, name, scopes, expires_at, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		key.ID, key.UserID, key.KeyPrefix, key.KeyHash, key.Name, key.Scopes,
 		key.ExpiresAt, key.CreatedAt)
@@ -77,7 +77,7 @@ func (r *apiKeyRepo) Create(ctx context.Context, key *keys.APIKey) error {
 }
 
 func (r *apiKeyRepo) Revoke(ctx context.Context, id uuid.UUID) error {
-	_, err := r.tx.Exec(ctx, `UPDATE api_keys SET revoked_at = NOW() WHERE id = $1`, id)
+	_, err := r.tx.Exec(ctx, `UPDATE gorouter_api_keys SET revoked_at = NOW() WHERE id = $1`, id)
 	return err
 }
 
@@ -89,7 +89,7 @@ type patRepo struct {
 func (r *patRepo) FindByID(ctx context.Context, id uuid.UUID) (*keys.PAT, error) {
 	row := r.tx.QueryRow(ctx,
 		`SELECT id, user_id, token_hash, description, expires_at, last_used_at, revoked_at, created_at
-		 FROM personal_access_tokens WHERE id = $1`, id)
+		 FROM gorouter_pats WHERE id = $1`, id)
 	p := &keys.PAT{}
 	err := row.Scan(&p.ID, &p.UserID, &p.TokenHash, &p.Description,
 		&p.ExpiresAt, &p.LastUsedAt, &p.RevokedAt, &p.CreatedAt)
@@ -105,7 +105,7 @@ func (r *patRepo) FindByID(ctx context.Context, id uuid.UUID) (*keys.PAT, error)
 func (r *patRepo) FindByHash(ctx context.Context, hash string) (*keys.PAT, error) {
 	row := r.tx.QueryRow(ctx,
 		`SELECT id, user_id, token_hash, description, expires_at, last_used_at, revoked_at, created_at
-		 FROM personal_access_tokens WHERE token_hash = $1`, hash)
+		 FROM gorouter_pats WHERE token_hash = $1`, hash)
 	p := &keys.PAT{}
 	err := row.Scan(&p.ID, &p.UserID, &p.TokenHash, &p.Description,
 		&p.ExpiresAt, &p.LastUsedAt, &p.RevokedAt, &p.CreatedAt)
@@ -121,7 +121,7 @@ func (r *patRepo) FindByHash(ctx context.Context, hash string) (*keys.PAT, error
 func (r *patRepo) FindByUserID(ctx context.Context, userID uuid.UUID) ([]keys.PAT, error) {
 	rows, err := r.tx.Query(ctx,
 		`SELECT id, user_id, token_hash, description, expires_at, last_used_at, revoked_at, created_at
-		 FROM personal_access_tokens WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+		 FROM gorouter_pats WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +140,13 @@ func (r *patRepo) FindByUserID(ctx context.Context, userID uuid.UUID) ([]keys.PA
 
 func (r *patRepo) Create(ctx context.Context, pat *keys.PAT) error {
 	_, err := r.tx.Exec(ctx,
-		`INSERT INTO personal_access_tokens (id, user_id, token_hash, description, expires_at, created_at)
+		`INSERT INTO gorouter_pats (id, user_id, token_hash, description, expires_at, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		pat.ID, pat.UserID, pat.TokenHash, pat.Description, pat.ExpiresAt, pat.CreatedAt)
 	return err
 }
 
 func (r *patRepo) Revoke(ctx context.Context, id uuid.UUID) error {
-	_, err := r.tx.Exec(ctx, `UPDATE personal_access_tokens SET revoked_at = NOW() WHERE id = $1`, id)
+	_, err := r.tx.Exec(ctx, `UPDATE gorouter_pats SET revoked_at = NOW() WHERE id = $1`, id)
 	return err
 }

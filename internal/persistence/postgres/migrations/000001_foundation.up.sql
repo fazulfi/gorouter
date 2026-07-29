@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS gorouter_users (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Seed default admin user (password: placeholder, must be changed on first login)
+-- Seed default admin user (initial password: 12345678, must be changed on first login)
 INSERT INTO gorouter_users (email, password_hash, display_name, is_admin)
-VALUES ('admin@gorouter.local', '$2a$10$placeholderchangeme', 'Admin', true)
+VALUES ('admin@gorouter.local', '$2a$10$REBPWXtQ9mmup2iap9ibrOiFORTDTwVt/Nd49wrJVXbjhnIc70a2.', 'Admin', true)
 ON CONFLICT (email) DO NOTHING;
 
 -- ============================================================
@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS gorouter_sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON gorouter_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON gorouter_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_revoked_at ON gorouter_sessions(revoked_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON gorouter_sessions(token_hash);
 
 -- ============================================================
 -- Table: gorouter_api_keys
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS gorouter_api_keys (
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON gorouter_api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_revoked_at ON gorouter_api_keys(revoked_at);
+CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON gorouter_api_keys(key_hash);
 
 -- ============================================================
 -- Table: gorouter_pats
@@ -94,6 +96,7 @@ CREATE TABLE IF NOT EXISTS gorouter_pats (
 
 CREATE INDEX IF NOT EXISTS idx_pats_user_id ON gorouter_pats(user_id);
 CREATE INDEX IF NOT EXISTS idx_pats_revoked_at ON gorouter_pats(revoked_at);
+CREATE INDEX IF NOT EXISTS idx_pats_token_hash ON gorouter_pats(token_hash);
 
 -- ============================================================
 -- Table: gorouter_audit_log
