@@ -13,7 +13,7 @@ permissions:
   security-events: write
 
 env:
-  GO_VERSION: "1.23"
+  GO_VERSION: "1.25"
 
 jobs:
   security:
@@ -52,7 +52,7 @@ jobs:
       # Note: govulncheck runs without --json so non-zero exit on
       # reachable vulns gates the workflow.
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.3
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
         env:
           GOFLAGS: ""
 
@@ -70,7 +70,7 @@ jobs:
 
       # ── SBOM: CycloneDX ───────────────────────────────────────
       # NOTE: cyclonedx-gomod latest requires Go ≥1.25.  We are on
-      # Go 1.23, so this step is informational-only.  Pin to a known
+      # Go 1.25, so this step should now work.  Pin to a known
       # compatible version if a generator is verified in CI.
       - name: Install cyclonedx-gomod
         run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.6.0
