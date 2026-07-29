@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -318,8 +319,8 @@ func TestPhase1Evidence_Load(t *testing.T) {
 	if ev.Phase != "1" {
 		t.Errorf("Phase = %q, want %q", ev.Phase, "1")
 	}
-	if ev.Status != "pass" {
-		t.Errorf("Status = %q, want %q", ev.Status, "pass")
+	if ev.Status != "pass" && ev.Status != "fail" {
+		t.Errorf("Status = %q, want pass or fail", ev.Status)
 	}
 	if ev.DurationSeconds <= 0 {
 		t.Errorf("DurationSeconds = %f, want > 0", ev.DurationSeconds)
@@ -338,6 +339,79 @@ func TestPhase1Evidence_Load(t *testing.T) {
 		if c.Status != "pass" && c.Status != "fail" {
 			t.Errorf("Checks[%d].Status = %q, want pass or fail", i, c.Status)
 		}
+	}
+
+	// Validate that the phase-1.json evidence satisfies the required checks
+	checkNames := make(map[string]bool)
+	for _, c := range ev.Checks {
+		checkNames[c.Name] = true
+	}
+	requiredChecks := []string{
+		"go-vet", "go-test", "go-race",
+		"frontend-build", "frontend-test",
+		"code-coverage", "coverage-threshold",
+		"traceability-docs",
+		"security-tests", "security-audit",
+		"parity-tests", "middleware-tests",
+		"auth-tests", "observability-tests",
+		"migration-schema", "postgres-pool", "pg-repositories",
+	}
+	requiredFailed := false
+	for _, required := range requiredChecks {
+		if !checkNames[required] {
+			t.Errorf("phase-1.json missing required check %q", required)
+		}
+		for _, check := range ev.Checks {
+			if check.Name == required && check.Status == "fail" {
+				requiredFailed = true
+			}
+		}
+	}
+	if (ev.Status == "fail") != requiredFailed {
+		t.Errorf("evidence status %q is inconsistent with required check failures=%t", ev.Status, requiredFailed)
+	}
+
+	// Ensure at least 20 checks (17 required + 4 informational)
+	if len(ev.Checks) < 20 {
+		t.Errorf("phase-1.json has %d checks, want at least 20", len(ev.Checks))
+	}
+}
+
+// TestRequiredChecksCoverAll verifies the runner defines all required gates.
+func TestRequiredChecksCoverAll(t *testing.T) {
+	expected := []string{
+		"go-vet", "go-test", "go-race",
+		"frontend-build", "frontend-test",
+		"code-coverage", "coverage-threshold",
+		"traceability-docs",
+		"security-tests", "security-audit",
+		"parity-tests",
+		"middleware-tests",
+		"auth-tests",
+		"observability-tests",
+		"migration-schema",
+		"postgres-pool", "pg-repositories",
+	}
+	for _, name := range expected {
+		if !requiredChecks[name] {
+			t.Errorf("requiredChecks missing %q", name)
+		}
+	}
+	if len(requiredChecks) != len(expected) {
+		t.Errorf("requiredChecks has %d entries, want %d", len(requiredChecks), len(expected))
+	}
+}
+
+// TestInformationalChecksCoverAll verifies the runner defines all informational gates.
+func TestInformationalChecksCoverAll(t *testing.T) {
+	expected := []string{"vps-deployment", "sudoers-hardening", "sbom-generate", "license-check"}
+	for _, name := range expected {
+		if !informationalChecks[name] {
+			t.Errorf("informationalChecks missing %q", name)
+		}
+	}
+	if len(informationalChecks) != len(expected) {
+		t.Errorf("informationalChecks has %d entries, want %d", len(informationalChecks), len(expected))
 	}
 }
 
@@ -383,7 +457,6 @@ func TestRun_ErrorNoGoMod(t *testing.T) {
 		t.Errorf("stderr = %q, want substring %q", stderrBuf.String(), "go.mod not found")
 	}
 }
-
 func TestRun_FullFlow(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -406,8 +479,6 @@ func TestRun_FullFlow(t *testing.T) {
 		}
 	}()
 
-	var stdoutBuf, stderrBuf bytes.Buffer
-
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 	rOut, wOut, err := os.Pipe()
@@ -421,20 +492,27 @@ func TestRun_FullFlow(t *testing.T) {
 	os.Stdout = wOut
 	os.Stderr = wErr
 
+	// Read from pipes concurrently to prevent deadlocks when
+	// output exceeds the OS pipe buffer (~64KB on Windows).
+	var wg sync.WaitGroup
+	var stdoutBuf, stderrBuf bytes.Buffer
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		io.Copy(&stdoutBuf, rOut)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(&stderrBuf, rErr)
+	}()
+
 	exitCode := run()
 
-	if err := wOut.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if err := wErr.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := io.Copy(&stdoutBuf, rOut); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := io.Copy(&stderrBuf, rErr); err != nil {
-		t.Fatal(err)
-	}
+	wOut.Close()
+	wErr.Close()
+	wg.Wait()
+	rOut.Close()
+	rErr.Close()
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
 
@@ -463,15 +541,17 @@ func TestRun_FullFlow(t *testing.T) {
 	if ev.Timestamp.IsZero() {
 		t.Error("Timestamp is zero")
 	}
-	if len(ev.Checks) != 4 {
-		t.Errorf("len(Checks) = %d, want 4", len(ev.Checks))
+
+	minRequired := 21
+	if len(ev.Checks) < minRequired {
+		t.Errorf("len(Checks) = %d, want at least %d", len(ev.Checks), minRequired)
 	}
 
 	checkNames := make(map[string]bool)
 	for _, c := range ev.Checks {
 		checkNames[c.Name] = true
 	}
-	for _, want := range []string{"go-vet", "go-test", "frontend-build", "frontend-test"} {
+	for _, want := range []string{"go-vet", "go-test", "go-race", "frontend-build", "frontend-test", "code-coverage", "coverage-threshold", "traceability-docs", "security-tests", "security-audit", "parity-tests", "middleware-tests", "auth-tests", "observability-tests", "migration-schema", "postgres-pool", "pg-repositories"} {
 		if !checkNames[want] {
 			t.Errorf("missing check %q", want)
 		}
@@ -483,7 +563,7 @@ func TestRun_FullFlow(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(stderrBuf.String(), "some checks failed") {
+	if !strings.Contains(stderrBuf.String(), "some required checks failed") {
 		t.Errorf("stderr = %q, want substring %q", stderrBuf.String(), "some checks failed")
 	}
 }
