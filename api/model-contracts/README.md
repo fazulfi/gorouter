@@ -5,9 +5,11 @@ This directory documents the wire-level contract between gorouter and upstream m
 ## Structure
 
 - `openai/` - OpenAI-compatible request/response shapes (chat, embeddings, models)
-- `anthropic/` - Anthropic Messages API compatibility
+- `responses/` - Unified response envelope shapes across providers
+- `claude/` - Anthropic Claude Messages API compatibility
 - `gemini/` - Google Gemini API compatibility
-- `common/` - Shared schemas (errors, streaming, rate limits)
+- `codex/` - OpenAI OAuth (Codex/Copilot) contract
+- `native/` - Provider-native protocol contracts (non-HTTP-JSON)
 
 ## Contract Format
 
@@ -26,5 +28,7 @@ fixtures from `tests/fixtures/upstream/` to verify:
 
 ## Phase 1
 
-Phase 1 establishes the contract scaffolding. Actual contract types will
-be defined in Phase 2 when model API routes are implemented.
+Phase 1 establishes the contract scaffolding. Each subdirectory contains a
+Phase 1 scaffold README listing the contract types to be defined in Phase 2.
+Actual contract types and Go struct definitions will be added in Phase 2
+when model API routes are implemented.
