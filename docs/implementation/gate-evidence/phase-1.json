@@ -1,7 +1,7 @@
 {
   "phase": "1",
   "status": "pass",
-  "timestamp": "2026-07-30T01:30:00+07:00",
+  "timestamp": "2026-07-30T02:30:00+07:00",
   "duration_seconds": 845.0,
   "checks": [
     {
@@ -134,6 +134,12 @@
       "name": "license-check",
       "status": "fail",
       "output": "INFORMATIONAL — go-licenses v1.6.0 crashes on stdlib packages (known Go 1.23+ module layout issue). All 10 direct dependencies manually verified as permissive (MIT/BSD/Apache-2.0). No GPL/AGPL detected. Automated check blocked; manual inventory passes.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "pr-ci-runs",
+      "status": "pass",
+      "output": "All 4 required PR CI checks PASS at head c11e45f46e738cbe172e418a829b5bc689d3ed33. This evidence edit produces a later SHA and will trigger a final rerun to reconfirm.\n\nFrontend (run 30482836387): https://github.com/fazulfi/gorouter/actions/runs/30482836387\n  - Job: Frontend build + test — PASS (typecheck, vitest unit, Playwright E2E, build, dist artifact)\n\nTest (run 30482836718): https://github.com/fazulfi/gorouter/actions/runs/30482836718\n  - Job: Go test + lint — PASS (go mod tidy, formatting, vet, build, test+coverage, enforce threshold)\n  - Job: Go race detection — PASS (race test on Go 1.25)\n\nPostgreSQL Matrix (run 30482837063): https://github.com/fazulfi/gorouter/actions/runs/30482837063\n  - PG16 normal + race — PASS (integration tests, coverage, containers)\n  - PG17 normal + race — PASS\n  - PG18 normal + race — PASS\n\nSecurity (run 30482837043): https://github.com/fazulfi/gorouter/actions/runs/30482837043\n  - Job: Security scan — PASS (gosec, govulncheck, gitleaks, cyclonedx SBOM, go-licenses)\n\nNote: GH Actions Security run succeeded for SBOM and license check (Go 1.25 on ubuntu-latest); VPS SBOM/license remain informational fail per local Go 1.23.0 limitation. VPS evidence preserved intact.",
       "duration_seconds": 0.0
     }
   ]
