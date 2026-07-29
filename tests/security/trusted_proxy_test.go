@@ -8,6 +8,15 @@ import (
 	"gorouter/internal/transport/middleware"
 )
 
+func newTrustedProxyOrFail(t *testing.T, cfg middleware.TrustedProxyConfig) func(http.Handler) http.Handler {
+	t.Helper()
+	mw, err := middleware.NewTrustedProxy(cfg)
+	if err != nil {
+		t.Fatalf("NewTrustedProxy: %v", err)
+	}
+	return mw
+}
+
 // TestTrustedProxy_UntrustedSpoofing simulates an untrusted IP attempting
 // to spoof X-Forwarded-For to bypass security controls.
 func TestTrustedProxy_UntrustedSpoofing(t *testing.T) {
@@ -15,7 +24,7 @@ func TestTrustedProxy_UntrustedSpoofing(t *testing.T) {
 		TrustedProxies: []string{"10.0.0.0/8", "192.168.0.0/16"},
 	}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Security check: untrusted IP must not affect forwarded headers
 		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 			t.Errorf("SECURITY FAIL: untrusted IP spoofed X-Forwarded-For=%q", fwd)
@@ -46,7 +55,7 @@ func TestTrustedProxy_TrustedChain(t *testing.T) {
 		TrustedProxies: []string{"10.0.0.0/8"},
 	}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fwd := r.Header.Get("X-Forwarded-For")
 		if fwd != "1.2.3.4, 5.6.7.8" {
 			t.Errorf("expected preserved chain, got %q", fwd)
@@ -73,7 +82,7 @@ func TestTrustedProxy_MultipleXForwardedFor(t *testing.T) {
 		TrustedProxies: []string{"10.0.0.0/8"},
 	}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fwd := r.Header.Get("X-Forwarded-For")
 		if fwd == "" {
 			t.Error("expected non-empty X-Forwarded-For from trusted source")
@@ -100,7 +109,7 @@ func TestTrustedProxy_IPv6UntrustedSpoof(t *testing.T) {
 		TrustedProxies: []string{"fd00::/8"},
 	}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 			t.Errorf("SECURITY FAIL: untrusted IPv6 spoofed X-Forwarded-For=%q", fwd)
 		}
@@ -125,7 +134,7 @@ func TestTrustedProxy_SpoofedXRealIP(t *testing.T) {
 		TrustedProxies: []string{"10.0.0.0/8"},
 	}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 			t.Errorf("SECURITY FAIL: untrusted IP spoofed X-Real-IP=%q", realIP)
 		}
@@ -149,7 +158,7 @@ func TestTrustedProxy_SpoofedXRealIP(t *testing.T) {
 func TestTrustedProxy_EmptyTrustedProxies(t *testing.T) {
 	cfg := middleware.TrustedProxyConfig{}
 
-	handler := middleware.TrustedProxy(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := newTrustedProxyOrFail(t, cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 			t.Errorf("expected stripped with empty config, got %q", fwd)
 		}

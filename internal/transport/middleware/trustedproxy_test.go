@@ -104,7 +104,7 @@ func TestTrustedProxy_ChainedProxies(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-Forwarded-For", "1.2.3.4, 5.6.7.8") // external clients behind proxy
-	req.RemoteAddr = "10.0.0.99:34567"                     // trusted proxy
+	req.RemoteAddr = "10.0.0.99:34567"                    // trusted proxy
 
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -205,18 +205,36 @@ func TestTrustedProxy_EmptyConfig(t *testing.T) {
 	}
 }
 
-func TestTrustedProxy_InvalidCIDR(t *testing.T) {
-	// Invalid CIDR should cause panic at middleware construction
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic on invalid CIDR, got none")
-		}
-	}()
+func TestNewTrustedProxy_ValidConfig(t *testing.T) {
+	mw, err := NewTrustedProxy(TrustedProxyConfig{
+		TrustedProxies: []string{"10.0.0.0/8", "192.168.0.0/16"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mw == nil {
+		t.Fatal("expected non-nil middleware")
+	}
+}
 
+func TestNewTrustedProxy_EmptyConfig(t *testing.T) {
+	mw, err := NewTrustedProxy(TrustedProxyConfig{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mw == nil {
+		t.Fatal("expected non-nil middleware")
+	}
+}
+
+func TestNewTrustedProxy_InvalidCIDR(t *testing.T) {
 	cfg := TrustedProxyConfig{
 		TrustedProxies: []string{"not-a-cidr"},
 	}
-	_ = TrustedProxy(cfg) // should panic
+	_, err := NewTrustedProxy(cfg)
+	if err == nil {
+		t.Error("expected error for invalid CIDR, got nil")
+	}
 }
 
 func TestTrustedProxy_PreservesOtherHeaders(t *testing.T) {
