@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  postgres-16:
+    image: postgres:16
+    container_name: gorouter-pg-16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gorouter_test
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - pg16_data:/var/lib/postgresql/data
+    profiles:
+      - pg16
+      - all
+
+  postgres-17:
+    image: postgres:17
+    container_name: gorouter-pg-17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gorouter_test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - pg17_data:/var/lib/postgresql/data
+    profiles:
+      - pg17
+      - all
+
+  postgres-18:
+    image: postgres:18
+    container_name: gorouter-pg-18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gorouter_test
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - pg18_data:/var/lib/postgresql/data
+    profiles:
+      - pg18
+      - all
+
+volumes:
+  pg16_data:
+  pg17_data:
+  pg18_data:
