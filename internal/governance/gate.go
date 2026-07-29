@@ -26,11 +26,61 @@ type GateCheck struct {
 }
 
 // requiredPhase1Checks lists the checks that must be present for Phase 1.
+// These are the mandatory quality, security, and coverage checks that gate
+// passage depends on.
 var requiredPhase1Checks = map[string]bool{
-	"go-vet":         false,
-	"go-test":        false,
-	"frontend-build": false,
-	"frontend-test":  false,
+	"go-vet":              false,
+	"go-test":             false,
+	"go-race":             false,
+	"frontend-build":      false,
+	"frontend-test":       false,
+	"code-coverage":       false,
+	"coverage-threshold":  false,
+	"traceability-docs":   false,
+	"security-tests":      false,
+	"security-audit":      false,
+	"parity-tests":        false,
+	"middleware-tests":    false,
+	"auth-tests":          false,
+	"observability-tests": false,
+	"migration-schema":    false,
+	"postgres-pool":       false,
+	"pg-repositories":     false,
+}
+
+// informationalPhase1Checks lists checks that are informational only and
+// do not block gate passage. These typically include deployment evidence
+// and operational hardening records.
+var informationalPhase1Checks = map[string]bool{
+	"vps-deployment":    false,
+	"sudoers-hardening": false,
+	"sbom-generate":     false,
+	"license-check":     false,
+}
+
+// RequiredPhase1CheckNames returns the sorted list of required check names.
+func RequiredPhase1CheckNames() []string {
+	names := make([]string, 0, len(requiredPhase1Checks))
+	for name := range requiredPhase1Checks {
+		names = append(names, name)
+	}
+	return names
+}
+
+// InformationalPhase1CheckNames returns the sorted list of informational check names.
+func InformationalPhase1CheckNames() []string {
+	names := make([]string, 0, len(informationalPhase1Checks))
+	for name := range informationalPhase1Checks {
+		names = append(names, name)
+	}
+	return names
+}
+
+// AllPhase1CheckNames returns all known Phase 1 check names (required + informational).
+func AllPhase1CheckNames() []string {
+	names := RequiredPhase1CheckNames()
+	names = append(names, InformationalPhase1CheckNames()...)
+	return names
 }
 
 // ValidateGateEvidence validates a GateEvidence struct against Phase 1 rules.
@@ -40,7 +90,7 @@ var requiredPhase1Checks = map[string]bool{
 //   - Timestamp must be set
 //   - At least one check exists
 //   - Each check has required fields
-//   - All required checks (go-vet, go-test, frontend-build, frontend-test) are present
+//   - All required checks are present (informational checks are optional)
 func ValidateGateEvidence(ge *GateEvidence) error {
 	if ge.Phase != "1" {
 		return fmt.Errorf("gate_evidence: phase must be \"1\", got %q", ge.Phase)
@@ -66,6 +116,7 @@ func ValidateGateEvidence(ge *GateEvidence) error {
 		if _, ok := found[check.Name]; ok {
 			found[check.Name] = true
 		}
+		// Informational checks do not count toward the required set
 	}
 
 	for name, present := range found {
@@ -78,12 +129,17 @@ func ValidateGateEvidence(ge *GateEvidence) error {
 }
 
 // GateEvidencePassed returns true if the evidence status is "pass" and all
-// individual checks also have status "pass".
+// individual required checks also have status "pass". Informational checks
+// (vps-deployment, sudoers-hardening, sbom-generate, license-check) do not
+// affect the pass/fail determination.
 func GateEvidencePassed(ge *GateEvidence) bool {
 	if ge.Status != "pass" {
 		return false
 	}
 	for _, c := range ge.Checks {
+		if _, ok := informationalPhase1Checks[c.Name]; ok {
+			continue // informational checks do not block gate passage
+		}
 		if c.Status != "pass" {
 			return false
 		}
