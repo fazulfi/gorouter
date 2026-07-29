@@ -16,15 +16,17 @@ permissions:
 
 env:
   GO_VERSION: "1.23"
+  COVERAGE_THRESHOLD: 80.0
 
 jobs:
   postgres:
-    name: PostgreSQL ${{ matrix.pg-version }}
+    name: PostgreSQL ${{ matrix.pg-version }}${{ matrix.race == 'race' && ' + race' || '' }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         pg-version: ["16", "17", "18"]
+        race: [off, on]
       fail-fast: false
 
     services:
@@ -52,17 +54,44 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Run integration tests
-        run: go test -count=1 -v ./internal/persistence/...
+      - name: Run integration tests ${{ matrix.race == 'on' && 'with race' || '' }}
+        run: |
+          RACE_FLAG="${{ matrix.race == 'on' && '-race' || '' }}"
+          go test $RACE_FLAG -count=1 -coverprofile=coverage.out -covermode=atomic -v ./internal/persistence/...
         env:
-          GOROUTER_TEST_DSN: postgres://postgres:postgres@localhost:5432/gorouter_test?sslmode=disable
-          GOROUTER_TEST_INTEGRATION: "true"
+          # Tests read POSTGRES_TEST_DSN (tx_integration_test.go, auth_repo_test.go)
+          # and DATABASE_URL (migrations/runner_test.go), NOT GOROUTER_TEST_DSN.
+          POSTGRES_TEST_DSN: postgres://postgres:postgres@localhost:5432/gorouter_test?sslmode=disable
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/gorouter_test?sslmode=disable
+
+      - name: Enforce coverage threshold
+        run: |
+          if [ -f coverage.out ]; then
+            total=$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $NF}' | sed 's/%//')
+            echo "PostgreSQL ${{ matrix.pg-version }} coverage: ${total}%"
+            if [ "$(echo "${total} < ${COVERAGE_THRESHOLD}" | bc -l)" -eq 1 ]; then
+              echo "::error::Coverage ${total}% is below threshold ${COVERAGE_THRESHOLD}%"
+              exit 1
+            fi
+            echo "::notice::Coverage ${total}% meets threshold ${COVERAGE_THRESHOLD}%"
+          else
+            echo "No coverage file produced — skipping threshold check"
+          fi
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-pg${{ matrix.pg-version }}${{ matrix.race == 'on' && '-race' || '' }}
+          path: coverage.out
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: postgres-${{ matrix.pg-version }}-results
+          name: postgres-${{ matrix.pg-version }}${{ matrix.race == 'on' && '-race' || '' }}-results
           path: |
             **/go-test*.out
             **/coverage.out
