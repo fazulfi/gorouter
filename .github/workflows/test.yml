@@ -11,6 +11,7 @@ permissions:
 
 env:
   GO_VERSION: "1.23"
+  COVERAGE_THRESHOLD: 80.0
 
 jobs:
   test:
@@ -31,7 +32,7 @@ jobs:
         run: |
           go mod tidy
           if ! git diff --quiet -- go.mod go.sum; then
-            echo "go.mod or go.sum changed after go mod tidy — run 'go mod tidy' locally"
+            echo "::error::go.mod or go.sum changed after go mod tidy — run 'go mod tidy' locally"
             git diff go.mod go.sum
             exit 1
           fi
@@ -40,7 +41,7 @@ jobs:
         run: |
           unformatted=$(go fmt ./...)
           if [ -n "$unformatted" ]; then
-            echo "Unformatted files:"
+            echo "::error::Unformatted files:"
             echo "$unformatted"
             exit 1
           fi
@@ -51,8 +52,26 @@ jobs:
       - name: Build
         run: go build ./cmd/gorouter/... ./internal/...
 
-      - name: Test (short)
-        run: go test -short -count=1 ./...
+      - name: Test (short) with coverage
+        run: go test -short -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Enforce coverage threshold
+        run: |
+          total=$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $NF}' | sed 's/%//')
+          echo "Total coverage: ${total}%"
+          if [ "$(echo "${total} < ${COVERAGE_THRESHOLD}" | bc -l)" -eq 1 ]; then
+            echo "::error::Coverage ${total}% is below threshold ${COVERAGE_THRESHOLD}%"
+            exit 1
+          fi
+          echo "::notice::Coverage ${total}% meets threshold ${COVERAGE_THRESHOLD}%"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-results
+          path: coverage.out
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Upload test results
         if: always()
