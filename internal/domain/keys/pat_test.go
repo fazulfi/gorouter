@@ -10,8 +10,8 @@ import (
 )
 
 type inMemoryPATRepo struct {
-	mu   sync.RWMutex
-	pats map[uuid.UUID]*PAT
+	mu     sync.RWMutex
+	pats   map[uuid.UUID]*PAT
 	byHash map[string]*PAT
 }
 

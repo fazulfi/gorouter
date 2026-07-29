@@ -10,8 +10,8 @@ import (
 )
 
 type inMemoryAPIKeyRepo struct {
-	mu   sync.RWMutex
-	keys map[uuid.UUID]*APIKey
+	mu     sync.RWMutex
+	keys   map[uuid.UUID]*APIKey
 	byHash map[string]*APIKey
 }
 

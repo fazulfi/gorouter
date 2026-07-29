@@ -59,15 +59,15 @@ const (
 
 // ModelAPIKeyConfig represents configuration for model-scoped API keys.
 type ModelAPIKeyConfig struct {
-	ID          uuid.UUID
-	ModelID     string
-	APIKeyID    uuid.UUID
-	Priority    int
-	MaxTokens   int64
-	AllowedIPs  []string
-	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID         uuid.UUID
+	ModelID    string
+	APIKeyID   uuid.UUID
+	Priority   int
+	MaxTokens  int64
+	AllowedIPs []string
+	IsActive   bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // APIKeyRepository defines persistence operations for API keys.

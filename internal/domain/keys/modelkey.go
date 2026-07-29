@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	ErrKeyExpired   = errors.New("API key has expired")
-	ErrKeyRevoked   = errors.New("API key has been revoked")
-	ErrKeyNotFound  = errors.New("API key not found")
+	ErrKeyExpired  = errors.New("API key has expired")
+	ErrKeyRevoked  = errors.New("API key has been revoked")
+	ErrKeyNotFound = errors.New("API key not found")
 )
 
 const (
