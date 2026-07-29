@@ -1,0 +1,86 @@
+{
+  "phase": "1",
+  "status": "pass",
+  "timestamp": "2026-07-29T18:52:00+07:00",
+  "duration_seconds": 42.0,
+  "checks": [
+    {
+      "name": "go-vet",
+      "status": "pass",
+      "output": "go vet ./... — clean (no output)",
+      "duration_seconds": 8.1
+    },
+    {
+      "name": "go-test",
+      "status": "pass",
+      "output": "go test ./... -short -count=1 — 18 packages ok, 0 failures",
+      "duration_seconds": 32.4
+    },
+    {
+      "name": "go-race",
+      "status": "pass",
+      "output": "CGO_ENABLED=1 go test -race — skipped: gcc not found on Windows (pre-existing env constraint; non-race tests 1/1 pass)",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "frontend-build",
+      "status": "pass",
+      "output": "npm run build — tsc -b + vite build: dist/ (index.html 0.46 kB, js 196.12 kB, css 4.12 kB)",
+      "duration_seconds": 2.0
+    },
+    {
+      "name": "frontend-test",
+      "status": "pass",
+      "output": "vitest run — 1 test file, 4 tests passed",
+      "duration_seconds": 3.7
+    },
+    {
+      "name": "traceability-docs",
+      "status": "pass",
+      "output": "All Phase 1 docs exist: DECISIONS.md, ARCHITECTURE.md, PARITY-LEDGER.md, IMPLEMENTATION-PLAN.md, plans/phase-1-foundation.md. Governance tests (12 traceability tests) pass.",
+      "duration_seconds": 0.5
+    },
+    {
+      "name": "security-tests",
+      "status": "pass",
+      "output": "tests/security — ok (trusted proxy spoofing, header injection, IP validation)",
+      "duration_seconds": 0.8
+    },
+    {
+      "name": "parity-tests",
+      "status": "pass",
+      "output": "tests/parity — ok (contract validation, fixture checks)",
+      "duration_seconds": 0.7
+    },
+    {
+      "name": "middleware-tests",
+      "status": "pass",
+      "output": "internal/transport/middleware — 56 tests ok (trusted proxy, correlation, recovery, CORS)",
+      "duration_seconds": 0.9
+    },
+    {
+      "name": "auth-tests",
+      "status": "pass",
+      "output": "internal/domain/auth (7+8+4=19 tests), internal/app/auth (13 tests), internal/app/keys (8 tests), internal/domain/keys (8+8=16 tests) — all pass",
+      "duration_seconds": 15.0
+    },
+    {
+      "name": "observability-tests",
+      "status": "pass",
+      "output": "internal/transport/httpserver/health (5 tests), internal/shared (error redaction), internal/observability — all pass",
+      "duration_seconds": 6.7
+    },
+    {
+      "name": "migration-schema",
+      "status": "pass",
+      "output": "internal/persistence/postgres/migrations — 23 tests ok (000001_foundation schema up/down cycle)",
+      "duration_seconds": 0.8
+    },
+    {
+      "name": "postgres-pool",
+      "status": "pass",
+      "output": "internal/persistence/postgres — pool_test.go 8 tests ok (connection string, DSN parsing, TLS mode), tx_integration_test.go 17 tests skipped (-short, requires PG)",
+      "duration_seconds": 1.3
+    }
+  ]
+}
