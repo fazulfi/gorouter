@@ -30,27 +30,88 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # ── SAST: gosec ────────────────────────────────────────────
       - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.21.2
         env:
           GOFLAGS: ""
 
       - name: Run gosec
-        run: gosec -no-fail -fmt sarif -out gosec-results.sarif ./...
-        continue-on-error: true
+        run: gosec -fmt sarif -out gosec-results.sarif ./...
+        env:
+          GOFLAGS: ""
 
       - name: Upload gosec SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
           category: gosec
-        continue-on-error: true
 
+      # ── Vulnerability audit: govulncheck ───────────────────────
+      # Note: govulncheck runs without --json so non-zero exit on
+      # reachable vulns gates the workflow.
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.3
         env:
           GOFLAGS: ""
 
       - name: Run govulncheck
         run: govulncheck ./...
+
+      # ── Secret scanning: gitleaks ──────────────────────────────
+      - name: Install gitleaks
+        run: go install github.com/gitleaks/gitleaks/v8@v8.24.3
+        env:
+          GOFLAGS: ""
+
+      - name: Run gitleaks
+        run: gitleaks detect --source . --verbose --no-git
+
+      # ── SBOM: CycloneDX ───────────────────────────────────────
+      # NOTE: cyclonedx-gomod latest requires Go ≥1.25.  We are on
+      # Go 1.23, so this step is informational-only.  Pin to a known
+      # compatible version if a generator is verified in CI.
+      - name: Install cyclonedx-gomod
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.6.0
         continue-on-error: true
+        env:
+          GOFLAGS: ""
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: cyclonedx-gomod mod -licenses -json -output gorouter.sbom.json .
+        continue-on-error: true
+
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: gorouter.sbom.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      # ── License check ──────────────────────────────────────────
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses@v1.6.0
+        env:
+          GOFLAGS: ""
+
+      - name: Check for restricted licenses
+        run: go-licenses check ./...
+        continue-on-error: true
+        # NOTE: go-licenses is informational-only; it may fail on
+        # non-standard licenses that are not actually restrictive.
+        # Review failures manually before making it required.
+
+      - name: Save license report
+        run: go-licenses csv ./ > license-report.csv
+        continue-on-error: true
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.csv
+          retention-days: 30
+          if-no-files-found: ignore
