@@ -1,0 +1,70 @@
+name: PostgreSQL Matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "internal/persistence/**"
+      - "tests/integration/postgres/**"
+      - "go.mod"
+      - "go.sum"
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.23"
+
+jobs:
+  postgres:
+    name: PostgreSQL ${{ matrix.pg-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        pg-version: ["16", "17", "18"]
+      fail-fast: false
+
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg-version }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gorouter_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U postgres
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run integration tests
+        run: go test -count=1 -v ./internal/persistence/...
+        env:
+          GOROUTER_TEST_DSN: postgres://postgres:postgres@localhost:5432/gorouter_test?sslmode=disable
+          GOROUTER_TEST_INTEGRATION: "true"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-${{ matrix.pg-version }}-results
+          path: |
+            **/go-test*.out
+            **/coverage.out
+          retention-days: 7
+          if-no-files-found: ignore
