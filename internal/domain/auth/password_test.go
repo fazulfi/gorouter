@@ -70,6 +70,24 @@ func TestPasswordService_HashPassword_EmptyString(t *testing.T) {
 	}
 }
 
+// knownBootstrapHash is the bcrypt hash of "12345678" used in the foundation migration.
+// This must remain stable for replayable migrations.
+const knownBootstrapHash = "$2a$10$REBPWXtQ9mmup2iap9ibrOiFORTDTwVt/Nd49wrJVXbjhnIc70a2."
+
+func TestPasswordService_BootstrapHashIsValid(t *testing.T) {
+	svc := NewPasswordService()
+	if !svc.VerifyPassword(knownBootstrapHash, "12345678") {
+		t.Fatal("bootstrap hash does not match password '12345678'")
+	}
+}
+
+func TestPasswordService_BootstrapHashRejectsWrongPassword(t *testing.T) {
+	svc := NewPasswordService()
+	if svc.VerifyPassword(knownBootstrapHash, "wrong-password") {
+		t.Fatal("bootstrap hash should NOT match any other password")
+	}
+}
+
 func TestPasswordService_HashPassword_ProducesBcryptHash(t *testing.T) {
 	svc := NewPasswordService()
 
