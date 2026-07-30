@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 
+	"gorouter/internal/app/tx"
 	"gorouter/internal/bootstrap"
+	"gorouter/internal/persistence/postgres"
 )
+
+// defaultPoolMaxConns is the default maximum pool size when not overridden.
+const defaultPoolMaxConns int32 = 10
 
 func main() {
 	os.Exit(run())
@@ -50,6 +56,22 @@ func run() int {
 		bootstrap.WithStderr(os.Stderr),
 		bootstrap.WithStdout(os.Stdout),
 	)
+
+	// Initialize PostgreSQL connection pool when a database URL is configured.
+	if cfg.DatabaseURL != "" {
+		pgCfg := postgres.PoolConfig{
+			DSN:      cfg.DatabaseURL,
+			MaxConns: defaultPoolMaxConns,
+		}
+		pool, poolErr := postgres.Open(context.Background(), pgCfg)
+		if poolErr != nil {
+			logger.Error().Err(poolErr).Msg("failed to open database pool")
+			return 1
+		}
+		app.DB = pool.Pool()
+		app.TxMgr = tx.NewTransactionManager(app.DB)
+		logger.Info().Msg("database pool initialised")
+	}
 
 	logger.Info().
 		Str("mode", string(mode)).
