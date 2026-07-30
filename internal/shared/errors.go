@@ -34,6 +34,7 @@ const (
 //
 // The Err field and sensitive Details are redacted from JSON serialization to
 // prevent leaking internal information to API consumers.
+// Retryable indicates whether the caller may retry the same request.
 type AppError struct {
 	Code       ErrorCode   `json:"code"`
 	Message    string      `json:"message"`
@@ -41,6 +42,7 @@ type AppError struct {
 	HTTPStatus int         `json:"-"` // not serialized
 	Err        error       `json:"-"` // wrapped error, redacted from JSON
 	RequestID  string      `json:"request_id,omitempty"`
+	Retryable  bool        `json:"retryable"`
 }
 
 // Error implements the error interface.
@@ -77,8 +79,8 @@ func (e *AppError) HTTPStatusCode() int {
 // RedactDetails returns a copy of AppError with sensitive fields cleared
 // (Err and RequestID). The Details field is preserved since its sensitivity
 // depends on the struct schema (callers should use `json:"-"` tags on
-// sensitive Detail fields). The original AppError is never modified
-// (copy-on-redact).
+// sensitive Detail fields). Retryable is safe and preserved.
+// The original AppError is never modified (copy-on-redact).
 func (e *AppError) RedactDetails() *AppError {
 	if e == nil {
 		return nil
@@ -98,15 +100,44 @@ func (e *AppError) MarshalJSON() ([]byte, error) {
 	return json.Marshal((*appError)(redacted))
 }
 
+// AppErrorOption is a functional option for constructing AppError.
+type AppErrorOption func(*AppError)
+
+// WithRetryable marks the error as retryable.
+func WithRetryable(retryable bool) AppErrorOption {
+	return func(e *AppError) {
+		e.Retryable = retryable
+	}
+}
+
+// WithRequestID attaches a correlation/request ID to the error.
+func WithRequestID(id string) AppErrorOption {
+	return func(e *AppError) {
+		e.RequestID = id
+	}
+}
+
+// WithDetails attaches structured details to the error.
+func WithDetails(details interface{}) AppErrorOption {
+	return func(e *AppError) {
+		e.Details = details
+	}
+}
+
 // NewAppError creates a new AppError. Provide 0 for httpStatus to use the
-// default mapping from code.
-func NewAppError(code ErrorCode, message string, httpStatus int, err error) *AppError {
-	return &AppError{
+// default mapping from code. Additional options like WithRetryable,
+// WithRequestID, and WithDetails can be provided.
+func NewAppError(code ErrorCode, message string, httpStatus int, err error, opts ...AppErrorOption) *AppError {
+	a := &AppError{
 		Code:       code,
 		Message:    message,
 		HTTPStatus: httpStatus,
 		Err:        err,
 	}
+	for _, opt := range opts {
+		opt(a)
+	}
+	return a
 }
 
 // AsAppError extracts an *AppError from the error chain. Returns nil, false if
