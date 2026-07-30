@@ -175,4 +175,164 @@ parity_rows:
     status: "completed"
     required_evidence: "Immutability, export, redaction, actor tests"
 
+  - area: "Routing and model resolution"
+    id: "MODEL-01"
+    capability: "Model reference grammar with positional colons"
+    disposition: "Preserve"
+    decisions: [110]
+    phase: 2
+    task: "P2-T01"
+    status: "completed"
+    required_evidence: "Parser tests for namespace/model(variant):account:capability"
+
+  - area: "Provider matrix"
+    id: "PROV-01"
+    capability: "Provider account priority, cooldown, proxy selection"
+    disposition: "Change/harden"
+    decisions: [120, 136, 137, 376]
+    phase: 2
+    task: "P2-T02"
+    status: "completed"
+    required_evidence: "Priority ordering, cooldown, proxy repo tests"
+
+  - area: "Engine contracts"
+    id: "ENGINE-01"
+    capability: "Executor, translator, streaming interfaces"
+    disposition: "Change"
+    decisions: []
+    phase: 2
+    task: "P2-T03"
+    status: "completed"
+    required_evidence: "Interface conformance tests"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-06"
+    capability: "OpenAI Chat Completions transport + format detection"
+    disposition: "Preserve"
+    decisions: []
+    phase: 2
+    task: "P2-T04"
+    status: "completed"
+    required_evidence: "Format detector tests, /v1/chat/completions parity"
+
+  - area: "HTTP and compatibility contracts"
+    id: "HTTP-26"
+    capability: "Double /v1/v1/* and /codex/* legacy path compatibility"
+    disposition: "Preserve permanently"
+    decisions: [110]
+    phase: 2
+    task: "P2-T04"
+    status: "completed"
+    required_evidence: "Legacy path integration tests"
+
+  - area: "Executor matrix"
+    id: "EXEC-01"
+    capability: "Generic OpenAI-compatible executor with SSE"
+    disposition: "Preserve"
+    decisions: []
+    phase: 2
+    task: "P2-T05"
+    status: "completed"
+    required_evidence: "Non-streaming and streaming executor tests"
+
+  - area: "Executor matrix"
+    id: "EXEC-02"
+    capability: "Codex specialized executor (Responses API, SSE peek)"
+    disposition: "Preserve"
+    decisions: []
+    phase: 2
+    task: "P2-T06"
+    status: "completed"
+    required_evidence: "First-event peek tests, format normalization"
+
+  - area: "Orchestration"
+    id: "ORCH-01"
+    capability: "Orchestrator pipeline (detect/translate/resolve/select/execute)"
+    disposition: "Change"
+    decisions: []
+    phase: 2
+    task: "P2-T07"
+    status: "completed"
+    required_evidence: "Pipeline stage tests, error propagation"
+
+  - area: "SSE streaming lifecycle"
+    id: "STREAM-113"
+    capability: "500ms disconnect grace"
+    disposition: "Preserve"
+    decisions: [113]
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+    required_evidence: "Client disconnect + grace timer test"
+
+  - area: "SSE streaming lifecycle"
+    id: "STREAM-116"
+    capability: "6-minute raw-byte stall watchdog"
+    disposition: "Preserve"
+    decisions: [116]
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+    required_evidence: "Stall timeout test with atomic time"
+
+  - area: "SSE streaming lifecycle"
+    id: "STREAM-118"
+    capability: "200s first-chunk timeout"
+    disposition: "Preserve"
+    decisions: [118]
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+    required_evidence: "First-chunk timeout fake-clock test"
+
+  - area: "Retry and refresh"
+    id: "RETRY-93"
+    capability: "Reactive 401/403 refresh with bounded retry, same-model fallback"
+    disposition: "Preserve"
+    decisions: [93, 94, 95]
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+    required_evidence: "Refresh success/failure, fallback exhaustion, cooldown"
+
+  - area: "Errors"
+    id: "ERROR-111"
+    capability: "Structured sanitized error with correlation ID, type/code/retryable"
+    disposition: "Change/harden"
+    decisions: [111, 145]
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+    required_evidence: "Redaction fuzz tests, structured contract tests"
+
+  - area: "Auth and authorization"
+    id: "AUTH-07"
+    capability: "Model API key middleware with 4-transport precedence"
+    disposition: "Change"
+    decisions: [70]
+    phase: 2
+    task: "P2-T04"
+    status: "completed"
+    required_evidence: "Bearer/x-api-key/x-goog/query precedence + redaction tests"
+
+  - area: "Usage acceptance"
+    id: "USAGE-124"
+    capability: "Durable async usage acceptance"
+    disposition: "Change"
+    decisions: [124]
+    phase: 2
+    task: "P2-T10"
+    status: "deferred-partial"
+    required_evidence: "Worker exists; full accept-flush hook deferred to Phase 3"
+
+  - area: "Integrated vertical slice"
+    id: "SLICE-01"
+    capability: "End-to-end integrated slice: HTTP+PG+fake upstream"
+    disposition: "New (approved addition)"
+    decisions: []
+    phase: 2
+    task: "P2-T11"
+    status: "completed"
+    required_evidence: "tests/integration/verticalslice_test.go covers non-streaming, auth, model-not-found, cancel"
+
 entries: []
