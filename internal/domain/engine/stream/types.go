@@ -180,10 +180,15 @@ func (s *Stream) WithKeepalive(interval time.Duration) *Stream {
 			}
 			s.mu.Unlock()
 
-			select {
-			case s.chunks <- Chunk{Event: "keepalive"}:
-			default:
-			}
+			func() {
+				defer func() {
+					recover() //nolint:errcheck // guard against send on closed channel
+				}()
+				select {
+				case s.chunks <- Chunk{Event: "keepalive"}:
+				default:
+				}
+			}()
 		}
 	}()
 	return s
@@ -198,4 +203,11 @@ func (s *Stream) StreamID() uuid.UUID {
 // ID returns the stream's unique identifier (alias for StreamID).
 func (s *Stream) ID() uuid.UUID {
 	return s.id
+}
+
+// Done returns a channel that is closed when the stream reaches a terminal
+// state (Done, Errored, or Cancelled). Callers can use this to wait for stream
+// completion without polling.
+func (s *Stream) Done() <-chan struct{} {
+	return s.done
 }

@@ -4,16 +4,27 @@ import (
 	"io"
 	"os"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+
+	"gorouter/internal/app/tx"
 )
 
 // App is the top-level dependency container for gorouter. It wires
-// configuration, logging, and other shared infrastructure together.
+// configuration, logging, database, and other shared infrastructure together.
 type App struct {
 	Config Config
 	Logger zerolog.Logger
 	Stderr io.Writer
 	Stdout io.Writer
+
+	// DB is the optional PostgreSQL connection pool. When nil the database
+	// is not available (CLI/helper modes or startup without DatabaseURL).
+	DB *pgxpool.Pool
+
+	// TxMgr is the optional transaction manager backed by DB. Nil when DB is
+	// nil.
+	TxMgr *tx.TransactionManager
 }
 
 // AppOption is a functional option for configuring App.
@@ -67,7 +78,10 @@ func newLogger(cfg Config, w io.Writer) zerolog.Logger {
 		Logger()
 }
 
-// Close releases resources held by App. Currently a no-op.
+// Close releases resources held by App.
 func (a *App) Close() error {
+	if a.DB != nil {
+		a.DB.Close()
+	}
 	return nil
 }

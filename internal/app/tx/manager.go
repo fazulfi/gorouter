@@ -131,10 +131,18 @@ func (s *TxScope) Proxies() provider.ProxyRepository { return s.proxies }
 // Models returns the scoped ModelRepository.
 func (s *TxScope) Models() ModelRepository { return s.models }
 
+// TxScopeFactory is a function type that creates a fully-wired TxScope from a
+// pgx transaction. It is injected at bootstrap time to break the import cycle
+// between the tx package (domain agnostic) and the repositories package
+// (concrete SQL implementations).
+type TxScopeFactory func(pgx.Tx) *TxScope
+
 // TransactionManager manages database transactions and provides scoped repository
 // access through TxScope. It depends on a pgx connection pool injected via New.
+// The ScopeFactory must be set before Begin is called, typically at bootstrap.
 type TransactionManager struct {
-	pool *pgxpool.Pool
+	pool         *pgxpool.Pool
+	scopeFactory TxScopeFactory
 }
 
 // NewTransactionManager creates a TransactionManager backed by the given pool.
@@ -142,12 +150,24 @@ func NewTransactionManager(pool *pgxpool.Pool) *TransactionManager {
 	return &TransactionManager{pool: pool}
 }
 
+// SetScopeFactory injects the TxScopeFactory function. Must be called before
+// Begin, typically during bootstrap wiring.
+func (tm *TransactionManager) SetScopeFactory(fn TxScopeFactory) {
+	tm.scopeFactory = fn
+}
+
 // Begin opens a new database transaction and returns a TxScope that provides
-// scoped access to domain repositories within that transaction.
+// scoped access to domain repositories within that transaction. The scope is
+// fully wired when a scope factory has been set via SetScopeFactory.
 func (tm *TransactionManager) Begin(ctx context.Context) (*TxScope, error) {
 	tx, err := tm.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if tm.scopeFactory != nil {
+		return tm.scopeFactory(tx), nil
+	}
+	// Fallback: return an unwired scope (repositories will be nil). This
+	// path is taken in tests that don't call SetScopeFactory.
 	return &TxScope{tx: tx}, nil
 }

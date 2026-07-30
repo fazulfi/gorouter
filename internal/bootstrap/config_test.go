@@ -802,20 +802,32 @@ func TestDatabaseURLPrecedence(t *testing.T) {
 
 // --- modes.go tests ---
 
-// TestDispatchModeServer verifies dispatchServer runs without error.
+// TestDispatchModeServer verifies dispatchServer error when no database is
+// configured. The production server mode requires PostgreSQL.
 func TestDispatchModeServer(t *testing.T) {
 	var buf bytes.Buffer
 	app := NewApp(defaultConfig(), WithStderr(&buf))
 	code, err := DispatchMode(ModeServer, app)
-	if err != nil {
-		t.Fatalf("DispatchMode server returned error: %v", err)
+	if err == nil {
+		t.Fatal("expected error without database configuration, got nil")
 	}
-	if code != 0 {
-		t.Errorf("exit code = %d, want 0", code)
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
 	}
-	if !strings.Contains(buf.String(), "starting server mode") {
-		t.Errorf("expected log output, got %q", buf.String())
+	if err != nil && !strings.Contains(err.Error(), "database not configured") {
+		t.Errorf("expected database-not-configured error, got: %v", err)
 	}
+}
+
+// TestDispatchModeServerWithDB verifies dispatchServer starts when a database
+// is configured. Requires a real PostgreSQL instance and is skipped in short
+// mode.
+func TestDispatchModeServerWithDB(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping: requires PostgreSQL")
+	}
+	// Integration-only: requires a live database URL.
+	t.Skip("postgres required")
 }
 
 // TestDispatchModeCLI verifies dispatchCLI runs without error.

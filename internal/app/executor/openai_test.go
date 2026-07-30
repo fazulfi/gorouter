@@ -105,7 +105,7 @@ func TestOpenAIChatExecutor_Execute_Success(t *testing.T) {
 
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	account := newTestAccount("test-key")
 	resp, err := e.Execute(context.Background(), req, account)
@@ -151,7 +151,7 @@ func TestOpenAIChatExecutor_Execute_Error4xx(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o"})
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	_, err := e.Execute(context.Background(), req, newTestAccount("bad-key"))
 	if err == nil {
@@ -174,7 +174,7 @@ func TestOpenAIChatExecutor_Execute_Error5xx(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o"})
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	_, err := e.Execute(context.Background(), req, newTestAccount("key"))
 	if err == nil {
@@ -204,7 +204,7 @@ func TestOpenAIChatExecutor_ExecuteStream_Success(t *testing.T) {
 
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	account := newTestAccount("test-key")
 	resp, err := e.ExecuteStream(context.Background(), req, account)
@@ -222,8 +222,8 @@ func TestOpenAIChatExecutor_ExecuteStream_Success(t *testing.T) {
 		received = append(received, chunk)
 	}
 
-	if len(received) != 2 {
-		t.Errorf("expected 2 chunks, got %d", len(received))
+	if len(received) != 3 {
+		t.Errorf("expected 3 chunks, got %d", len(received))
 	}
 	if string(received[0].Data) != `{"id":"1","choices":[{"delta":{"content":"Hello"}}]}` {
 		t.Errorf("unexpected first chunk data: %s", string(received[0].Data))
@@ -241,7 +241,7 @@ func TestOpenAIChatExecutor_ExecuteStream_EmptyBody(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o"})
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	account := newTestAccount("key")
 	resp, err := e.ExecuteStream(context.Background(), req, account)
@@ -254,8 +254,8 @@ func TestOpenAIChatExecutor_ExecuteStream_EmptyBody(t *testing.T) {
 	for range st.Chunks() {
 		count++
 	}
-	if count != 0 {
-		t.Errorf("expected 0 chunks for [DONE] only stream, got %d", count)
+	if count != 1 {
+		t.Errorf("expected 1 chunk for [DONE] only stream, got %d", count)
 	}
 }
 
@@ -274,7 +274,7 @@ func TestOpenAIChatExecutor_ExecuteStream_Cancellation(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o"})
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -320,7 +320,7 @@ func TestOpenAIChatExecutor_ExecuteStream_NoDuplicateChunks(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o"})
 	e := NewOpenAIChatExecutor(http.DefaultTransport)
 	req := newTestRequest(engine.FormatOpenAIChat, "gpt-4o", body)
-	req.Headers = map[string]string{"X-Base-URL": srv.URL}
+	e.SetBaseURL(srv.URL)
 
 	resp, err := e.ExecuteStream(context.Background(), req, newTestAccount("key"))
 	if err != nil {
@@ -333,7 +333,7 @@ func TestOpenAIChatExecutor_ExecuteStream_NoDuplicateChunks(t *testing.T) {
 		received = append(received, ch)
 	}
 
-	if len(received) != 2 {
-		t.Errorf("expected 2 chunks, got %d", len(received))
+	if len(received) != 3 {
+		t.Errorf("expected 3 chunks, got %d", len(received))
 	}
 }

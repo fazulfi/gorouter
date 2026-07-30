@@ -234,4 +234,94 @@ active_decisions:
     task: "awareness"
     status: "awareness"
 
+  - id: 93
+    title: "Reactive 401/403 refresh with bounded retry"
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+
+  - id: 94
+    title: "Refresh timeout 30s per attempt"
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+
+  - id: 95
+    title: "Max 3 refresh attempts with backoff+jitter"
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+
+  - id: 110
+    title: "Permanent legacy compatibility paths (/v1/v1/*, /codex/*)"
+    phase: 2
+    task: "P2-T04"
+    status: "completed"
+
+  - id: 113
+    title: "500ms client disconnect grace before context teardown"
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+
+  - id: 116
+    title: "6-minute raw-byte stall watchdog"
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+
+  - id: 118
+    title: "200-second first-chunk timeout"
+    phase: 2
+    task: "P2-T08"
+    status: "completed"
+
+  - id: 120
+    title: "Provider credentials as restricted plaintext (api_key_value naming)"
+    phase: 2
+    task: "P2-T02"
+    status: "completed"
+
+  - id: 124
+    title: "Durable async usage queue"
+    phase: 2
+    task: "P2-T10"
+    status: "deferred-partial"
+
+  - id: 131
+    title: "Graceful drain on shutdown"
+    phase: 2
+    task: "P2-T07"
+    status: "completed"
+
+  - id: 132
+    title: "Wait for streams on shutdown, no hard deadline"
+    phase: 2
+    task: "P2-T07"
+    status: "completed"
+
+  - id: 136
+    title: "Custom provider URLs may target loopback/LAN/private (deliberate)"
+    phase: 2
+    task: "P2-T02"
+    status: "completed"
+
+  - id: 137
+    title: "No SSRF/DNS-rebinding guard for persisted provider URLs"
+    phase: 2
+    task: "P2-T02"
+    status: "completed"
+
+  - id: 145
+    title: "Structured error taxonomy: HTTP status, type, code, retryable, safe message"
+    phase: 2
+    task: "P2-T09"
+    status: "completed"
+
+  - id: 376
+    title: "Reaffirm decision #136 (custom provider URLs may target private targets)"
+    phase: 2
+    task: "P2-T02"
+    status: "completed"
+
 entries: []

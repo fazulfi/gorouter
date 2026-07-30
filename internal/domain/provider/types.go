@@ -21,15 +21,15 @@ const (
 
 // Provider represents an AI service provider configuration.
 type Provider struct {
-	ID              uuid.UUID
-	Name            string
-	Type            ProviderType
-	BaseURL         string
-	APIKeyEncrypted *string
-	Config          json.RawMessage
-	IsEnabled       bool
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID          uuid.UUID
+	Name        string
+	Type        ProviderType
+	BaseURL     string
+	APIKeyValue *string `json:"api_key_value,omitempty"` // restricted plaintext per DECISIONS #120
+	Config      json.RawMessage
+	IsEnabled   bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // ProviderConfig holds typed configuration for a provider type.

@@ -57,7 +57,7 @@ jobs:
       - name: Run integration tests ${{ matrix.race == 'on' && 'with race' || '' }}
         run: |
           RACE_FLAG="${{ matrix.race == 'on' && '-race' || '' }}"
-          go test $RACE_FLAG -count=1 -coverprofile=coverage.out -covermode=atomic -v ./internal/persistence/...
+          go test $RACE_FLAG -p 1 -count=1 -coverprofile=coverage.out -covermode=atomic -v ./internal/persistence/...
         env:
           # Tests read POSTGRES_TEST_DSN (tx_integration_test.go, auth_repo_test.go)
           # and DATABASE_URL (migrations/runner_test.go), NOT GOROUTER_TEST_DSN.

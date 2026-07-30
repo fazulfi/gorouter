@@ -53,8 +53,8 @@ func TestProviderRepo_FindByID(t *testing.T) {
 		if p.Type != provider.ProviderOpenAI {
 			t.Errorf("Type = %q", p.Type)
 		}
-		if p.APIKeyEncrypted == nil || *p.APIKeyEncrypted != "sk-encrypted" {
-			t.Error("unexpected APIKeyEncrypted")
+		if p.APIKeyValue == nil || *p.APIKeyValue != "sk-encrypted" {
+			t.Error("unexpected APIKeyValue")
 		}
 		if string(p.Config) != `{"model":"gpt-4"}` {
 			t.Errorf("Config = %s", string(p.Config))

@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -20,16 +19,35 @@ import (
 // for most providers since the vast majority expose an OpenAI-compatible
 // wire protocol.
 type OpenAIChatExecutor struct {
-	client *http.Client
-	model  string // optional override; empty means use the model from the request
+	client       *http.Client
+	model        string // optional override; empty means use the model from the request
+	streamingCfg StreamingConfig
+
+	// baseURL overrides the default upstream URL when set. Used in tests to
+	// point at a local test server. Client-supplied X-Base-URL headers are
+	// never honored per decision #376.
+	baseURL string
 }
 
 // NewOpenAIChatExecutor creates an OpenAIChatExecutor. The transport is used
 // to create the underlying http.Client.
 func NewOpenAIChatExecutor(transport http.RoundTripper) *OpenAIChatExecutor {
 	return &OpenAIChatExecutor{
-		client: &http.Client{Transport: transport},
+		client:       &http.Client{Transport: transport},
+		streamingCfg: DefaultStreamingConfig(),
 	}
+}
+
+// SetStreamingConfig replaces the default streaming timeout config.
+func (e *OpenAIChatExecutor) SetStreamingConfig(cfg StreamingConfig) {
+	e.streamingCfg = cfg
+}
+
+// SetBaseURL overrides the executor's upstream URL. Intended for tests only;
+// production uses the default base URL. Client-supplied X-Base-URL headers
+// are never propagated per decision #376.
+func (e *OpenAIChatExecutor) SetBaseURL(url string) {
+	e.baseURL = url
 }
 
 // SupportsFormat returns true for OpenAI chat and compat formats.
@@ -72,7 +90,8 @@ func (e *OpenAIChatExecutor) Execute(ctx context.Context, req *engine.Request, a
 
 // ExecuteStream sends a streaming chat completion request and returns a
 // response carrying an active stream reference. The caller must consume
-// chunks from the stream until it is closed.
+// chunks from the stream until it is closed. The upstream response body is
+// streamed incrementally — no io.ReadAll on success.
 func (e *OpenAIChatExecutor) ExecuteStream(ctx context.Context, req *engine.Request, account *provider.Account) (*engine.Response, error) {
 	body := e.selectBody(req)
 
@@ -91,18 +110,10 @@ func (e *OpenAIChatExecutor) ExecuteStream(ctx context.Context, req *engine.Requ
 		return nil, err
 	}
 
-	// Read the entire response body as bytes so we can parse SSE from it.
-	raw, err := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	if err != nil {
-		return nil, fmt.Errorf("read stream response body: %w", err)
-	}
-
 	st := stream.NewStream(ctx, 64)
 
-	// Spawn a goroutine that parses SSE lines from the full body and pushes
-	// chunks into the stream.
-	go e.readSSEIntoStream(ctx, st, raw)
+	// Stream directly from resp.Body — no buffering the entire response.
+	go streamSSEBody(ctx, st, resp.Body, resp.Body, e.streamingCfg, e.streamingCfg.FirstChunkTimeout)
 
 	return &engine.Response{
 		RequestID:  req.ID,
@@ -183,11 +194,12 @@ func (e *OpenAIChatExecutor) resolveModel(req *engine.Request) string {
 	return "gpt-4o" // sensible default
 }
 
-// resolveBaseURL returns the base URL to use. When the request doesn't carry
-// provider info via headers, it falls back to a sensible default.
+// resolveBaseURL returns the base URL for upstream requests. If a test-only
+// baseURL override is set it takes priority. Client-supplied X-Base-URL
+// headers are never propagated per decision #376.
 func (e *OpenAIChatExecutor) resolveBaseURL(req *engine.Request) string {
-	if v, ok := req.Headers["X-Base-URL"]; ok && v != "" {
-		return v
+	if e.baseURL != "" {
+		return e.baseURL
 	}
 	return "https://api.openai.com"
 }
@@ -265,71 +277,6 @@ func (e *OpenAIChatExecutor) parseResponse(req *engine.Request, resp *http.Respo
 	}
 
 	return engResp, nil
-}
-
-// readSSEIntoStream reads an SSE-encoded byte slice and pushes each parsed
-// chunk into the given stream. It runs in a goroutine and signals stream
-// completion when the SSE stream ends.
-func (e *OpenAIChatExecutor) readSSEIntoStream(ctx context.Context, st *stream.Stream, raw []byte) {
-	defer func() {
-		if r := recover(); r != nil {
-			st.Cancel(fmt.Errorf("panic in SSE reader: %v", r))
-		}
-	}()
-
-	scanner := bufio.NewScanner(bytes.NewReader(raw))
-	// SSE lines can be long; set a generous buffer.
-	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
-
-	var eventType string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Empty line separates SSE events.
-		if line == "" {
-			eventType = ""
-			continue
-		}
-
-		// Event type line.
-		if strings.HasPrefix(line, "event: ") {
-			eventType = strings.TrimPrefix(line, "event: ")
-			continue
-		}
-
-		// Data line.
-		if strings.HasPrefix(line, "data: ") {
-			data := strings.TrimPrefix(line, "data: ")
-
-			// "[DONE]" signals normal stream completion.
-			if data == "[DONE]" {
-				st.Close()
-				return
-			}
-
-			chunk := stream.Chunk{
-				Data:  []byte(data),
-				Event: eventType,
-			}
-
-			if !st.Push(chunk) {
-				// Stream was cancelled or closed.
-				return
-			}
-			continue
-		}
-
-		// Ignore other SSE fields (e.g. "id:", "retry:").
-	}
-
-	if err := scanner.Err(); err != nil {
-		st.Cancel(fmt.Errorf("SSE scanner error: %w", err))
-		return
-	}
-
-	// Normal end of input without [DONE] — close cleanly.
-	st.Close()
 }
 
 // flattenHeaders converts an http.Header map into a plain map[string]string.

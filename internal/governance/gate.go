@@ -1,5 +1,5 @@
 // Package governance provides gate evidence types and validation for
-// Phase 1 CI, quality, security, and gate evidence automation.
+// Phase 1 and Phase 2 CI, quality, security, and gate evidence automation.
 package governance
 
 import (
@@ -25,28 +25,65 @@ type GateCheck struct {
 	DurationSeconds float64 `json:"duration_seconds"`
 }
 
+// phaseCheckRequirements maps each phase to its required check names.
+// Phase 1 covers governance, bootstrap, config, PostgreSQL, security
+// middleware, auth primitives, and contracts. Phase 2 adds engine,
+// streaming, executor, retry, cooldown, and end-to-end pipeline checks.
+var phaseCheckRequirements = map[string]map[string]bool{
+	"1": {
+		"go-vet":              false,
+		"go-test":             false,
+		"go-race":             false,
+		"frontend-build":      false,
+		"frontend-test":       false,
+		"code-coverage":       false,
+		"coverage-threshold":  false,
+		"traceability-docs":   false,
+		"security-tests":      false,
+		"security-audit":      false,
+		"parity-tests":        false,
+		"middleware-tests":    false,
+		"auth-tests":          false,
+		"observability-tests": false,
+		"migration-schema":    false,
+		"postgres-pool":       false,
+		"pg-repositories":     false,
+	},
+	"2": {
+		"go-vet":              false,
+		"go-test":             false,
+		"go-race":             false,
+		"frontend-build":      false,
+		"frontend-test":       false,
+		"code-coverage":       false,
+		"coverage-threshold":  false,
+		"traceability-docs":   false,
+		"security-tests":      false,
+		"security-audit":      false,
+		"parity-tests":        false,
+		"middleware-tests":    false,
+		"auth-tests":          false,
+		"observability-tests": false,
+		"migration-schema":    false,
+		"postgres-pool":       false,
+		"pg-repositories":     false,
+		"engine-tests":        false,
+		"streaming-tests":     false,
+		"executor-tests":      false,
+		"retry-tests":         false,
+		"cooldown-tests":      false,
+		"e2e-pipeline":        false,
+		"gate-evidence":       false,
+		"remediation-sha":     false,
+		"decision-trace":      false,
+		"gate-schema":         false,
+	},
+}
+
 // requiredPhase1Checks lists the checks that must be present for Phase 1.
 // These are the mandatory quality, security, and coverage checks that gate
 // passage depends on.
-var requiredPhase1Checks = map[string]bool{
-	"go-vet":              false,
-	"go-test":             false,
-	"go-race":             false,
-	"frontend-build":      false,
-	"frontend-test":       false,
-	"code-coverage":       false,
-	"coverage-threshold":  false,
-	"traceability-docs":   false,
-	"security-tests":      false,
-	"security-audit":      false,
-	"parity-tests":        false,
-	"middleware-tests":    false,
-	"auth-tests":          false,
-	"observability-tests": false,
-	"migration-schema":    false,
-	"postgres-pool":       false,
-	"pg-repositories":     false,
-}
+var requiredPhase1Checks = phaseCheckRequirements["1"]
 
 // informationalPhase1Checks lists checks that are informational only and
 // do not block gate passage. These typically include deployment evidence
@@ -83,17 +120,18 @@ func AllPhase1CheckNames() []string {
 	return names
 }
 
-// ValidateGateEvidence validates a GateEvidence struct against Phase 1 rules.
-// It checks:
-//   - Phase must be "1"
+// ValidateGateEvidence validates a GateEvidence struct against the
+// requirements for the evidence's phase. It checks:
+//   - Phase must be "1" or "2"
 //   - Status must be "pass" or "fail"
 //   - Timestamp must be set
 //   - At least one check exists
 //   - Each check has required fields
-//   - All required checks are present (informational checks are optional)
+//   - All required checks for the phase are present (informational checks are optional)
 func ValidateGateEvidence(ge *GateEvidence) error {
-	if ge.Phase != "1" {
-		return fmt.Errorf("gate_evidence: phase must be \"1\", got %q", ge.Phase)
+	required, ok := phaseCheckRequirements[ge.Phase]
+	if !ok {
+		return fmt.Errorf("gate_evidence: unsupported phase %q (supported: 1, 2)", ge.Phase)
 	}
 	if ge.Status != "pass" && ge.Status != "fail" {
 		return fmt.Errorf("gate_evidence: status must be \"pass\" or \"fail\", got %q", ge.Status)
@@ -105,7 +143,7 @@ func ValidateGateEvidence(ge *GateEvidence) error {
 		return fmt.Errorf("gate_evidence: at least one check is required")
 	}
 
-	found := copyMap(requiredPhase1Checks)
+	found := copyMap(required)
 	for i, check := range ge.Checks {
 		if check.Name == "" {
 			return fmt.Errorf("gate_evidence: check %d: name is required", i)
@@ -121,7 +159,7 @@ func ValidateGateEvidence(ge *GateEvidence) error {
 
 	for name, present := range found {
 		if !present {
-			return fmt.Errorf("gate_evidence: required check %q is missing", name)
+			return fmt.Errorf("gate_evidence: required check %q is missing for phase %s", name, ge.Phase)
 		}
 	}
 

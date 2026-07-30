@@ -181,15 +181,15 @@ func TestFoundationSchema_ProvidersColumns(t *testing.T) {
 	}
 	ctx := context.Background()
 	expectColumns(t, ctx, "gorouter_providers", map[string]string{
-		"id":                "uuid",
-		"name":              "character varying",
-		"type":              "character varying",
-		"base_url":          "character varying",
-		"api_key_encrypted": "text",
-		"config":            "jsonb",
-		"is_enabled":        "boolean",
-		"created_at":        "timestamp with time zone",
-		"updated_at":        "timestamp with time zone",
+		"id":            "uuid",
+		"name":          "character varying",
+		"type":          "character varying",
+		"base_url":      "character varying",
+		"api_key_value": "text",
+		"config":        "jsonb",
+		"is_enabled":    "boolean",
+		"created_at":    "timestamp with time zone",
+		"updated_at":    "timestamp with time zone",
 	})
 }
 
