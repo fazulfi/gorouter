@@ -137,7 +137,7 @@ func (m *mockStreamRef) StreamID() uuid.UUID {
 
 func TestRequestHasID(t *testing.T) {
 	r := Request{}
-	if r.ID == uuid.Nil {
+	if r.ID != uuid.Nil {
 		t.Error("zero-value Request should have nil UUID ID")
 	}
 }
