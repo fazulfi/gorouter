@@ -449,3 +449,85 @@ func TestAllRequiredChecksMustBePresent(t *testing.T) {
 		})
 	}
 }
+
+// Phase 2 gate validation tests.
+
+func phase2PassingChecks() []GateCheck {
+	return []GateCheck{
+		{Name: "go-vet", Status: "pass", Output: "ok"},
+		{Name: "go-test", Status: "pass", Output: "ok"},
+		{Name: "go-race", Status: "pass", Output: "ok"},
+		{Name: "frontend-build", Status: "pass", Output: "ok"},
+		{Name: "frontend-test", Status: "pass", Output: "ok"},
+		{Name: "code-coverage", Status: "pass", Output: "86.8%"},
+		{Name: "coverage-threshold", Status: "pass", Output: "meets threshold"},
+		{Name: "traceability-docs", Status: "pass", Output: "ok"},
+		{Name: "security-tests", Status: "pass", Output: "ok"},
+		{Name: "security-audit", Status: "pass", Output: "clean"},
+		{Name: "parity-tests", Status: "pass", Output: "ok"},
+		{Name: "middleware-tests", Status: "pass", Output: "ok"},
+		{Name: "auth-tests", Status: "pass", Output: "ok"},
+		{Name: "observability-tests", Status: "pass", Output: "ok"},
+		{Name: "migration-schema", Status: "pass", Output: "ok"},
+		{Name: "postgres-pool", Status: "pass", Output: "ok"},
+		{Name: "pg-repositories", Status: "pass", Output: "ok"},
+		{Name: "engine-tests", Status: "pass", Output: "ok"},
+		{Name: "streaming-tests", Status: "pass", Output: "ok"},
+		{Name: "executor-tests", Status: "pass", Output: "ok"},
+		{Name: "retry-tests", Status: "pass", Output: "ok"},
+		{Name: "cooldown-tests", Status: "pass", Output: "ok"},
+		{Name: "e2e-pipeline", Status: "pass", Output: "ok"},
+		{Name: "gate-evidence", Status: "pass", Output: "ok"},
+		{Name: "remediation-sha", Status: "pass", Output: "ok"},
+		{Name: "decision-trace", Status: "pass", Output: "ok"},
+		{Name: "gate-schema", Status: "pass", Output: "ok"},
+	}
+}
+
+func TestGateEvidence_Phase2_ValidPass(t *testing.T) {
+	ge := &GateEvidence{
+		Phase:           "2",
+		Status:          "pass",
+		Timestamp:       time.Now().UTC(),
+		DurationSeconds: 15.0,
+		Checks:          phase2PassingChecks(),
+	}
+
+	if err := ValidateGateEvidence(ge); err != nil {
+		t.Fatalf("ValidateGateEvidence() unexpected error for phase 2: %v", err)
+	}
+	if !GateEvidencePassed(ge) {
+		t.Error("GateEvidencePassed() = false, want true for phase 2")
+	}
+}
+
+func TestGateEvidence_Phase2_MissingRequiredCheck(t *testing.T) {
+	ge := &GateEvidence{
+		Phase:           "2",
+		Status:          "pass",
+		Timestamp:       time.Now().UTC(),
+		DurationSeconds: 10.0,
+		Checks:          phase2PassingChecks()[:20],
+	}
+	err := ValidateGateEvidence(ge)
+	if err == nil {
+		t.Fatal("RED: ValidateGateEvidence() should fail when phase 2 checks are missing")
+	}
+	t.Logf("CORRECT: phase 2 gate rejected missing checks: %v", err)
+}
+
+func TestGateEvidence_Phase2_CheckInvalidStatus(t *testing.T) {
+	checks := phase2PassingChecks()
+	checks[0] = GateCheck{Name: "go-vet", Status: "maybe", Output: "confused"}
+	ge := &GateEvidence{
+		Phase:           "2",
+		Status:          "pass",
+		Timestamp:       time.Now().UTC(),
+		DurationSeconds: 5.0,
+		Checks:          checks,
+	}
+	err := ValidateGateEvidence(ge)
+	if err == nil {
+		t.Fatal("RED: ValidateGateEvidence() should fail for invalid check status in phase 2")
+	}
+}
