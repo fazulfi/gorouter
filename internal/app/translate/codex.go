@@ -17,17 +17,17 @@ func (s *Service) TranslateCodexToRequest(ctx context.Context, body json.RawMess
 	}
 
 	var raw struct {
-		Model          string            `json:"model"`
-		Input          json.RawMessage   `json:"input"` // string or array
-		Instructions   string            `json:"instructions"`
-		MaxOutputTokens int              `json:"max_output_tokens"`
-		Temperature    *float64          `json:"temperature"`
-		TopP           *float64          `json:"top_p"`
-		Tools          []json.RawMessage `json:"tools"`
-		ToolChoice     json.RawMessage   `json:"tool_choice"`
-		Store          *bool             `json:"store"`
-		Metadata       json.RawMessage   `json:"metadata"`
-		Reasoning      json.RawMessage   `json:"reasoning"`
+		Model           string            `json:"model"`
+		Input           json.RawMessage   `json:"input"` // string or array
+		Instructions    string            `json:"instructions"`
+		MaxOutputTokens int               `json:"max_output_tokens"`
+		Temperature     *float64          `json:"temperature"`
+		TopP            *float64          `json:"top_p"`
+		Tools           []json.RawMessage `json:"tools"`
+		ToolChoice      json.RawMessage   `json:"tool_choice"`
+		Store           *bool             `json:"store"`
+		Metadata        json.RawMessage   `json:"metadata"`
+		Reasoning       json.RawMessage   `json:"reasoning"`
 	}
 
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -71,10 +71,10 @@ func (s *Service) TranslateCodexToRequest(ctx context.Context, body json.RawMess
 	}
 
 	return &engine.Request{
-		Model:      raw.Model,
-		RawBody:    body,
-		MappedBody: mapped,
-		MaxTokens:  raw.MaxOutputTokens,
+		Model:       raw.Model,
+		RawBody:     body,
+		MappedBody:  mapped,
+		MaxTokens:   raw.MaxOutputTokens,
 		Temperature: raw.Temperature,
 	}, nil
 }

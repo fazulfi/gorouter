@@ -12,8 +12,8 @@ import (
 // ---------------------------------------------------------------------------
 
 const (
-	RequestFormatOpenAIChat     = engine.FormatOpenAIChat
-	RequestFormatCodexResponses = engine.FormatCodexResponses
+	RequestFormatOpenAIChat                          = engine.FormatOpenAIChat
+	RequestFormatCodexResponses                      = engine.FormatCodexResponses
 	RequestFormatUnknown        engine.RequestFormat = "unknown"
 )
 

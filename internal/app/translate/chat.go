@@ -17,18 +17,18 @@ func (s *Service) TranslateChatToRequest(ctx context.Context, body json.RawMessa
 	}
 
 	var raw struct {
-		Model            string              `json:"model"`
-		Messages         []json.RawMessage   `json:"messages"`
-		Stream           bool                `json:"stream"`
-		MaxTokens        int                 `json:"max_tokens"`
-		Temperature      *float64            `json:"temperature"`
-		TopP             *float64            `json:"top_p"`
-		Stop             json.RawMessage     `json:"stop"`       // string or []string
-		PresencePenalty  *float64            `json:"presence_penalty"`
-		FrequencyPenalty *float64            `json:"frequency_penalty"`
-		Tools            []json.RawMessage   `json:"tools"`
-		ToolChoice       json.RawMessage     `json:"tool_choice"`
-		ResponseFormat   json.RawMessage     `json:"response_format"`
+		Model            string            `json:"model"`
+		Messages         []json.RawMessage `json:"messages"`
+		Stream           bool              `json:"stream"`
+		MaxTokens        int               `json:"max_tokens"`
+		Temperature      *float64          `json:"temperature"`
+		TopP             *float64          `json:"top_p"`
+		Stop             json.RawMessage   `json:"stop"` // string or []string
+		PresencePenalty  *float64          `json:"presence_penalty"`
+		FrequencyPenalty *float64          `json:"frequency_penalty"`
+		Tools            []json.RawMessage `json:"tools"`
+		ToolChoice       json.RawMessage   `json:"tool_choice"`
+		ResponseFormat   json.RawMessage   `json:"response_format"`
 	}
 
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -78,11 +78,11 @@ func (s *Service) TranslateChatToRequest(ctx context.Context, body json.RawMessa
 	}
 
 	return &engine.Request{
-		Model:      raw.Model,
-		RawBody:    body,
-		MappedBody: mapped,
-		Stream:     raw.Stream,
-		MaxTokens:  raw.MaxTokens,
+		Model:       raw.Model,
+		RawBody:     body,
+		MappedBody:  mapped,
+		Stream:      raw.Stream,
+		MaxTokens:   raw.MaxTokens,
 		Temperature: raw.Temperature,
 	}, nil
 }
