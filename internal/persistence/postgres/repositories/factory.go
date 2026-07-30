@@ -44,7 +44,7 @@ type providerRepo struct {
 func scanProvider(row pgx.Row) (*provider.Provider, error) {
 	p := &provider.Provider{}
 	var cfgBytes []byte
-	err := row.Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.APIKeyEncrypted,
+	err := row.Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.APIKeyValue,
 		&cfgBytes, &p.IsEnabled, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -58,14 +58,14 @@ func scanProvider(row pgx.Row) (*provider.Provider, error) {
 
 func (r *providerRepo) FindByID(ctx context.Context, id uuid.UUID) (*provider.Provider, error) {
 	row := r.tx.QueryRow(ctx,
-		`SELECT id, name, type, base_url, api_key_encrypted, config, is_enabled, created_at, updated_at
+		`SELECT id, name, type, base_url, api_key_value, config, is_enabled, created_at, updated_at
 		 FROM gorouter_providers WHERE id = $1`, id)
 	return scanProvider(row)
 }
 
 func (r *providerRepo) FindByType(ctx context.Context, ptype provider.ProviderType) ([]provider.Provider, error) {
 	rows, err := r.tx.Query(ctx,
-		`SELECT id, name, type, base_url, api_key_encrypted, config, is_enabled, created_at, updated_at
+		`SELECT id, name, type, base_url, api_key_value, config, is_enabled, created_at, updated_at
 		 FROM gorouter_providers WHERE type = $1 ORDER BY name`, string(ptype))
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r *providerRepo) FindByType(ctx context.Context, ptype provider.ProviderTy
 
 func (r *providerRepo) List(ctx context.Context) ([]provider.Provider, error) {
 	rows, err := r.tx.Query(ctx,
-		`SELECT id, name, type, base_url, api_key_encrypted, config, is_enabled, created_at, updated_at
+		`SELECT id, name, type, base_url, api_key_value, config, is_enabled, created_at, updated_at
 		 FROM gorouter_providers ORDER BY name`)
 	if err != nil {
 		return nil, err
@@ -111,9 +111,9 @@ func (r *providerRepo) Create(ctx context.Context, p *provider.Provider) error {
 		cfgBytes = []byte("{}")
 	}
 	_, err := r.tx.Exec(ctx,
-		`INSERT INTO gorouter_providers (id, name, type, base_url, api_key_encrypted, config, is_enabled, created_at, updated_at)
+		`INSERT INTO gorouter_providers (id, name, type, base_url, api_key_value, config, is_enabled, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		p.ID, p.Name, string(p.Type), p.BaseURL, p.APIKeyEncrypted,
+		p.ID, p.Name, string(p.Type), p.BaseURL, p.APIKeyValue,
 		cfgBytes, p.IsEnabled, p.CreatedAt, p.UpdatedAt)
 	return err
 }
@@ -124,9 +124,9 @@ func (r *providerRepo) Update(ctx context.Context, p *provider.Provider) error {
 		cfgBytes = []byte("{}")
 	}
 	_, err := r.tx.Exec(ctx,
-		`UPDATE gorouter_providers SET name=$1, type=$2, base_url=$3, api_key_encrypted=$4, config=$5,
+		`UPDATE gorouter_providers SET name=$1, type=$2, base_url=$3, api_key_value=$4, config=$5,
 		 is_enabled=$6, updated_at=$7 WHERE id=$8`,
-		p.Name, string(p.Type), p.BaseURL, p.APIKeyEncrypted,
+		p.Name, string(p.Type), p.BaseURL, p.APIKeyValue,
 		cfgBytes, p.IsEnabled, p.UpdatedAt, p.ID)
 	return err
 }
