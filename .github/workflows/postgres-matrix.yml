@@ -20,13 +20,13 @@ env:
 
 jobs:
   postgres:
-    name: PostgreSQL ${{ matrix.pg-version }}${{ matrix.race == 'race' && ' + race' || '' }}
+    name: PostgreSQL ${{ matrix.pg-version }}${{ matrix.race == 'on' && ' + race' || '' }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         pg-version: ["16", "17", "18"]
-        race: [off, on]
+        race: ["off", "on"]
       fail-fast: false
 
     services:
