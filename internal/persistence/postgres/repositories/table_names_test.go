@@ -388,3 +388,123 @@ func TestAuditLogRepo_SQL_UsesGorouterAuditLog(t *testing.T) {
 	})
 	assertTableInSQL(t, tx, "gorouter_audit_log")
 }
+
+// ---------------------------------------------------------------------------
+// AccountRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestAccountRepo_SQL_UsesGorouterProviderAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FindByID", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &accountRepo{tx: tx}
+		_, _ = repo.FindByID(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_provider_accounts")
+	})
+
+	t.Run("FindByProviderID", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &accountRepo{tx: tx}
+		_, _ = repo.FindByProviderID(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_provider_accounts")
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &accountRepo{tx: tx}
+		_ = repo.Create(context.Background(), &provider.Account{
+			ID: uuid.New(), ProviderID: uuid.New(), Label: "n",
+			AuthType: "api_key", CreatedAt: testNow, UpdatedAt: testNow,
+		})
+		assertTableInSQL(t, tx, "gorouter_provider_accounts")
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &accountRepo{tx: tx}
+		_ = repo.Update(context.Background(), &provider.Account{
+			ID: uuid.New(), ProviderID: uuid.New(), Label: "n",
+			AuthType: "api_key", UpdatedAt: testNow,
+		})
+		assertTableInSQL(t, tx, "gorouter_provider_accounts")
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &accountRepo{tx: tx}
+		_ = repo.Delete(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_provider_accounts")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ProxyRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestProxyRepo_SQL_UsesGorouterProxyConfigs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FindByAccountID", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &proxyRepo{tx: tx}
+		_, _ = repo.FindByAccountID(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_proxy_configs")
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &proxyRepo{tx: tx}
+		_ = repo.Create(context.Background(), &provider.ProxyConfig{
+			ID: uuid.New(), AccountID: uuid.New(), URL: "https://x.com",
+			CreatedAt: testNow, UpdatedAt: testNow,
+		})
+		assertTableInSQL(t, tx, "gorouter_proxy_configs")
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &proxyRepo{tx: tx}
+		_ = repo.Update(context.Background(), &provider.ProxyConfig{
+			ID: uuid.New(), AccountID: uuid.New(), URL: "https://x.com",
+			UpdatedAt: testNow,
+		})
+		assertTableInSQL(t, tx, "gorouter_proxy_configs")
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &proxyRepo{tx: tx}
+		_ = repo.Delete(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_proxy_configs")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ModelRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestModelRepo_SQL_UsesGorouterProviderModels(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetModelsByProvider", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &ModelRepository{tx: tx}
+		_, _ = repo.GetModelsByProvider(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_provider_models")
+	})
+
+	t.Run("GetModelByRef", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &ModelRepository{tx: tx}
+		_, _ = repo.GetModelByRef(context.Background(), uuid.New(), "gpt-4")
+		assertTableInSQL(t, tx, "gorouter_provider_models")
+	})
+
+	t.Run("ListByCapability", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &ModelRepository{tx: tx}
+		_, _ = repo.ListByCapability(context.Background(), "chat")
+		assertTableInSQL(t, tx, "gorouter_provider_models")
+	})
+}

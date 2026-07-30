@@ -35,6 +35,23 @@ type AuditLogRepository interface {
 	Create(ctx context.Context, entry *AuditLogEntry) error
 }
 
+// ProviderModel represents a model entry in the provider_models catalog.
+type ProviderModel struct {
+	ID           uuid.UUID
+	ProviderID   uuid.UUID
+	ModelName    string
+	Capabilities []string
+	MaxTokens    int
+	CreatedAt    time.Time
+}
+
+// ModelRepository defines query operations for provider models.
+type ModelRepository interface {
+	GetModelsByProvider(ctx context.Context, providerID uuid.UUID) ([]ProviderModel, error)
+	GetModelByRef(ctx context.Context, providerID uuid.UUID, modelName string) (*ProviderModel, error)
+	ListByCapability(ctx context.Context, capability string) ([]ProviderModel, error)
+}
+
 // TxScope scopes all domain repository access within a single database transaction.
 // Obtain one via TransactionManager.Begin, then call Commit or Rollback when done.
 type TxScope struct {
@@ -46,6 +63,9 @@ type TxScope struct {
 	providers provider.ProviderRepository
 	jobs      jobs.JobRepository
 	auditLog  AuditLogRepository
+	accounts  provider.AccountRepository
+	proxies   provider.ProxyRepository
+	models    ModelRepository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -53,7 +73,9 @@ type TxScope struct {
 func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepository,
 	apiKeys keys.APIKeyRepository, pats keys.PATRepository,
 	providers provider.ProviderRepository, jrs jobs.JobRepository,
-	auditLog AuditLogRepository) *TxScope {
+	auditLog AuditLogRepository,
+	accounts provider.AccountRepository, proxies provider.ProxyRepository,
+	models ModelRepository) *TxScope {
 	return &TxScope{
 		tx:        tx,
 		users:     users,
@@ -63,6 +85,9 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		providers: providers,
 		jobs:      jrs,
 		auditLog:  auditLog,
+		accounts:  accounts,
+		proxies:   proxies,
+		models:    models,
 	}
 }
 
@@ -96,6 +121,15 @@ func (s *TxScope) Jobs() jobs.JobRepository { return s.jobs }
 
 // AuditLog returns the scoped AuditLogRepository.
 func (s *TxScope) AuditLog() AuditLogRepository { return s.auditLog }
+
+// Accounts returns the scoped AccountRepository.
+func (s *TxScope) Accounts() provider.AccountRepository { return s.accounts }
+
+// Proxies returns the scoped ProxyRepository.
+func (s *TxScope) Proxies() provider.ProxyRepository { return s.proxies }
+
+// Models returns the scoped ModelRepository.
+func (s *TxScope) Models() ModelRepository { return s.models }
 
 // TransactionManager manages database transactions and provides scoped repository
 // access through TxScope. It depends on a pgx connection pool injected via New.
