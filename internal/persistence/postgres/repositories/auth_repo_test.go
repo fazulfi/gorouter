@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +30,9 @@ func skipIfShort(t *testing.T, pool *pgxpool.Pool) {
 
 func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
 	dsn := getTestDSN()
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -40,6 +44,14 @@ func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 		t.Fatalf("create test pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
+
+	// Ensure the schema is applied. This is safe to call repeatedly — already-
+	// applied migrations are skipped. Makes integration tests self-sufficient
+	// regardless of test-package execution order.
+	if _, err := migrations.NewRunner(pool).Migrate(ctx, migrations.DirectionUp); err != nil {
+		t.Fatalf("apply migrations: %v", err)
+	}
+
 	return pool
 }
 
