@@ -64,7 +64,7 @@ func CSRF(cfg CSRFConfig) func(http.Handler) http.Handler {
 						http.Error(w, "internal error", http.StatusInternalServerError)
 						return
 					}
-					http.SetCookie(w, &http.Cookie{
+					http.SetCookie(w, &http.Cookie{ // #nosec G124 -- Secure is configurable for loopback HTTP; production enables CSRFConfig.Secure
 						Name:     cookieName,
 						Value:    token,
 						Path:     "/",
