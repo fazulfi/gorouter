@@ -37,19 +37,19 @@ var codexSSEAccountFallbackPatterns = []string{
 // responsesAPIAllowlist contains the only fields the Codex Responses API
 // accepts. Anything else is stripped during transformation.
 var responsesAPIAllowlist = map[string]bool{
-	"model":           true,
-	"input":           true,
-	"instructions":    true,
-	"tools":           true,
-	"tool_choice":     true,
-	"stream":          true,
-	"store":           true,
-	"reasoning":       true,
-	"service_tier":    true,
-	"include":         true,
+	"model":            true,
+	"input":            true,
+	"instructions":     true,
+	"tools":            true,
+	"tool_choice":      true,
+	"stream":           true,
+	"store":            true,
+	"reasoning":        true,
+	"service_tier":     true,
+	"include":          true,
 	"prompt_cache_key": true,
-	"client_metadata": true,
-	"text":            true,
+	"client_metadata":  true,
+	"text":             true,
 }
 
 // CodexExecutor implements engine.Executor for OpenAI's Codex Responses API

@@ -20,8 +20,8 @@ import (
 // for most providers since the vast majority expose an OpenAI-compatible
 // wire protocol.
 type OpenAIChatExecutor struct {
-	client  *http.Client
-	model   string // optional override; empty means use the model from the request
+	client *http.Client
+	model  string // optional override; empty means use the model from the request
 }
 
 // NewOpenAIChatExecutor creates an OpenAIChatExecutor. The transport is used
@@ -105,11 +105,11 @@ func (e *OpenAIChatExecutor) ExecuteStream(ctx context.Context, req *engine.Requ
 	go e.readSSEIntoStream(ctx, st, raw)
 
 	return &engine.Response{
-		RequestID: req.ID,
-		Stream:    st,
-		Model:     e.resolveModel(req),
+		RequestID:  req.ID,
+		Stream:     st,
+		Model:      e.resolveModel(req),
 		StatusCode: resp.StatusCode,
-		Headers:   flattenHeaders(resp.Header),
+		Headers:    flattenHeaders(resp.Header),
 	}, nil
 }
 
@@ -235,7 +235,7 @@ func (e *OpenAIChatExecutor) parseResponse(req *engine.Request, resp *http.Respo
 			TotalTokens      int `json:"total_tokens"`
 		} `json:"usage"`
 		Choices []struct {
-			Index        int `json:"index"`
+			Index        int    `json:"index"`
 			FinishReason string `json:"finish_reason"`
 			Message      *struct {
 				Role    string `json:"role"`

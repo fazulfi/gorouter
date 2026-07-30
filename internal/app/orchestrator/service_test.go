@@ -86,10 +86,10 @@ func (m *mockExecutor) ProviderType() provider.ProviderType {
 }
 
 type mockCooldown struct {
-	mu            sync.Mutex
-	onCooldown    map[uuid.UUID]bool
-	failCount     map[uuid.UUID]int
-	successCount  map[uuid.UUID]int
+	mu           sync.Mutex
+	onCooldown   map[uuid.UUID]bool
+	failCount    map[uuid.UUID]int
+	successCount map[uuid.UUID]int
 }
 
 func newMockCooldown() *mockCooldown {
@@ -131,7 +131,7 @@ func noopLogger() zerolog.Logger {
 
 func testAccount(idOffset byte) *provider.Account {
 	return &provider.Account{
-		ID: uuid.MustParse(fmt.Sprintf("00000000-0000-0000-0000-%012d", idOffset)),
+		ID:         uuid.MustParse(fmt.Sprintf("00000000-0000-0000-0000-%012d", idOffset)),
 		ProviderID: uuid.MustParse("10000000-0000-0000-0000-000000000000"),
 		Label:      "test",
 		AuthType:   "api_key",
@@ -151,10 +151,10 @@ func testProvider() *provider.Provider {
 
 func testRequest() *engine.Request {
 	return &engine.Request{
-		ID:     uuid.New(),
-		Model:  "gpt-4",
+		ID:      uuid.New(),
+		Model:   "gpt-4",
 		RawBody: []byte(`{"model":"gpt-4","messages":[{"role":"user","content":"hi"}]}`),
-		Stream: false,
+		Stream:  false,
 	}
 }
 
@@ -481,8 +481,8 @@ func TestExecuteRequest_Streaming(t *testing.T) {
 			// Keep the stream open so the test can Peek.
 			return &engine.Response{
 				RequestID: uuid.New(),
-				Stream:   s,
-				Model:    "gpt-4",
+				Stream:    s,
+				Model:     "gpt-4",
 			}, nil
 		},
 	}

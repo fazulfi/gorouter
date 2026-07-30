@@ -22,11 +22,11 @@ func TestNewAccountNotOnCooldown(t *testing.T) {
 
 func TestFailuresBelowThreshold(t *testing.T) {
 	r := New(Config{
-		DefaultCooldown:   time.Minute,
-		MaxCooldown:       time.Minute,
-		FailureThreshold:  3,
-		EscalationFactor:  1.0,
-		CleanupInterval:   time.Hour,
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 3,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
 	})
 	ctx := context.Background()
 	acctID := uuid.New()
@@ -431,8 +431,6 @@ func TestErrorStoredAsReason(t *testing.T) {
 		t.Errorf("expected last error as reason, got %q", s.Reason)
 	}
 }
-
-
 
 func TestConsecutiveCallsDontResetFailures(t *testing.T) {
 	r := New(Config{

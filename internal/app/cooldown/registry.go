@@ -57,13 +57,13 @@ func DefaultConfig() Config {
 
 // entry holds the runtime state for a single account in the cooldown registry.
 type entry struct {
-	accountID      uuid.UUID
-	status         provider.AccountStatus
-	failures       int
-	lastErr        string
-	cooldownUntil  time.Time
-	createdAt      time.Time
-	updatedAt      time.Time
+	accountID     uuid.UUID
+	status        provider.AccountStatus
+	failures      int
+	lastErr       string
+	cooldownUntil time.Time
+	createdAt     time.Time
+	updatedAt     time.Time
 }
 
 // Registry is an in-memory cooldown tracker that maps account IDs to their

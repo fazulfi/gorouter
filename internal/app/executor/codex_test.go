@@ -74,9 +74,9 @@ func TestCodexExecutor_Execute_Success(t *testing.T) {
 	defer srv.Close()
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"model":    "gpt-4o-codex",
-		"input":    "Hello",
-		"stream":   false,
+		"model":  "gpt-4o-codex",
+		"input":  "Hello",
+		"stream": false,
 	})
 
 	e := NewCodexExecutor(http.DefaultTransport)
@@ -247,10 +247,10 @@ func TestCodexExecutor_transformRequest(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"model":            "gpt-4o-codex",
-		"input":            "Hello",
-		"temperature":      0.7,
-		"max_tokens":       100,
+		"model":             "gpt-4o-codex",
+		"input":             "Hello",
+		"temperature":       0.7,
+		"max_tokens":        100,
 		"unsupported_field": "should be stripped",
 	})
 
