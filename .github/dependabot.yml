@@ -33,10 +33,6 @@ updates:
       pgx:
         patterns:
           - "github.com/jackc/*"
-    ignore:
-      # pgx v5.9+ requires Go 1.25+ which exceeds our project toolchain
-      - dependency-name: "github.com/jackc/pgx/v5"
-        versions: [">=5.9.0"]
     # Do not auto-approve or auto-merge — all dependency PRs require
     # human review and must pass CI gates.
     reviewers:
