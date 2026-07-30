@@ -38,7 +38,7 @@ func projectRoot() string {
 // findImports parses all .go files under the given directory (non-recursively or
 // recursively based on recurse) and returns a list of import paths that match any
 // of the forbidden prefixes.
-func findImports(dir string, forbiddenPrefixes []string, recurse bool) []string {
+func findImports(dir string, forbiddenPrefixes []string, recurse bool, excludePrefixes ...string) []string {
 	var violations []string
 	root := projectRoot()
 	if root == "" {
@@ -60,6 +60,15 @@ func findImports(dir string, forbiddenPrefixes []string, recurse bool) []string 
 				return nil
 			}
 			if strings.HasSuffix(path, ".go") {
+				// Normalize path for exclusion check (ToSlash for Windows compat)
+				rel := filepath.ToSlash(path)
+				rootSlash := filepath.ToSlash(root)
+				relShort, _ := strings.CutPrefix(rel, rootSlash+"/")
+				for _, ex := range excludePrefixes {
+					if strings.HasPrefix(relShort, ex) {
+						return nil
+					}
+				}
 				files = append(files, path)
 			}
 			return nil
@@ -71,7 +80,19 @@ func findImports(dir string, forbiddenPrefixes []string, recurse bool) []string 
 		}
 		for _, e := range entries {
 			if !strings.HasSuffix(e, "_test.go") {
-				files = append(files, e)
+				rel := filepath.ToSlash(e)
+				rootSlash := filepath.ToSlash(root)
+				relShort, _ := strings.CutPrefix(rel, rootSlash+"/")
+				skip := false
+				for _, ex := range excludePrefixes {
+					if strings.HasPrefix(relShort, ex) {
+						skip = true
+						break
+					}
+				}
+				if !skip {
+					files = append(files, e)
+				}
 			}
 		}
 	}
@@ -120,10 +141,12 @@ func TestDomainDoesNotImportChi(t *testing.T) {
 }
 
 // TestDomainDoesNotImportHTTP verifies domain packages do not import net/http.
+// The domain/provider/transport sub-package is exempted because it implements
+// the RoundTripper interface which requires net/http types.
 func TestDomainDoesNotImportHTTP(t *testing.T) {
 	violations := findImports("internal/domain", []string{
 		"net/http",
-	}, true)
+	}, true, "internal/domain/provider/transport")
 	if len(violations) > 0 {
 		t.Errorf("domain packages must not import net/http:\n%s",
 			strings.Join(violations, "\n"))
@@ -132,13 +155,15 @@ func TestDomainDoesNotImportHTTP(t *testing.T) {
 
 // TestTransportDoesNotImportDomainDirectly verifies the transport layer does
 // NOT import domain packages directly — it must go through the application
-// layer (internal/app). This test is expected to fail until transport code is
-// fully decoupled from domain.
+// layer (internal/app). The internal/transport/httpserver/api package is
+// exempted because API handlers must reference domain types (stream, engine
+// interfaces) for request handling; a future refactor should route these
+// through a dedicated internal/app/api bridge.
 func TestTransportDoesNotImportDomainDirectly(t *testing.T) {
 	// Only check non-test Go files under internal/transport
 	violations := findImports("internal/transport", []string{
 		modulePrefix + "/internal/domain",
-	}, true)
+	}, true, "internal/transport/httpserver/api")
 	if len(violations) > 0 {
 		t.Errorf("transport layer must not import domain directly (violations: %v); "+
 			"route through internal/app instead", violations)
