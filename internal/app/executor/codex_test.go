@@ -18,6 +18,7 @@ import (
 
 func TestCodexExecutor_SupportsFormat(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	if !e.SupportsFormat(engine.FormatCodexResponses) {
 		t.Error("expected to support FormatCodexResponses")
 	}
@@ -31,6 +32,7 @@ func TestCodexExecutor_SupportsFormat(t *testing.T) {
 
 func TestCodexExecutor_ProviderType(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	if e.ProviderType() != ProviderCodex {
 		t.Errorf("expected ProviderCodex, got %s", e.ProviderType())
 	}
@@ -80,13 +82,14 @@ func TestCodexExecutor_Execute_Success(t *testing.T) {
 	})
 
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	account := newTestAccount("codex-key")
@@ -128,13 +131,14 @@ func TestCodexExecutor_ExecuteStream_Success(t *testing.T) {
 	})
 
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	account := newTestAccount("codex-key")
@@ -174,13 +178,14 @@ func TestCodexExecutor_ExecuteStream_PeekError(t *testing.T) {
 	})
 
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	_, err := e.ExecuteStream(context.Background(), req, newTestAccount("key"))
@@ -204,13 +209,14 @@ func TestCodexExecutor_Execute_Error4xx(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o-codex"})
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	_, err := e.Execute(context.Background(), req, newTestAccount("bad-key"))
@@ -228,13 +234,14 @@ func TestCodexExecutor_Execute_Error5xx(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o-codex"})
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	_, err := e.Execute(context.Background(), req, newTestAccount("key"))
@@ -284,6 +291,7 @@ func TestCodexExecutor_transformRequest(t *testing.T) {
 
 func TestCodexExecutor_normaliseInput_String(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	payload := map[string]interface{}{
 		"input": "Hello",
 	}
@@ -300,6 +308,7 @@ func TestCodexExecutor_normaliseInput_String(t *testing.T) {
 
 func TestCodexExecutor_normaliseInput_Empty(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	payload := map[string]interface{}{}
 	e.normaliseInput(payload)
 
@@ -314,6 +323,7 @@ func TestCodexExecutor_normaliseInput_Empty(t *testing.T) {
 
 func TestCodexExecutor_normaliseInput_Array(t *testing.T) {
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	payload := map[string]interface{}{
 		"input": []interface{}{
 			map[string]interface{}{"type": "message", "role": "user", "content": "Hi"},
@@ -340,13 +350,14 @@ func TestCodexExecutor_ExecuteStream_EmptyBody(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]interface{}{"model": "gpt-4o-codex"})
 	e := NewCodexExecutor(http.DefaultTransport)
+
+	e.SetBaseURL(srv.URL)
 	req := &engine.Request{
 		ID:         uuid.New(),
 		Format:     engine.FormatCodexResponses,
 		Model:      "gpt-4o-codex",
 		RawBody:    body,
 		MappedBody: body,
-		Headers:    map[string]string{"X-Base-URL": srv.URL},
 	}
 
 	resp, err := e.ExecuteStream(context.Background(), req, newTestAccount("key"))
@@ -377,6 +388,7 @@ func TestCodexExecutor_SupportsFormat_Table(t *testing.T) {
 	}
 
 	e := NewCodexExecutor(http.DefaultTransport)
+
 	for _, tt := range tests {
 		t.Run(string(tt.format), func(t *testing.T) {
 			got := e.SupportsFormat(tt.format)

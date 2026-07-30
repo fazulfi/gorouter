@@ -57,15 +57,32 @@ var responsesAPIAllowlist = map[string]bool{
 // performs request normalisation that the standard chat-completions executor
 // does not.
 type CodexExecutor struct {
-	client *http.Client
-	model  string // optional override
+	client       *http.Client
+	model        string // optional override
+	streamingCfg StreamingConfig
+
+	// baseURL overrides the default upstream URL when set. Intended for tests;
+	// client-supplied X-Base-URL headers are never honored per decision #376.
+	baseURL string
 }
 
 // NewCodexExecutor creates a CodexExecutor with the given HTTP transport.
 func NewCodexExecutor(transport http.RoundTripper) *CodexExecutor {
 	return &CodexExecutor{
-		client: &http.Client{Transport: transport},
+		client:       &http.Client{Transport: transport},
+		streamingCfg: DefaultStreamingConfig(),
 	}
+}
+
+// SetStreamingConfig replaces the default streaming timeout config.
+func (e *CodexExecutor) SetStreamingConfig(cfg StreamingConfig) {
+	e.streamingCfg = cfg
+}
+
+// SetBaseURL overrides the executor's upstream URL. Intended for tests only;
+// production uses the default base URL.
+func (e *CodexExecutor) SetBaseURL(url string) {
+	e.baseURL = url
 }
 
 // SupportsFormat returns true for FormatCodexResponses.
@@ -115,8 +132,9 @@ func (e *CodexExecutor) Execute(ctx context.Context, req *engine.Request, accoun
 
 // ExecuteStream sends a streaming request to the Codex Responses API and
 // returns a response with an active stream. It implements the "peek" pattern:
-// the first chunk is read synchronously before returning so that connection
-// errors are surfaced immediately.
+// the first event is read synchronously from the response body so that
+// SSE-level errors are surfaced before returning. After the peek the
+// remaining body is streamed incrementally — no io.ReadAll on success.
 func (e *CodexExecutor) ExecuteStream(ctx context.Context, req *engine.Request, account *provider.Account) (*engine.Response, error) {
 	httpReq, err := e.buildRequest(ctx, req, account, true)
 	if err != nil {
@@ -133,31 +151,46 @@ func (e *CodexExecutor) ExecuteStream(ctx context.Context, req *engine.Request, 
 		return nil, err
 	}
 
-	// Read the full body so we can peek at the first event synchronously.
-	raw, err := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	if err != nil {
-		return nil, fmt.Errorf("read stream response body: %w", err)
-	}
+	// Buffer the body for synchronous first-event peek.
+	bufReader := bufio.NewReaderSize(resp.Body, 64*1024)
 
 	// Peek at the first event to detect SSE-level errors.
-	firstEvent, firstData, err := e.peekFirstEvent(raw)
+	firstEvent, firstData, err := e.peekFirstEventFromReader(bufReader)
 	if err != nil {
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("peek first event: %w", err)
 	}
 
 	if isCodexSSEError(firstData) {
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("codex SSE error: %s", extractCodexErrorMessage(firstData))
 	}
 
 	st := stream.NewStream(ctx, 64)
 
-	// Push the first event if valid, then spawn a goroutine for the rest.
-	done := make(chan struct{}, 1)
-	go e.readCodexSSEIntoStream(st, raw, firstEvent, done)
+	// If the first event is [DONE] there are no data chunks — close immediately.
+	if firstData == "[DONE]" {
+		_ = resp.Body.Close()
+		st.Close()
+		return &engine.Response{
+			RequestID:  req.ID,
+			Stream:     st,
+			Model:      e.resolveModel(req),
+			StatusCode: resp.StatusCode,
+			Headers:    flattenHeaders(resp.Header),
+		}, nil
+	}
 
-	// Wait for first event to be pushed so the caller can immediately range.
-	<-done
+	// Push the first event synchronously (deep copy — bufReader owns the
+	// backing slice).
+	st.Push(copyChunkData(stream.Chunk{
+		Data:  []byte(firstData),
+		Event: firstEvent,
+	}))
+
+	// Stream the remainder from the buffered reader (no first-chunk timeout
+	// since we already got the first event).
+	go streamSSEBody(ctx, st, bufReader, resp.Body, e.streamingCfg, 0)
 
 	return &engine.Response{
 		RequestID:  req.ID,
@@ -307,11 +340,12 @@ func (e *CodexExecutor) resolveModel(req *engine.Request) string {
 	return "gpt-4o-codex"
 }
 
-// resolveBaseURL returns the base URL. When the request carries an X-Base-URL
-// header that takes precedence.
+// resolveBaseURL returns the base URL for upstream requests. If a test-only
+// baseURL override is set it takes priority. Client-supplied X-Base-URL
+// headers are never propagated per decision #376.
 func (e *CodexExecutor) resolveBaseURL(req *engine.Request) string {
-	if v, ok := req.Headers["X-Base-URL"]; ok && v != "" {
-		return v
+	if e.baseURL != "" {
+		return e.baseURL
 	}
 	return "https://api.openai.com"
 }
@@ -343,11 +377,19 @@ func (e *CodexExecutor) checkResponseStatus(resp *http.Response) error {
 	return nil
 }
 
-// peekFirstEvent scans the raw SSE body and returns the first event type and
-// data payload. It consumes only the first full event (event + data pair) by
-// reporting the byte offset at which remaining data begins.
-func (e *CodexExecutor) peekFirstEvent(raw []byte) (eventType, data string, err error) {
-	scanner := bufio.NewScanner(bytes.NewReader(raw))
+// peekFirstEventFromReader reads the first SSE event from a buffered reader,
+// leaving the reader positioned after the first event's data line so that
+// subsequent reads continue from the next event.
+func (e *CodexExecutor) peekFirstEventFromReader(r *bufio.Reader) (eventType, data string, err error) {
+	// Read up to codexPeekBytes to capture the first event.
+	peeked, err := r.Peek(codexPeekBytes)
+	if err != nil && err != bufio.ErrBufferFull {
+		// io.EOF or ErrNegativeCount.
+		return "", "", err
+	}
+
+	// Scan the peeked bytes for the first data line.
+	scanner := bufio.NewScanner(bytes.NewReader(peeked))
 	scanner.Buffer(make([]byte, 0, 64*1024), codexPeekBytes)
 
 	for scanner.Scan() {
@@ -360,10 +402,28 @@ func (e *CodexExecutor) peekFirstEvent(raw []byte) (eventType, data string, err 
 
 		if strings.HasPrefix(line, "data: ") {
 			data = strings.TrimPrefix(line, "data: ")
+
+			// Scan past the rest of the first event (up to the trailing blank
+			// line) so the next Read from the reader starts at the next event.
+			for scanner.Scan() {
+				if scanner.Text() == "" {
+					break
+				}
+			}
+			consumed := bytes.Index(peeked, []byte(data))
+			if consumed < 0 {
+				consumed = len(peeked) // fallback
+			}
+			consumed += len(data) + 2 // +2 for \n\n
+			if consumed > len(peeked) {
+				consumed = len(peeked)
+			}
+			if _, err := r.Discard(consumed); err != nil {
+				return eventType, data, err
+			}
 			return eventType, data, nil
 		}
 
-		// Empty line resets event type.
 		if line == "" {
 			eventType = ""
 		}
@@ -400,96 +460,4 @@ func extractCodexErrorMessage(data string) string {
 		return parsed.Error.Message
 	}
 	return "upstream SSE error"
-}
-
-// readCodexSSEIntoStream parses all SSE events from raw bytes and pushes them
-// into the stream. It runs in a goroutine and signals completion via an
-// optional done channel for the first event.
-func (e *CodexExecutor) readCodexSSEIntoStream(st *stream.Stream, raw []byte, firstEvent string, done chan<- struct{}) {
-	defer func() {
-		if r := recover(); r != nil {
-			st.Cancel(fmt.Errorf("panic in Codex SSE reader: %v", r))
-		}
-	}()
-
-	scanner := bufio.NewScanner(bytes.NewReader(raw))
-	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
-
-	var eventType string
-	var firstEventPushed bool
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if line == "" {
-			eventType = ""
-			continue
-		}
-
-		if strings.HasPrefix(line, "event: ") {
-			eventType = strings.TrimPrefix(line, "event: ")
-			continue
-		}
-
-		if strings.HasPrefix(line, "data: ") {
-			data := strings.TrimPrefix(line, "data: ")
-
-			// Skip the first event if we already peeked at it.
-			if !firstEventPushed {
-				firstEventPushed = true
-				if data == firstEvent {
-					if done != nil {
-						done <- struct{}{}
-					}
-					continue
-				}
-			}
-
-			if data == "[DONE]" {
-				st.Close()
-				if done != nil {
-					close(done)
-				}
-				return
-			}
-
-			chunk := stream.Chunk{
-				Data:  []byte(data),
-				Event: eventType,
-			}
-
-			if isCodexSSEError(data) {
-				chunk.Error = fmt.Errorf("codex SSE error: %s", extractCodexErrorMessage(data))
-				st.Push(chunk)
-				st.Cancel(chunk.Error)
-				if done != nil {
-					close(done)
-				}
-				return
-			}
-
-			if !st.Push(chunk) {
-				if done != nil {
-					close(done)
-				}
-				return
-			}
-
-			if done != nil {
-				done <- struct{}{}
-				close(done)
-				done = nil
-			}
-			continue
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		st.Cancel(fmt.Errorf("Codex SSE scanner error: %w", err))
-	}
-	if done != nil {
-		close(done)
-	}
-
-	st.Close()
 }
