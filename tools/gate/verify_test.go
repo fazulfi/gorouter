@@ -147,7 +147,7 @@ func TestFindRoot_NotFound(t *testing.T) {
 
 func TestFindRoot_FromSubdirectory(t *testing.T) {
 	tmpDir := t.TempDir()
-	goModContent := "module testmodule\n\ngo 1.23\n"
+	goModContent := "module testmodule\n\ngo 1.25\n"
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goModContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -460,7 +460,7 @@ func TestRun_ErrorNoGoMod(t *testing.T) {
 func TestRun_FullFlow(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module temp\n\ngo 1.23\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module temp\n\ngo 1.25\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\nfunc main() {}\n"), 0644); err != nil {
