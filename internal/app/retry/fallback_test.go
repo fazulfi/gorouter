@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 
 // mockCooldownRegistry implements CooldownRegistry for testing.
 type mockCooldownRegistry struct {
+	mu         sync.Mutex
 	onCooldown map[uuid.UUID]bool
 	failures   []uuid.UUID
 	successes  []uuid.UUID
@@ -23,14 +25,20 @@ func newMockCooldownRegistry() *mockCooldownRegistry {
 }
 
 func (m *mockCooldownRegistry) IsOnCooldown(_ context.Context, id uuid.UUID) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.onCooldown[id]
 }
 
 func (m *mockCooldownRegistry) RecordFailure(_ context.Context, id uuid.UUID, _ error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.failures = append(m.failures, id)
 }
 
 func (m *mockCooldownRegistry) RecordSuccess(_ context.Context, id uuid.UUID) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.successes = append(m.successes, id)
 }
 
