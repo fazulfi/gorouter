@@ -50,6 +50,15 @@ func TestNewTxScope(t *testing.T) {
 		if scope.AuditLog() == nil {
 			t.Error("AuditLog() returned nil")
 		}
+		if scope.Accounts() == nil {
+			t.Error("Accounts() returned nil")
+		}
+		if scope.Proxies() == nil {
+			t.Error("Proxies() returned nil")
+		}
+		if scope.Models() == nil {
+			t.Error("Models() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -68,6 +77,9 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Providers()
 		_ = scope.Jobs()
 		_ = scope.AuditLog()
+		_ = scope.Accounts()
+		_ = scope.Proxies()
+		_ = scope.Models()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -100,6 +112,15 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.AuditLog().(*auditLogRepo); !ok {
 			t.Error("AuditLog() is not *auditLogRepo")
+		}
+		if _, ok := scope.Accounts().(*accountRepo); !ok {
+			t.Error("Accounts() is not *accountRepo")
+		}
+		if _, ok := scope.Proxies().(*proxyRepo); !ok {
+			t.Error("Proxies() is not *proxyRepo")
+		}
+		if _, ok := scope.Models().(*ModelRepository); !ok {
+			t.Error("Models() is not *ModelRepository")
 		}
 	})
 }

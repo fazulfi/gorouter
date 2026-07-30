@@ -27,6 +27,9 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		&providerRepo{tx: pgTx},
 		&jobRepo{tx: pgTx},
 		&auditLogRepo{tx: pgTx},
+		&accountRepo{tx: pgTx},
+		&proxyRepo{tx: pgTx},
+		NewModelRepository(pgTx),
 	)
 }
 
