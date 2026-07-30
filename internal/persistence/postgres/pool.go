@@ -77,7 +77,9 @@ func Open(ctx context.Context, cfg PoolConfig) (*Pool, error) {
 
 	poolCfg.MaxConns = cfg.MaxConns
 	poolCfg.HealthCheckPeriod = cfg.HealthCheckInterval
-	poolCfg.MaxConnLifetime = 0 // no max lifetime
+	// MaxConnLifetime: keep default (1h). Setting to 0 would cause pgx v5.10's
+	// isExpired to mark every connection as expired immediately, breaking the
+	// acquire-time health-check loop on single-connection pools.
 	poolCfg.MaxConnIdleTime = cfg.HealthCheckInterval * 2
 
 	// Apply connection timeout to the context
