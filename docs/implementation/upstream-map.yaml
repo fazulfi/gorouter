@@ -90,8 +90,8 @@ upstream_files:
     status: "completed"
 
   - file: "open-sse/handlers/chatCore.js"
-    responsibility: "OpenAI Chat Completions transport and format detection"
-    gorouter_package: "internal/app/translate,internal/transport/httpserver/api"
+    responsibility: "OpenAI Chat transport, format detection, orchestrator pipeline (P2-T04+P2-T07)"
+    gorouter_package: "internal/app/translate,internal/app/orchestrator,internal/transport/httpserver/api"
     task: "P2-T04"
     status: "completed"
 
@@ -107,12 +107,6 @@ upstream_files:
     task: "P2-T06"
     status: "completed"
 
-  - file: "open-sse/handlers/chatCore.js"
-    responsibility: "Orchestrator pipeline (detect→translate→resolve→select→execute)"
-    gorouter_package: "internal/app/orchestrator"
-    task: "P2-T07"
-    status: "completed"
-
   - file: "open-sse/utils/streamHandler.js"
     responsibility: "Stream lifecycle: 200s first-chunk, 6m raw-byte stall, 500ms disconnect grace"
     gorouter_package: "internal/app/executor,internal/domain/engine/stream,internal/transport/httpserver/api"
@@ -120,8 +114,8 @@ upstream_files:
     status: "completed"
     decision_refs: [113, 116, 118]
 
-  - file: "open-sse/executors/BaseExecutor.js"
-    responsibility: "Reactive 401/403 refresh, bounded retry, same-model account fallback"
+  - file: "open-sse/executors/AuthDescriptors.js"
+    responsibility: "Reactive 401/403 refresh, bounded retry, same-model account fallback (extends BaseExecutor P2-T03)"
     gorouter_package: "internal/app/retry,internal/app/routing"
     task: "P2-T09"
     status: "completed"

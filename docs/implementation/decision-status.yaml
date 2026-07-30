@@ -258,14 +258,8 @@ active_decisions:
     task: "P2-T04"
     status: "completed"
 
-  - id: 111
-    title: "Sanitized structured error with correlation ID"
-    phase: 2
-    task: "P2-T09"
-    status: "completed"
-
   - id: 113
-    title: "500ms client disconnect grace before context cancellation"
+    title: "500ms client disconnect grace before context teardown"
     phase: 2
     task: "P2-T08"
     status: "completed"
