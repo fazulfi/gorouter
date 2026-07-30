@@ -3,6 +3,7 @@ package api
 import (
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -13,11 +14,14 @@ import (
 func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.With().Str("handler", "chat_completions").Logger()
 
+	// Strip untrusted headers that could influence upstream routing.
+	stripUntrustedHeaders(r)
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to read request body")
-		writeJSONError(w, http.StatusBadRequest, "failed to read request body")
+		writeJSONError(w, r, http.StatusBadRequest, "failed to read request body")
 		return
 	}
 	defer r.Body.Close()
@@ -25,7 +29,7 @@ func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) 
 	req, err := h.translateSvc.TranslateChatToRequest(r.Context(), body)
 	if err != nil {
 		log.Warn().Err(err).Msg("invalid chat request")
-		writeJSONError(w, http.StatusBadRequest, "request body invalid")
+		writeJSONError(w, r, http.StatusBadRequest, "request body invalid")
 		return
 	}
 
@@ -40,7 +44,7 @@ func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) 
 	resp, err := h.orchestrator.ExecuteRequest(r.Context(), req)
 	if err != nil {
 		logUpdated.Error().Err(err).Msg("orchestrator execution failed")
-		writeJSONError(w, http.StatusInternalServerError, "request execution failed")
+		writeJSONError(w, r, http.StatusInternalServerError, "request execution failed")
 		return
 	}
 
@@ -48,10 +52,10 @@ func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) 
 		st, ok := resp.Stream.(*stream.Stream)
 		if !ok {
 			logUpdated.Error().Msg("response stream is not a *stream.Stream")
-			writeJSONError(w, http.StatusInternalServerError, "internal error")
+			writeJSONError(w, r, http.StatusInternalServerError, "internal error")
 			return
 		}
-		if err := writeSSEStream(w, r, st, h.config.StreamKeepalive, logUpdated); err != nil {
+		if err := writeSSEStream(w, r, st, h.config.StreamKeepalive, 500*time.Millisecond, logUpdated); err != nil {
 			logUpdated.Error().Err(err).Msg("sse stream write failed")
 		}
 		return

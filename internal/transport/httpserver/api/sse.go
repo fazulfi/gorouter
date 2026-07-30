@@ -10,7 +10,7 @@ import (
 	"gorouter/internal/domain/engine/stream"
 )
 
-func writeSSEStream(w http.ResponseWriter, r *http.Request, st *stream.Stream, keepalive time.Duration, log zerolog.Logger) error {
+func writeSSEStream(w http.ResponseWriter, r *http.Request, st *stream.Stream, keepalive time.Duration, disconnectGrace time.Duration, log zerolog.Logger) error {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -26,12 +26,16 @@ func writeSSEStream(w http.ResponseWriter, r *http.Request, st *stream.Stream, k
 	firstChunk, err := st.Peek(r.Context())
 	if err != nil {
 		log.Error().Err(err).Msg("sse stream peek failed")
+		// Sanitize: do not leak internal stream details to the client.
+		writeJSONError(w, r, http.StatusInternalServerError, "stream error")
 		return err
 	}
 
 	if firstChunk.Error != nil {
 		log.Error().Err(firstChunk.Error).Msg("sse stream first chunk error")
-		writeJSONError(w, http.StatusInternalServerError, firstChunk.Error.Error())
+		// Sanitize: use the safe error contract — never echo upstream errors
+		// verbatim as they may contain credential fragments or internal URLs.
+		writeJSONError(w, r, http.StatusInternalServerError, "stream error")
 		return firstChunk.Error
 	}
 
@@ -47,6 +51,15 @@ func writeSSEStream(w http.ResponseWriter, r *http.Request, st *stream.Stream, k
 	for {
 		select {
 		case <-r.Context().Done():
+			// Client disconnect grace: drain any buffered chunks within
+			// the grace window before tearing down the stream.
+			select {
+			case chunk, ok := <-remaining:
+				if ok && len(chunk.Data) > 0 {
+					_ = writeChunkAsSSE(w, flusher, &chunk)
+				}
+			case <-time.After(disconnectGrace):
+			}
 			st.Cancel(r.Context().Err())
 			return r.Context().Err()
 		case chunk, ok := <-remaining:
@@ -66,7 +79,9 @@ func writeSSEStream(w http.ResponseWriter, r *http.Request, st *stream.Stream, k
 
 			if chunk.IsFinal && chunk.Error != nil {
 				log.Warn().Err(chunk.Error).Msg("sse stream chunk error")
-				writeSSEEvent(w, "error", "upstream error")
+				// Sanitize: use a safe terminal message; never leak upstream
+				// error details that may contain credentials or internal paths.
+				writeSSEEvent(w, "error", "upstream_error")
 				flusher.Flush()
 				return chunk.Error
 			}

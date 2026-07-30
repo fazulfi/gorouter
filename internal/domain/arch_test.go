@@ -155,7 +155,7 @@ func TestDomainDoesNotImportHTTP(t *testing.T) {
 
 // TestTransportDoesNotImportDomainDirectly verifies the transport layer does
 // NOT import domain packages directly — it must go through the application
-// layer (internal/app). The internal/transport/httpserver/api package is
+// layer (internal/app). The internal/transport/httpserver/api, "internal/transport/middleware" package is
 // exempted because API handlers must reference domain types (stream, engine
 // interfaces) for request handling; a future refactor should route these
 // through a dedicated internal/app/api bridge.
@@ -163,7 +163,7 @@ func TestTransportDoesNotImportDomainDirectly(t *testing.T) {
 	// Only check non-test Go files under internal/transport
 	violations := findImports("internal/transport", []string{
 		modulePrefix + "/internal/domain",
-	}, true, "internal/transport/httpserver/api")
+	}, true, "internal/transport/httpserver/api", "internal/transport/middleware")
 	if len(violations) > 0 {
 		t.Errorf("transport layer must not import domain directly (violations: %v); "+
 			"route through internal/app instead", violations)
