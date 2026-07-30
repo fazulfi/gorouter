@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -89,8 +90,15 @@ func dispatchServer(app *App) (int, error) {
 	app.Logger.Info().Str("host", app.Config.Host).Int("port", app.Config.Port).
 		Msg("starting server mode")
 
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 	go func() {
-		if err := http.ListenAndServe(addr, router); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			app.Logger.Fatal().Err(err).Msg("server failed")
 		}
 	}()

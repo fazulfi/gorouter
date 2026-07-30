@@ -129,13 +129,13 @@ func (e *CodexExecutor) ExecuteStream(ctx context.Context, req *engine.Request, 
 	}
 
 	if err := e.checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 
 	// Read the full body so we can peek at the first event synchronously.
 	raw, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("read stream response body: %w", err)
 	}
@@ -329,7 +329,7 @@ func (e *CodexExecutor) checkResponseStatus(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		bodyStr := string(bodyBytes)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		switch resp.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
