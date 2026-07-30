@@ -118,9 +118,9 @@ func (h *Handler) HandleAsyncChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	job := &jobs.Job{
-		ID:     uuid.New(),
-		Type:   JobTypeChatCompletion,
-		Status: jobs.JobPending,
+		ID:      uuid.New(),
+		Type:    JobTypeChatCompletion,
+		Status:  jobs.JobPending,
 		Payload: payloadJSON,
 	}
 

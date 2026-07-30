@@ -274,10 +274,15 @@ func TestWorker_JobLifecycle_Success(t *testing.T) {
 	repo := newMockJobRepo()
 	updater := newMockStatusUpdater()
 
-	var executedRequestID uuid.UUID
+	var (
+		mu                sync.Mutex
+		executedRequestID uuid.UUID
+	)
 	pipeline := &mockPipeline{
 		executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
+			mu.Lock()
 			executedRequestID = req.ID
+			mu.Unlock()
 			return &engine.Response{
 				RequestID:  req.ID,
 				Body:       []byte(`{"choices":[{"message":{"content":"hello"}}]}`),
@@ -315,8 +320,11 @@ func TestWorker_JobLifecycle_Success(t *testing.T) {
 	if !updater.hasStatus(jobs.JobCompleted) {
 		t.Fatal("expected JobCompleted status")
 	}
-	if executedRequestID != jobID {
-		t.Fatalf("expected executed request ID %s, got %s", jobID.String(), executedRequestID.String())
+	mu.Lock()
+	gotID := executedRequestID
+	mu.Unlock()
+	if gotID != jobID {
+		t.Fatalf("expected executed request ID %s, got %s", jobID.String(), gotID.String())
 	}
 }
 

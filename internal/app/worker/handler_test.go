@@ -315,9 +315,9 @@ func TestHandler_RegisterRoutes(t *testing.T) {
 	// Create a job so GET /v1/jobs/{id} returns 200 instead of 404.
 	existingJobID := uuid.New()
 	_ = repo.Create(context.Background(), &jobs.Job{
-		ID:     existingJobID,
-		Type:   JobTypeChatCompletion,
-		Status: jobs.JobPending,
+		ID:      existingJobID,
+		Type:    JobTypeChatCompletion,
+		Status:  jobs.JobPending,
 		Payload: json.RawMessage(`{"body":"test"}`),
 	})
 
