@@ -61,7 +61,7 @@ jobs:
 
       # ── Secret scanning: gitleaks ──────────────────────────────
       - name: Install gitleaks
-        run: go install github.com/gitleaks/gitleaks/v8@v8.24.3
+        run: go install github.com/zricethezav/gitleaks/v8@v8.24.3
         env:
           GOFLAGS: ""
 
