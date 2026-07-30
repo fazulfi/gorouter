@@ -126,7 +126,7 @@ func (o *Orchestrator) ExecuteRequest(ctx context.Context, req *engine.Request) 
 	}
 	log.Debug().Str("format", string(req.Format)).Msg("orchestrator: request translated")
 
-	account, err := o.selectAccountStage(ctx, resolved)
+	account, candidates, err := o.selectAccountStage(ctx, resolved)
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +139,9 @@ func (o *Orchestrator) ExecuteRequest(ctx context.Context, req *engine.Request) 
 	log.Debug().Str("provider_type", string(resolved.Provider.Type)).Msg("orchestrator: executor obtained")
 
 	if req.Stream {
-		return o.dispatchStream(ctx, req, exec, account, log)
+		return o.dispatchStream(ctx, req, exec, account, candidates, log)
 	}
-	return o.dispatchWithRetry(ctx, req, exec, account, log)
+	return o.dispatchWithRetry(ctx, req, exec, account, candidates, log)
 }
 
 // CancelStream terminates an active streaming request identified by its
@@ -163,19 +163,21 @@ func (o *Orchestrator) CancelStream(_ context.Context, requestID uuid.UUID) erro
 }
 
 // dispatchWithRetry dispatches a non-streaming request through the retry
-// wrapper, which handles backoff, cooldown recording, and account fallback.
+// wrapper, which handles backoff, cooldown recording, credential refresh,
+// and account fallback.
 func (o *Orchestrator) dispatchWithRetry(
 	ctx context.Context,
 	req *engine.Request,
 	exec engine.Executor,
 	account *provider.Account,
+	candidates []provider.Account,
 	log zerolog.Logger,
 ) (*engine.Response, error) {
 	policy := retry.NewPolicy(o.retryCfg)
 	fallbackSel := retry.NewFallbackSelector(o.accountSel, o.cooldown)
-	retryExec := retry.NewExecutor(exec, policy, fallbackSel)
+	retryExec := retry.NewExecutor(exec, policy, fallbackSel, nil /* refresher: no-op default */)
 
-	resp, err := retryExec.Execute(ctx, req, account)
+	resp, err := retryExec.Execute(ctx, req, account, candidates)
 	if err != nil {
 		log.Error().Err(err).Msg("orchestrator: request failed after retries")
 		return nil, fmt.Errorf("orchestrator: execute failed: %w", err)
@@ -194,13 +196,14 @@ func (o *Orchestrator) dispatchStream(
 	req *engine.Request,
 	exec engine.Executor,
 	account *provider.Account,
+	candidates []provider.Account,
 	log zerolog.Logger,
 ) (*engine.Response, error) {
 	policy := retry.NewPolicy(o.retryCfg)
 	fallbackSel := retry.NewFallbackSelector(o.accountSel, o.cooldown)
-	retryExec := retry.NewExecutor(exec, policy, fallbackSel)
+	retryExec := retry.NewExecutor(exec, policy, fallbackSel, nil /* refresher: no-op default */)
 
-	resp, err := retryExec.ExecuteStream(ctx, req, account)
+	resp, err := retryExec.ExecuteStream(ctx, req, account, candidates)
 	if err != nil {
 		log.Error().Err(err).Msg("orchestrator: stream execution failed")
 		return nil, fmt.Errorf("orchestrator: stream execute failed: %w", err)

@@ -113,50 +113,56 @@ func (o *Orchestrator) translateStage(ctx context.Context, req *engine.Request, 
 
 // selectAccountStage picks the provider account to use, either from the
 // resolved reference's explicit account ID or via the AccountSelector.
-func (o *Orchestrator) selectAccountStage(ctx context.Context, resolved *modelref.ResolvedRef) (*provider.Account, error) {
+//
+// It returns the primary account and the full list of candidate accounts
+// (including the primary) sorted by priority. The candidate list enables
+// the retry layer to perform same-model account fallback on failure.
+func (o *Orchestrator) selectAccountStage(ctx context.Context, resolved *modelref.ResolvedRef) (*provider.Account, []provider.Account, error) {
 	if o.accountSel == nil {
-		return nil, &pipelineError{
+		return nil, nil, &pipelineError{
 			Stage: "select_account",
 			Err:   fmt.Errorf("%w: account selector not configured", ErrAccountSelection),
 		}
 	}
+
 	if resolved.AccountID != nil {
 		account, err := o.accountRepo.FindByID(ctx, *resolved.AccountID)
 		if err != nil {
-			return nil, &pipelineError{
+			return nil, nil, &pipelineError{
 				Stage: "select_account",
 				Err:   fmt.Errorf("%w: lookup %s: %v", ErrAccountSelection, resolved.AccountID.String(), err),
 			}
 		}
 		if account == nil {
-			return nil, &pipelineError{
+			return nil, nil, &pipelineError{
 				Stage: "select_account",
 				Err:   fmt.Errorf("%w: account %s not found", ErrAccountSelection, resolved.AccountID.String()),
 			}
 		}
 		if !account.IsEnabled {
-			return nil, &pipelineError{
+			return nil, nil, &pipelineError{
 				Stage: "select_account",
 				Err:   fmt.Errorf("%w: account %s is disabled", ErrAccountSelection, resolved.AccountID.String()),
 			}
 		}
-		return account, nil
+		// Explicit account: no candidates for fallback.
+		return account, nil, nil
 	}
 
-	account, _, err := o.accountSel.SelectAccount(ctx, resolved.ProviderID, resolved.ModelName)
+	account, candidates, err := o.accountSel.SelectAccount(ctx, resolved.ProviderID, resolved.ModelName)
 	if err != nil {
-		return nil, &pipelineError{
+		return nil, nil, &pipelineError{
 			Stage: "select_account",
 			Err:   fmt.Errorf("%w: %v", ErrAccountSelection, err),
 		}
 	}
 	if account == nil {
-		return nil, &pipelineError{
+		return nil, nil, &pipelineError{
 			Stage: "select_account",
 			Err:   ErrAccountSelection,
 		}
 	}
-	return account, nil
+	return account, candidates, nil
 }
 
 // getExecutorStage returns the executor for the given provider type and
