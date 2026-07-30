@@ -1,0 +1,10 @@
+# /etc/sudoers.d/gorouter — restricted sudo for gorouter service user
+#
+# Installation:
+#   sudo cp deploy/sudoers/gorouter /etc/sudoers.d/gorouter
+#   sudo chmod 440 /etc/sudoers.d/gorouter
+#
+# Only allow systemctl (service management) and journalctl (log inspection).
+# This is the principle of least privilege — gorouter needs no other sudo access.
+
+gorouter ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/bin/journalctl

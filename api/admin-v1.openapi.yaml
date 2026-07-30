@@ -1,0 +1,596 @@
+openapi: "3.1.0"
+info:
+  title: gorouter Admin API
+  version: "1.0.0"
+  description: |
+    Admin API for gorouter - the AI model router.
+    All mutations require authentication via session cookie or PAT Bearer token.
+  contact:
+    name: gorouter project
+    url: https://github.com/gorouter
+
+servers:
+  - url: /api/admin/v1
+    description: Current version prefix
+
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: gorouter_session
+      description: Dashboard session cookie
+    PAT:
+      type: http
+      scheme: bearer
+      bearerFormat: pat
+      description: Personal Access Token
+    APIKey:
+      type: http
+      scheme: bearer
+      description: Model API key (for model endpoints only)
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+        details:
+          type: object
+        request_id:
+          type: string
+          format: uuid
+
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+
+    DetailedHealth:
+      allOf:
+        - $ref: '#/components/schemas/Health'
+        - type: object
+          properties:
+            version:
+              type: string
+            uptime_seconds:
+              type: integer
+            db:
+              type: object
+              properties:
+                connected:
+                  type: boolean
+                pool_conns_in_use:
+                  type: integer
+                pool_conns_idle:
+                  type: integer
+            goroutines:
+              type: integer
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        is_admin:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+
+    CreatePATRequest:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreatePATResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        token:
+          type: string
+          description: Full PAT value (only shown once)
+        description:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    PAT:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        token_prefix:
+          type: string
+          description: First 8 characters of PAT for identification
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    APIKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key_prefix:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateAPIKeyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+          description: Full API key value (only shown once)
+        name:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [openai, anthropic, azure, custom]
+        base_url:
+          type: string
+          format: uri
+        is_enabled:
+          type: boolean
+        config:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProviderRequest:
+      type: object
+      required: [name, type, base_url]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [openai, anthropic, azure, custom]
+        base_url:
+          type: string
+          format: uri
+        api_key:
+          type: string
+          description: Provider API key (encrypted at rest)
+        config:
+          type: object
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Public health check
+      tags: [Health]
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /health/detailed:
+    get:
+      operationId: getDetailedHealth
+      summary: Detailed health (authenticated)
+      tags: [Health]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      responses:
+        '200':
+          description: Detailed service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedHealth'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Dashboard login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Dashboard logout
+      tags: [Auth]
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current user
+      tags: [Auth]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /pats:
+    get:
+      operationId: listPATs
+      summary: List Personal Access Tokens
+      tags: [PAT]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      responses:
+        '200':
+          description: List of PATs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PAT'
+    post:
+      operationId: createPAT
+      summary: Create Personal Access Token
+      tags: [PAT]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePATRequest'
+      responses:
+        '201':
+          description: PAT created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePATResponse'
+
+  /pats/{id}:
+    delete:
+      operationId: revokePAT
+      summary: Revoke a PAT
+      tags: [PAT]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: PAT revoked
+
+  /api-keys:
+    get:
+      operationId: listAPIKeys
+      summary: List model API keys
+      tags: [API Keys]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIKey'
+    post:
+      operationId: createAPIKey
+      summary: Create model API key
+      tags: [API Keys]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAPIKeyResponse'
+
+  /api-keys/{id}:
+    delete:
+      operationId: revokeAPIKey
+      summary: Revoke a model API key
+      tags: [API Keys]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: API key revoked
+
+  /providers:
+    get:
+      operationId: listProviders
+      summary: List providers
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+    post:
+      operationId: createProvider
+      summary: Create a provider connection
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProviderRequest'
+      responses:
+        '201':
+          description: Provider created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+
+  /providers/{id}:
+    get:
+      operationId: getProvider
+      summary: Get provider details
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Provider details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+    put:
+      operationId: updateProvider
+      summary: Update provider connection
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProviderRequest'
+      responses:
+        '200':
+          description: Provider updated
+    delete:
+      operationId: deleteProvider
+      summary: Delete provider connection
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+        - PAT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Provider deleted
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics endpoint
+      tags: [Metrics]
+      responses:
+        '200':
+          description: Prometheus metrics in text format
+          content:
+            text/plain:
+              schema:
+                type: string

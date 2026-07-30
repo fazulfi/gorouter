@@ -3,6 +3,7 @@ package governance
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -193,15 +194,15 @@ func TestNoCancelledDecisionsInActiveList(t *testing.T) {
 	}
 
 	cancelledOrRemoved := map[int]bool{
-		7:   true,   // Deployment pending → superseded
-		17:  false,  // Redis for OAuth → decided against
-		78:  true,   // Auth in distributed → cancelled by #79
-		80:  true,   // Scope distributed → removed from v1
-		111: true,   // Export/import → cancelled by #200
-		114: true,   // Credential encryption → cancelled by #120
-		117: true,   // Encryption key source → cancelled by #120
-		156: false,  // Cloud/sync removal (active decision)
-		178: false,  // Desktop autostart removal (active decision)
+		7:   true,  // Deployment pending → superseded
+		17:  false, // Redis for OAuth → decided against
+		78:  true,  // Auth in distributed → cancelled by #79
+		80:  true,  // Scope distributed → removed from v1
+		111: true,  // Export/import → cancelled by #200
+		114: true,  // Credential encryption → cancelled by #120
+		117: true,  // Encryption key source → cancelled by #120
+		156: false, // Cloud/sync removal (active decision)
+		178: false, // Desktop autostart removal (active decision)
 	}
 
 	var ds DecisionStatus
@@ -306,6 +307,100 @@ func TestJSONTags(t *testing.T) {
 	checkTag("ParityRow", true)
 	checkTag("ActiveDecision", true)
 	checkTag("FixtureEntry", true)
+}
+
+// upstreamOriginalDir returns the path to the upstream-original git repo.
+func upstreamOriginalDir(root string) string {
+	return filepath.Join(root, "upstream-original")
+}
+
+// gitObjectExists checks whether a path exists at the given commit in
+// upstream-original using git cat-file, avoiding the dirty worktree.
+func gitObjectExists(upstreamDir, commit, path string) bool {
+	cmd := exec.Command("git", "cat-file", "-e", commit+":"+path)
+	cmd.Dir = upstreamDir
+	return cmd.Run() == nil
+}
+
+// RED Test: TestUpstreamMapPathsExistInPinnedCommit verifies every upstream
+// file path referenced in upstream-map.yaml resolves to a real git object
+// in the pinned baseline commit. Uses git cat-file directly on the
+// upstream-original repo to avoid dirty-worktree false positives.
+func TestUpstreamMapPathsExistInPinnedCommit(t *testing.T) {
+	root, err := RootDir()
+	if err != nil {
+		t.Skip("project root not found:", err)
+	}
+	upstreamDir := upstreamOriginalDir(root)
+	if _, err := os.Stat(upstreamDir); os.IsNotExist(err) {
+		t.Skip("upstream-original directory not found, skipping git-object test")
+	}
+
+	var m UpstreamMap
+	if err := LoadYAML(filepath.Join(root, "docs", "implementation", "upstream-map.yaml"), &m); err != nil {
+		t.Fatalf("failed to load upstream-map.yaml: %v", err)
+	}
+
+	commit := m.Baseline.Commit
+	if commit == "" {
+		t.Fatal("baseline commit is empty in upstream-map.yaml")
+	}
+
+	var missing []string
+	for _, f := range m.UpstreamFiles {
+		if f.File == "" {
+			continue
+		}
+		if !gitObjectExists(upstreamDir, commit, f.File) {
+			missing = append(missing, f.File)
+		}
+	}
+
+	if len(missing) > 0 {
+		for _, path := range missing {
+			t.Errorf("upstream path %q does not exist in pinned commit %s", path, commit[:8])
+		}
+	}
+}
+
+// RED Test: TestFixtureManifestUpstreamPathsExistInPinnedCommit verifies every
+// upstreamFile reference in the fixture manifest resolves to a real git object
+// in the pinned baseline commit.
+func TestFixtureManifestUpstreamPathsExistInPinnedCommit(t *testing.T) {
+	root, err := RootDir()
+	if err != nil {
+		t.Skip("project root not found:", err)
+	}
+	upstreamDir := upstreamOriginalDir(root)
+	if _, err := os.Stat(upstreamDir); os.IsNotExist(err) {
+		t.Skip("upstream-original directory not found, skipping git-object test")
+	}
+
+	var fm FixtureManifest
+	if err := LoadJSON(filepath.Join(root, "tests", "fixtures", "upstream", "manifest.json"), &fm); err != nil {
+		t.Fatalf("failed to load fixture manifest: %v", err)
+	}
+
+	commit := fm.Baseline.Commit
+	if commit == "" {
+		t.Fatal("baseline commit is empty in fixture manifest")
+	}
+
+	var missing []string
+	for _, f := range fm.Fixtures {
+		if f.UpstreamFile == "" {
+			continue
+		}
+		if !gitObjectExists(upstreamDir, commit, f.UpstreamFile) {
+			missing = append(missing, f.UpstreamFile)
+		}
+	}
+
+	if len(missing) > 0 {
+		for _, path := range missing {
+			t.Errorf("fixture upstreamFile %q does not exist in pinned commit %s", path, commit[:8])
+		}
+	}
 }
 
 // Test that JSON output can marshal without errors.

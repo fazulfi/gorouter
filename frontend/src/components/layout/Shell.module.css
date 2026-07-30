@@ -1,0 +1,29 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.mainArea {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-8);
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  text-align: center;
+  margin-top: var(--space-12);
+}

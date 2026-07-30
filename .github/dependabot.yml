@@ -1,0 +1,80 @@
+# Dependabot configuration — Phase 1 supply-chain automation.
+#
+# Permissions are inherited from the repository's default:
+#   - Dependabot runs with read-only metadata access
+#   - PRs are created with contents: write for the automation branch only
+#   - No write access to secrets, actions, or deployments
+#
+# For the principle of least privilege, Dependabot's built-in token
+# is scoped to the repository contents only. No external token or
+# secret is configured.
+
+version: 2
+updates:
+  # ── Go modules ──────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "go"
+    groups:
+      go-minor-patch:
+        patterns:
+          - "golang.org/x/*"
+        update-types:
+          - "minor"
+          - "patch"
+      pgx:
+        patterns:
+          - "github.com/jackc/*"
+    # Do not auto-approve or auto-merge — all dependency PRs require
+    # human review and must pass CI gates.
+    reviewers:
+      - "faizrr"
+
+  # ── GitHub Actions ─────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    reviewers:
+      - "faizrr"
+
+  # ── npm ─────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    groups:
+      npm-dev-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    reviewers:
+      - "faizrr"

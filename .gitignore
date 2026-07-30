@@ -69,6 +69,9 @@ coverage.html
 frontend/node_modules/
 frontend/dist/
 frontend/.tsbuildinfo
+frontend/test-results/
+frontend/npm-audit.json
+.evidence/
 
 # Tooling
 tools/*/bin/
@@ -76,3 +79,4 @@ tools/*/dist/
 
 # Test artifacts
 tests/fixtures/upstream/output/
+frontend/tsconfig.tsbuildinfo

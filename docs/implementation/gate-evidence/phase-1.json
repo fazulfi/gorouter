@@ -1,0 +1,146 @@
+{
+  "phase": "1",
+  "status": "pass",
+  "timestamp": "2026-07-30T03:15:00+07:00",
+  "duration_seconds": 845.0,
+  "checks": [
+    {
+      "name": "go-vet",
+      "status": "pass",
+      "output": "VPS: gofmt -d ./... — clean (no output). go vet ./... — clean (no output). All formatting and linting verified on linux/amd64.",
+      "duration_seconds": 8.1
+    },
+    {
+      "name": "go-test",
+      "status": "pass",
+      "output": "VPS: go test ./... -short -count=1 — 20 packages ok, 0 failures. Fuzz: 11/11 targets compile clean. Arch: go build ./... clean on linux/amd64, linux/arm64, linux/386, darwin/amd64, darwin/arm64.",
+      "duration_seconds": 45.0
+    },
+    {
+      "name": "go-race",
+      "status": "pass",
+      "output": "VPS (Ubuntu 24.04, Linux): go test -race -short -count=1 ./... — 20 packages ok, 0 races detected. This is VPS validation, not PR CI; the ubuntu-latest GitHub Actions race job must still confirm on the final revision.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "frontend-build",
+      "status": "pass",
+      "output": "npm run build — tsc -b + vite build: dist/ (index.html 0.46 kB, js 196.12 kB, css 4.12 kB)",
+      "duration_seconds": 2.0
+    },
+    {
+      "name": "frontend-test",
+      "status": "pass",
+      "output": "VPS: tsc -b (typecheck) — clean. vitest run — 5 test files, 34/34 passed (Shell, Header, Sidebar, client, app). Playwright e2e: shell.spec.ts, 15 tests × 2 projects (desktop + mobile) = 30/30 passed incl. axe accessibility scan, keyboard navigation, and 375px viewport breakpoint checks.",
+      "duration_seconds": 5.0
+    },
+    {
+      "name": "code-coverage",
+      "status": "pass",
+      "output": "Overall: 86.7% (target: 80%). All packages with coverage data:\n  internal/app/auth: 76.0%, app/keys: 100%, bootstrap: 98.5%,\n  domain/auth: 84.4%, domain/keys: 86.2%, governance: 86.2%,\n  observability/logging: 97.6%, observability/metrics: 100%,\n  persistence/postgres: 97.7%, migrations: 80.0%, repositories: 96.1%,\n  shared: 97.6%, transport/httpserver: 100%, health: 97.5%,\n  middleware: 90.4%, tools/fixtures: 100%, tools/gate: 87.1%",
+      "duration_seconds": 60.0
+    },
+    {
+      "name": "coverage-low-packages",
+      "status": "pass",
+      "output": "cmd/gorouter (0%) and internal/app/tx (0%) — both are wiring-only packages with no logic to test (main.go dispatch, tx manager delegate). domain/jobs and domain/provider have no test files (pure type definitions). These are structural, not coverage gaps.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "coverage-threshold",
+      "status": "pass",
+      "output": "Total coverage: 86.7% meets threshold 80.0%. Enforced in .github/workflows/test.yml and tools/gate/verify.go.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "traceability-docs",
+      "status": "pass",
+      "output": "VPS: All Phase 1 docs exist (DECISIONS.md, ARCHITECTURE.md, PARITY-LEDGER.md, IMPLEMENTATION-PLAN.md, plans/phase-1-foundation.md). Governance tests: 32/32 pass (traceability, baseline SHA, upstream map, parity status, decision status, fixture manifest, document compliance).",
+      "duration_seconds": 0.5
+    },
+    {
+      "name": "security-tests",
+      "status": "pass",
+      "output": "VPS: tests/security — 6/6 pass (trusted proxy spoofing, header injection, IP validation, auth bypass, CORS, rate-limit)",
+      "duration_seconds": 0.8
+    },
+    {
+      "name": "security-audit",
+      "status": "pass",
+      "output": "Full security audit completed (docs/implementation/security-audit-phase1.md): no secrets leaked in repo; dependency CVE scan clean (go list -m all + known CVEs documented); strong crypto practices (bcrypt, Ed25519, TLS 1.3); no shell injection vectors; sudoers hardening applied then reverted per explicit user instruction; no stored tokens/keys in config. PAT files hash-only, never stored as plaintext per decisions 67/71. This is VPS validation only.",
+      "duration_seconds": 15.0
+    },
+    {
+      "name": "parity-tests",
+      "status": "pass",
+      "output": "VPS: tests/parity — 6/6 pass (contract validation, fixture checks, upstream parity, baseline comparison, schema conformance, decision mapping)",
+      "duration_seconds": 0.7
+    },
+    {
+      "name": "middleware-tests",
+      "status": "pass",
+      "output": "internal/transport/middleware — 56+ tests ok (trusted proxy, correlation, recovery, CORS with race tests)",
+      "duration_seconds": 0.9
+    },
+    {
+      "name": "auth-tests",
+      "status": "pass",
+      "output": "internal/domain/auth (19 tests), internal/app/auth (13 tests), internal/app/keys (8 tests), internal/domain/keys (16 tests), governance (12 tests) — all pass",
+      "duration_seconds": 15.0
+    },
+    {
+      "name": "observability-tests",
+      "status": "pass",
+      "output": "internal/observability/logging (97.6% coverage), internal/observability/metrics (100% coverage), internal/transport/httpserver/health (5 tests), internal/shared (error redaction) — all pass",
+      "duration_seconds": 10.0
+    },
+    {
+      "name": "migration-schema",
+      "status": "pass",
+      "output": "internal/persistence/postgres/migrations — 23+ tests ok, 80.0% coverage (000001_foundation schema up/down cycle, mock pool interface for unit tests)",
+      "duration_seconds": 1.7
+    },
+    {
+      "name": "postgres-pool",
+      "status": "pass",
+      "output": "VPS matrix (PG 16.14 / 17.10 / 18.4): internal/persistence/postgres — migration cycle, pool_test.go, tx_test.go, lock_test.go, pgmock_test.go: 97.7% coverage. All versions: migration up/down passes, pool connect/disconnect, tx commit/rollback, advisory lock acquire/release, inet nil+non-nil, RLS-baseline (relrowsecurity=false) all pass. The gorouter application systemd service remains disabled and inactive for the Phase 1 stub.",
+      "duration_seconds": 1.8
+    },
+    {
+      "name": "pg-repositories",
+      "status": "pass",
+      "output": "VPS matrix (PG 16.14 / 17.10 / 18.4): internal/persistence/postgres/repositories — 8 test files (user, session, api_key, pat, audit, provider, job repos + factory): 96.1% coverage. PAT files hash-only storage verified per decisions 67/71. All matrix variants incl. inet nil/non-nil and relrowsecurity false baseline pass.",
+      "duration_seconds": 1.5
+    },
+    {
+      "name": "vps-deployment",
+      "status": "pass",
+      "output": "Final VPS evidence (188.166.183.236, Ubuntu 24.04.4; ED25519 SHA256:rO9Loi23YA9mjSQgcVMIOhCIldOt1IHsASj1kH9qEe8): Go gate clean (gofmt, vet, race zero, 11/11 fuzz, build 5 arch, 86.7% coverage). Frontend typecheck/build pass, Vitest 34/34, Playwright 30/30 desktop+mobile (axe, keyboard, 375px). PostgreSQL matrix (16.14/17.10/18.4) all pass (migration, pool, tx, lock, repository, inet nil/non-nil, RLS-baseline). Application systemd unit exists but remains disabled/inactive for Phase 1 stub. This is VPS validation only; PR CI on GitHub Actions must still confirm on the final revision.",
+      "duration_seconds": 279.0
+    },
+    {
+      "name": "sudoers-hardening",
+      "status": "pass",
+      "output": "VPS: Unrestricted sudo restored by explicit user instruction (Phase 1 stub requires no production confinement). Hardening previously applied (zero sudo grants, escalation-capable rules removed, visudo -c clean) has been reversed per user request. Systemd gorouter service remains disabled/inactive. Account-side rotation of the previously exposed GitHub PAT remains a mandatory operator action: server-side file sanitization cannot revoke a token; the PAT must be rotated via the GitHub web UI or API. This is VPS validation only.",
+      "duration_seconds": 279.0
+    },
+    {
+      "name": "sbom-generate",
+      "status": "fail",
+      "output": "INFORMATIONAL VPS HISTORY — The original VPS Go 1.23 toolchain could not install cyclonedx-gomod. The project and CI now use Go 1.25; final Security CI run 30484828353 generated and uploaded the CycloneDX SBOM successfully. This informational entry preserves the earlier VPS limitation and does not block the required gate.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "license-check",
+      "status": "fail",
+      "output": "INFORMATIONAL VPS HISTORY — go-licenses v1.6.0 previously crashed against the VPS toolchain. Final Security CI run 30484828353 completed the restricted license check successfully under Go 1.25. The manual inventory also found only permissive MIT/BSD/Apache-2.0 direct dependencies and no GPL/AGPL packages.",
+      "duration_seconds": 0.0
+    },
+    {
+      "name": "pr-ci-runs",
+      "status": "pass",
+      "output": "All 4 required PR CI workflows PASS at final code head f5eb4e042f56110d5ad96053b23313937c5c0810.\n\nFrontend (run 30484828351): https://github.com/fazulfi/gorouter/actions/runs/30484828351\n  - Job 90687763707 — PASS (typecheck, Vitest unit, Playwright E2E, build, dist artifact)\n\nTest (run 30484828352): https://github.com/fazulfi/gorouter/actions/runs/30484828352\n  - Job 90687763645 — PASS (go mod tidy, formatting, vet, build, short tests, coverage threshold)\n  - Job 90687763662 — PASS (full Go race detection)\n\nPostgreSQL Matrix (run 30484828443): https://github.com/fazulfi/gorouter/actions/runs/30484828443\n  - PG16 job 90687764304 and PG16+race job 90687764363 — PASS\n  - PG17 job 90687764235 and PG17+race job 90687764354 — PASS\n  - PG18 job 90687764346 and PG18+race job 90687764279 — PASS\n\nSecurity (run 30484828353): https://github.com/fazulfi/gorouter/actions/runs/30484828353\n  - Job 90687763631 — PASS (gosec, govulncheck, gitleaks, CycloneDX SBOM, restricted license check).\n\nThis evidence-only edit creates a later documentation SHA; the recorded code head is the exact revision validated by every listed workflow. VPS evidence and historical informational limitations remain preserved separately.",
+      "duration_seconds": 0.0
+    }
+  ]
+}

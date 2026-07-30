@@ -1,0 +1,74 @@
+# gorouter compatibility route manifest
+# Maps upstream compatibility routes to their gorouter targets.
+# Baseline: decolua/9router commit 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+
+routes:
+  - path: "/v1/chat/completions"
+    method: POST
+    upstream_file: "open-sse/handlers/chatCore.js"
+    gorouter_target: "internal/transport/httpserver/modelapi/chat.go"
+    description: "OpenAI-compatible chat completions"
+    phase: 2
+
+  - path: "/v1/completions"
+    method: POST
+    upstream_file: "open-sse/handlers/chatCore.js"
+    gorouter_target: "internal/transport/httpserver/modelapi/chat.go"
+    description: "Legacy completions endpoint"
+    phase: 2
+
+  - path: "/v1/embeddings"
+    method: POST
+    upstream_file: "open-sse/handlers/embeddingsCore.js"
+    gorouter_target: "internal/transport/httpserver/modelapi/embeddings.go"
+    description: "Embeddings endpoint"
+    phase: 3
+
+  - path: "/v1/models"
+    method: GET
+    upstream_file: "src/app/api/v1/models/route.js"
+    gorouter_target: "internal/transport/httpserver/modelapi/models.go"
+    description: "Model listing"
+    phase: 2
+
+  - path: "/v1/v1/*"
+    method: ALL
+    upstream_file: "next.config.mjs"
+    gorouter_target: "internal/transport/httpserver/compatibility/normalize.go"
+    description: "Double /v1 normalization for legacy clients"
+    phase: 2
+
+  - path: "/codex/*"
+    method: ALL
+    upstream_file: "src/app/api/codex/route.js"
+    gorouter_target: "internal/transport/httpserver/compatibility/codex.go"
+    description: "Codex compatibility routes"
+    phase: 3
+
+  - path: "/responses"
+    method: POST
+    upstream_file: "open-sse/handlers/responsesHandler.js"
+    gorouter_target: "internal/transport/httpserver/modelapi/responses.go"
+    description: "OpenAI Responses API"
+    phase: 3
+
+  - path: "/v1beta/*"
+    method: ALL
+    upstream_file: "next.config.mjs"
+    gorouter_target: "internal/transport/httpserver/compatibility/gemini.go"
+    description: "Gemini v1beta compatibility"
+    phase: 3
+
+  - path: "/health"
+    method: GET
+    upstream_file: "custom-server.js"
+    gorouter_target: "internal/transport/httpserver/health/public.go"
+    description: "Public health check"
+    phase: 1
+
+  - path: "/metrics"
+    method: GET
+    upstream_file: null
+    gorouter_target: "internal/transport/httpserver/health/metrics.go"
+    description: "Prometheus metrics"
+    phase: 1

@@ -16,9 +16,9 @@ const BaselineSHA = "79918c7830695bbca4a45c9fea4a42c3e9fd73d1"
 
 // UpstreamMap represents the docs/implementation/upstream-map.yaml content.
 type UpstreamMap struct {
-	Baseline     BaselineRef       `yaml:"baseline" json:"baseline"`
-	UpstreamFiles []UpstreamFile   `yaml:"upstream_files" json:"upstream_files"`
-	Entries      []json.RawMessage `yaml:"entries" json:"entries"`
+	Baseline      BaselineRef       `yaml:"baseline" json:"baseline"`
+	UpstreamFiles []UpstreamFile    `yaml:"upstream_files" json:"upstream_files"`
+	Entries       []json.RawMessage `yaml:"entries" json:"entries"`
 }
 
 // BaselineRef identifies the upstream baseline.
@@ -31,38 +31,38 @@ type BaselineRef struct {
 
 // UpstreamFile maps one upstream file to a gorouter package.
 type UpstreamFile struct {
-	File             string   `yaml:"file" json:"file"`
-	Responsibility   string   `yaml:"responsibility" json:"responsibility"`
-	GorouterPackage  *string  `yaml:"gorouter_package" json:"gorouter_package"`
-	Task             string   `yaml:"task" json:"task"`
-	Status           string   `yaml:"status" json:"status"`
-	DecisionRefs     []int    `yaml:"decision_refs,omitempty" json:"decision_refs,omitempty"`
+	File            string  `yaml:"file" json:"file"`
+	Responsibility  string  `yaml:"responsibility" json:"responsibility"`
+	GorouterPackage *string `yaml:"gorouter_package" json:"gorouter_package"`
+	Task            string  `yaml:"task" json:"task"`
+	Status          string  `yaml:"status" json:"status"`
+	DecisionRefs    []int   `yaml:"decision_refs,omitempty" json:"decision_refs,omitempty"`
 }
 
 // ParityStatus represents the docs/implementation/parity-status.yaml content.
 type ParityStatus struct {
-	BaselineCommit string       `yaml:"baseline_commit" json:"baseline_commit"`
-	ParityRows     []ParityRow  `yaml:"parity_rows" json:"parity_rows"`
+	BaselineCommit string            `yaml:"baseline_commit" json:"baseline_commit"`
+	ParityRows     []ParityRow       `yaml:"parity_rows" json:"parity_rows"`
 	Entries        []json.RawMessage `yaml:"entries" json:"entries"`
 }
 
 // ParityRow represents one ledger row.
 type ParityRow struct {
-	Area             string   `yaml:"area" json:"area"`
-	ID               string   `yaml:"id" json:"id"`
-	Capability       string   `yaml:"capability" json:"capability"`
-	Disposition      string   `yaml:"disposition" json:"disposition"`
-	Decisions        []int    `yaml:"decisions" json:"decisions"`
-	Phase            int      `yaml:"phase" json:"phase"`
-	Task             string   `yaml:"task" json:"task"`
-	Status           string   `yaml:"status" json:"status"`
-	RequiredEvidence string   `yaml:"required_evidence" json:"required_evidence"`
+	Area             string `yaml:"area" json:"area"`
+	ID               string `yaml:"id" json:"id"`
+	Capability       string `yaml:"capability" json:"capability"`
+	Disposition      string `yaml:"disposition" json:"disposition"`
+	Decisions        []int  `yaml:"decisions" json:"decisions"`
+	Phase            int    `yaml:"phase" json:"phase"`
+	Task             string `yaml:"task" json:"task"`
+	Status           string `yaml:"status" json:"status"`
+	RequiredEvidence string `yaml:"required_evidence" json:"required_evidence"`
 }
 
 // DecisionStatus represents the docs/implementation/decision-status.yaml content.
 type DecisionStatus struct {
-	BaselineCommit string           `yaml:"baseline_commit" json:"baseline_commit"`
-	ActiveDecisions []ActiveDecision `yaml:"active_decisions" json:"active_decisions"`
+	BaselineCommit  string            `yaml:"baseline_commit" json:"baseline_commit"`
+	ActiveDecisions []ActiveDecision  `yaml:"active_decisions" json:"active_decisions"`
 	Entries         []json.RawMessage `yaml:"entries" json:"entries"`
 }
 
@@ -77,9 +77,9 @@ type ActiveDecision struct {
 
 // FixtureManifest represents tests/fixtures/upstream/manifest.json content.
 type FixtureManifest struct {
-	SchemaVersion string          `json:"schemaVersion"`
-	Baseline      BaselineRef     `json:"baseline"`
-	Fixtures      []FixtureEntry  `json:"fixtures"`
+	SchemaVersion string         `json:"schemaVersion"`
+	Baseline      BaselineRef    `json:"baseline"`
+	Fixtures      []FixtureEntry `json:"fixtures"`
 }
 
 // FixtureEntry represents one fixture entry.

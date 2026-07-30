@@ -49,7 +49,7 @@ upstream_files:
     task: "P1-T07"
     status: "pending"
 
-  - file: "src/lib/network/ssrfGuard.js"
+  - file: "src/shared/utils/ssrfGuard.js"
     responsibility: "SSRF guard (removed in gorouter per decision #136/#376)"
     gorouter_package: null
     task: "P1-T06"
@@ -63,7 +63,7 @@ upstream_files:
     task: "P1-T02"
     status: "pending"
 
-  - file: "src/config/appConstants.js"
+  - file: "open-sse/config/appConstants.js"
     responsibility: "Application constants"
     gorouter_package: "internal/bootstrap"
     task: "P1-T02"
