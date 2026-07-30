@@ -1,7 +1,20 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/google/uuid"
+
+	"gorouter/internal/app/translate"
+	"gorouter/internal/domain/engine"
+	"gorouter/internal/shared"
+	"gorouter/internal/transport/httpserver"
+	"gorouter/internal/transport/httpserver/api"
+	"gorouter/internal/transport/httpserver/health"
+	"gorouter/internal/transport/middleware"
 )
 
 // Mode represents the runtime execution mode for gorouter.
@@ -54,12 +67,52 @@ func DispatchMode(mode Mode, app *App) (exitCode int, err error) {
 	}
 }
 
-// dispatchServer starts the HTTP server. Placeholder for future implementation.
+// dispatchServer starts the HTTP server with the model API, health endpoints,
+// and middleware stack.
 func dispatchServer(app *App) (int, error) {
+	router := httpserver.New(
+		middleware.Correlation,
+		middleware.Recovery,
+		middleware.ModelCORS(),
+	)
+
+	router.Get("/health", health.PublicHandler())
+
+	translateSvc := translate.NewService()
+	orch := &noopOrchestrator{}
+
+	apiHandler := api.New(api.DefaultConfig(), orch, translateSvc, app.Logger)
+	apiHandler.RegisterRoutes(router)
+
+	addr := app.Config.Host + ":" + strconv.Itoa(app.Config.Port)
+
 	app.Logger.Info().Str("host", app.Config.Host).Int("port", app.Config.Port).
 		Msg("starting server mode")
+
+	go func() {
+		if err := http.ListenAndServe(addr, router); err != nil && err != http.ErrServerClosed {
+			app.Logger.Fatal().Err(err).Msg("server failed")
+		}
+	}()
+
 	return 0, nil
 }
+
+// noopOrchestrator is a stub implementation of engine.Orchestrator for initial
+// wiring. It returns an error on every ExecuteRequest call.
+type noopOrchestrator struct{}
+
+func (n *noopOrchestrator) ExecuteRequest(_ context.Context, req *engine.Request) (*engine.Response, error) {
+	return nil, shared.NewAppError(shared.ErrInternal,
+		"orchestrator not yet implemented — this is a placeholder", 0, nil)
+}
+
+func (n *noopOrchestrator) CancelStream(_ context.Context, requestID uuid.UUID) error {
+	return nil
+}
+
+// Ensure noopOrchestrator satisfies the interface at compile time.
+var _ engine.Orchestrator = (*noopOrchestrator)(nil)
 
 // dispatchCLI runs CLI commands. Placeholder for future implementation.
 func dispatchCLI(app *App) (int, error) {
