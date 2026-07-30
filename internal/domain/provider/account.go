@@ -10,10 +10,10 @@ import (
 type AccountStatus string
 
 const (
-	AccountStatusActive    AccountStatus = "active"
-	AccountStatusCooldown  AccountStatus = "cooldown"
-	AccountStatusDegraded  AccountStatus = "degraded"
-	AccountStatusDisabled  AccountStatus = "disabled"
+	AccountStatusActive   AccountStatus = "active"
+	AccountStatusCooldown AccountStatus = "cooldown"
+	AccountStatusDegraded AccountStatus = "degraded"
+	AccountStatusDisabled AccountStatus = "disabled"
 )
 
 // Account represents an upstream provider account (one API key/credential per provider).
@@ -21,11 +21,11 @@ type Account struct {
 	ID            uuid.UUID
 	ProviderID    uuid.UUID
 	Label         string
-	AuthType      string   // "api_key", "oauth", "cookie", "free"
+	AuthType      string // "api_key", "oauth", "cookie", "free"
 	CredentialRef string
-	Priority      int      // lower = higher priority (0 = highest)
+	Priority      int // lower = higher priority (0 = highest)
 	IsEnabled     bool
-	MaxConcurrent int      // 0 = unlimited
+	MaxConcurrent int // 0 = unlimited
 	ModelFilters  []string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time

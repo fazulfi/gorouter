@@ -32,10 +32,10 @@ type ResolvedRef struct {
 	Provider *provider.Provider
 }
 
-//Resolver resolves a parsed ModelRef into a ResolvedRef by looking up
-//provider, account, model, and capability against the system configuration.
+// Resolver resolves a parsed ModelRef into a ResolvedRef by looking up
+// provider, account, model, and capability against the system configuration.
 //
-//Resolution order:
+// Resolution order:
 //  1. If the provider is explicitly named in the reference, look it up by
 //     name or type. If unqualified, infer the provider from context (e.g.
 //     default provider, or the provider associated with the calling API key).

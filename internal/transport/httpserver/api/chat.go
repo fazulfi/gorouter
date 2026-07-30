@@ -67,5 +67,3 @@ func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) 
 		_, _ = w.Write(resp.Body)
 	}
 }
-
-
