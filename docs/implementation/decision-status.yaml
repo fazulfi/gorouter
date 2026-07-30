@@ -9,181 +9,181 @@ active_decisions:
     title: "PostgreSQL directly (pgx)"
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
 
   - id: 13
     title: "Structured JSON logging + /metrics"
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
 
   - id: 22
     title: "Kontrak sama, internals diperbaiki"
     phase: 1
     task: "P1-T01"
-    status: "pending"
+    status: "completed"
 
   - id: 40
     title: "PostgreSQL 16+ support"
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
 
   - id: 44
     title: "Bind 127.0.0.1 default"
     phase: 1
     task: "P1-T02"
-    status: "pending"
+    status: "completed"
 
   - id: 47
     title: "Password lokal, cookie session, CSRF, lockout"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 59
     title: "Append-only audit trail"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 60
     title: "Full Admin API versioned"
     phase: 1
     task: "P1-T09"
-    status: "pending"
+    status: "completed"
 
   - id: 63
     title: "PAT khusus Admin API"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 64
     title: "PAT full access"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 65
     title: "PAT optional expiry"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 66
     title: "PAT recovery (login dashboard + revoke)"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 67
     title: "PAT hash-only storage"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 70
     title: "Model API key full access"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 71
     title: "Model API key hash-only, one-time reveal"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 72
     title: "API key tetap wajib dari localhost"
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
 
   - id: 74
     title: "Password reset CLI local"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 76
     title: "Session sliding expiry 30 hari"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 77
     title: "Tidak ada halaman session per perangkat"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 79
     title: "Satu server, satu binary, multi-goroutine"
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
 
   - id: 128
     title: "CORS: Model API vs Admin dipisah"
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
 
   - id: 134
     title: "Trusted proxy CIDR eksplisit"
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
 
   - id: 147
     title: "Retensi audit trail selamanya"
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
 
   - id: 152
     title: "Migration backward-compatible expand-first"
     phase: 1
     task: "P1-T04"
-    status: "pending"
+    status: "completed"
 
   - id: 154
     title: "Tolak proses kedua via advisory lock"
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
 
   - id: 199
     title: "Public vs detailed health"
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
 
   - id: 306
     title: "Trusted proxy implementation"
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
 
   - id: 313
     title: "Forwarded header invariance"
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
 
   - id: 317
     title: "Migration expand-first pattern"
     phase: 1
     task: "P1-T04"
-    status: "pending"
+    status: "completed"
 
   - id: 323
     title: "Second process rejection"
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
 
   # Decisions referenced by parity rows for Phase 1 awareness
   - id: 29

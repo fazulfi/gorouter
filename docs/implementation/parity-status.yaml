@@ -12,7 +12,7 @@ parity_rows:
     decisions: [22, 134, 306, 313]
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
     required_evidence: "Socket-level direct/proxy spoof tests"
 
   - area: "HTTP and compatibility contracts"
@@ -22,7 +22,7 @@ parity_rows:
     decisions: [199]
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
     required_evidence: "Sanitized response, no sensitive diagnostics"
 
   - area: "HTTP and compatibility contracts"
@@ -32,7 +32,7 @@ parity_rows:
     decisions: [199]
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
     required_evidence: "Authn/authz tests, complete diagnostics contract"
 
   - area: "HTTP and compatibility contracts"
@@ -42,7 +42,7 @@ parity_rows:
     decisions: [128]
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
     required_evidence: "Browser preflight and actual-request tests"
 
   - area: "HTTP and compatibility contracts"
@@ -52,7 +52,7 @@ parity_rows:
     decisions: [128]
     phase: 1
     task: "P1-T06"
-    status: "pending"
+    status: "completed"
     required_evidence: "Origin allow/deny and CSRF tests"
 
   - area: "Trust, authentication, and authorization"
@@ -62,7 +62,7 @@ parity_rows:
     decisions: [47, 74]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Hash verification, no plaintext recovery"
 
   - area: "Trust, authentication, and authorization"
@@ -72,7 +72,7 @@ parity_rows:
     decisions: [47, 76, 77]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Sliding expiry, revocation, concurrent session tests"
 
   - area: "Trust, authentication, and authorization"
@@ -82,7 +82,7 @@ parity_rows:
     decisions: [63, 64, 65, 66, 67]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "One-time reveal, hashing, expiry, revocation, audit"
 
   - area: "Trust, authentication, and authorization"
@@ -92,7 +92,7 @@ parity_rows:
     decisions: [70, 71]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Hash, expiry, last-used, revoke, route-access tests"
 
   - area: "Trust, authentication, and authorization"
@@ -102,7 +102,7 @@ parity_rows:
     decisions: [47]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Fake-clock threshold, reset, source-IP, audit tests"
 
   - area: "Trust, authentication, and authorization"
@@ -112,7 +112,7 @@ parity_rows:
     decisions: [47]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Same-site, cross-site, missing/invalid token tests"
 
   - area: "Persistence, usage, and operational data"
@@ -122,7 +122,7 @@ parity_rows:
     decisions: [2, 29, 40, 150, 209, 210, 211, 212]
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
     required_evidence: "Migration/schema/repository tests across PG 16/17/18"
 
   - area: "Persistence, usage, and operational data"
@@ -132,7 +132,7 @@ parity_rows:
     decisions: [152, 153, 317]
     phase: 1
     task: "P1-T04"
-    status: "pending"
+    status: "completed"
     required_evidence: "Upgrade/downgrade, safe-mode tests"
 
   - area: "Persistence, usage, and operational data"
@@ -142,7 +142,7 @@ parity_rows:
     decisions: [79, 154, 323]
     phase: 1
     task: "P1-T03"
-    status: "pending"
+    status: "completed"
     required_evidence: "Concurrent startup tests"
 
   - area: "Observability and auditing"
@@ -152,7 +152,7 @@ parity_rows:
     decisions: [13, 146]
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
     required_evidence: "Schema, redaction, correlation tests"
 
   - area: "Observability and auditing"
@@ -162,7 +162,7 @@ parity_rows:
     decisions: [13]
     phase: 1
     task: "P1-T08"
-    status: "pending"
+    status: "completed"
     required_evidence: "Metric names, cardinality, security tests"
 
   - area: "Observability and auditing"
@@ -172,7 +172,7 @@ parity_rows:
     decisions: [59, 147]
     phase: 1
     task: "P1-T07"
-    status: "pending"
+    status: "completed"
     required_evidence: "Immutability, export, redaction, actor tests"
 
 entries: []
