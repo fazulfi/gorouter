@@ -1,0 +1,5 @@
+{
+  "messages": [
+    {"role": "user", "content": "commit abc123\nadd new feature\n"}
+  ]
+}

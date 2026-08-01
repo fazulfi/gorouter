@@ -1,0 +1,6 @@
+{
+  "input": [
+    {"role": "user", "content": "hello"},
+    {"role": "assistant", "content": "hi there"}
+  ]
+}
