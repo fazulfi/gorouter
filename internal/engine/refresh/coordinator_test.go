@@ -303,6 +303,42 @@ func TestDefaultJitterRange(t *testing.T) {
 	}
 }
 
+func TestDefaultJitterZeroJitter(t *testing.T) {
+	t.Parallel()
+	for i := 0; i < 10; i++ {
+		if got := DefaultJitter(2*time.Second, 0); got != 2*time.Second {
+			t.Errorf("DefaultJitter with zero jitter = %v, want 2s", got)
+		}
+		if got := DefaultJitter(2*time.Second, -1); got != 2*time.Second {
+			t.Errorf("DefaultJitter with negative jitter = %v, want 2s", got)
+		}
+	}
+}
+
+// TestNonCryptoJitterOffsetBounds verifies the jitter offset is non-negative
+// and strictly below the span for arbitrary seeds.
+func TestNonCryptoJitterOffsetBounds(t *testing.T) {
+	t.Parallel()
+	seeds := []int64{0, 1, -1, 42, time.Now().UnixNano(), -time.Now().UnixNano()}
+	for _, seed := range seeds {
+		span := int64(1001)
+		for i := 0; i < 20; i++ {
+			got := nonCryptoJitterOffset(seed+int64(i), span)
+			if got < 0 || got >= span {
+				t.Errorf("nonCryptoJitterOffset(%d, %d) = %d outside [0, %d)", seed+int64(i), span, got, span)
+			}
+		}
+	}
+	got := nonCryptoJitterOffset(42, 0)
+	if got != 0 {
+		t.Errorf("nonCryptoJitterOffset with span<=0 = %d, want 0", got)
+	}
+	got = nonCryptoJitterOffset(42, -5)
+	if got != 0 {
+		t.Errorf("nonCryptoJitterOffset with negative span = %d, want 0", got)
+	}
+}
+
 func TestProactiveRefreshIfNeeded(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)

@@ -2,7 +2,7 @@ package refresh
 
 import (
 	"context"
-	"math/rand"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,8 +34,28 @@ func DefaultJitter(base, jitter time.Duration) time.Duration {
 	if jitter <= 0 {
 		return base
 	}
-	offset := time.Duration(rand.Int63n(2*int64(jitter)+1)) - jitter
-	return base + offset
+	span := 2*jitter + 1
+	offset := nonCryptoJitterOffset(time.Now().UnixNano(), int64(span))
+	return base + time.Duration(offset) - jitter
+}
+
+// nonCryptoJitterOffset mixes a seed into a deterministic, non-negative value
+// in [0, span) using a signed 64-bit integer mix. It stays in the signed
+// domain and masks the sign bit before the modulus, so it is overflow-safe and
+// deliberately non-cryptographic: refresh jitter only needs to spread retry
+// scheduling, and this keeps the hot path allocation-free.
+func nonCryptoJitterOffset(seed, span int64) int64 {
+	if span <= 0 {
+		return 0
+	}
+	h := seed
+	h ^= h >> 33
+	h *= 2654435761
+	h ^= h >> 33
+	if h < 0 {
+		h &= math.MaxInt64
+	}
+	return h % span
 }
 
 type TokenRefresher interface {
