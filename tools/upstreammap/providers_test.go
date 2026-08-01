@@ -664,3 +664,56 @@ func TestMainValidateModeMissingManifests(t *testing.T) {
 		t.Errorf("stdout = %q", out)
 	}
 }
+
+// TestValidateRelPathRejectsEscapes covers the containment guard used
+// by writeYAML and validateYAMLFile.
+func TestValidateRelPathRejectsEscapes(t *testing.T) {
+	good := []string{
+		"provider-matrix.yaml",
+		"a/b/format-matrix.yaml",
+		"./x.yaml",
+		"a/../b.yaml",
+	}
+	for _, rel := range good {
+		if err := validateRelPath(rel); err != nil {
+			t.Errorf("validateRelPath(%q) = %v, want nil", rel, err)
+		}
+	}
+	bad := []string{
+		"", "..", "../x.yaml", "a/../../x.yaml", "/etc/passwd", `..\x`, "./../x",
+	}
+	for _, rel := range bad {
+		if err := validateRelPath(rel); err == nil {
+			t.Errorf("validateRelPath(%q) = nil, want escape rejection", rel)
+		}
+	}
+}
+
+// TestWriteYAMLRejectsEscape proves the manifest writer's containment
+// guard refuses traversal names. The os.Exit error paths are covered by
+// the subprocess tests, so the exit-free guard is asserted directly.
+func TestWriteYAMLRejectsEscape(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"..", `..\x`} {
+		if err := validateRelPath(name); err == nil {
+			t.Errorf("validateRelPath(%q) = nil, want escape rejection", name)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "upstreammap-escape.yaml")); err == nil {
+		t.Errorf("escape write leaked outside the target directory")
+	}
+}
+
+// TestValidateYAMLFileRejectsEscape proves manifest validation never
+// reads outside the target directory.
+func TestValidateYAMLFileRejectsEscape(t *testing.T) {
+	dir := t.TempDir()
+	for _, rel := range []string{"..", "../does-not-matter.yaml", "/etc/hostname"} {
+		_, errOut := captureOutput(t, func() {
+			validateYAMLFile(filepath.Join(dir, rel), "provider")
+		})
+		if !strings.Contains(errOut, "ERROR reading") {
+			t.Errorf("validateYAMLFile(rel=%q) stderr = %q, want ERROR reading", rel, errOut)
+		}
+	}
+}

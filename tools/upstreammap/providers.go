@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -210,6 +211,23 @@ var oauthRegistry = []oauthEntry{
 // Main entry point
 // ---------------------------------------------------------------------------
 
+// validateRelPath rejects absolute paths and any path whose ".."
+// components would escape the target directory.
+func validateRelPath(rel string) error {
+	if rel == "" {
+		return fmt.Errorf("empty relative path")
+	}
+	rel = strings.ReplaceAll(rel, `\`, string(filepath.Separator))
+	if filepath.IsAbs(rel) {
+		return fmt.Errorf("absolute path %q is not allowed", rel)
+	}
+	clean := filepath.Clean(rel)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("path %q escapes the target directory", rel)
+	}
+	return nil
+}
+
 func main() {
 	writeMode := false
 	stdoutMode := false
@@ -234,27 +252,15 @@ func main() {
 	docDir := filepath.Join(repoRoot, "docs", "implementation")
 
 	if stdoutMode {
-		gen := buildProviderManifestData()
-		enc := yaml.NewEncoder(os.Stdout)
-		enc.SetIndent(2)
-		enc.Encode(gen)
-		enc.Close()
+		writeYAMLStdout(buildProviderManifestData())
 		return
 	}
 	if stdoutFormat {
-		gen := buildFormatManifestData()
-		enc := yaml.NewEncoder(os.Stdout)
-		enc.SetIndent(2)
-		enc.Encode(gen)
-		enc.Close()
+		writeYAMLStdout(buildFormatManifestData())
 		return
 	}
 	if stdoutOAuth {
-		gen := buildOAuthManifestData()
-		enc := yaml.NewEncoder(os.Stdout)
-		enc.SetIndent(2)
-		enc.Encode(gen)
-		enc.Close()
+		writeYAMLStdout(buildOAuthManifestData())
 		return
 	}
 
@@ -380,12 +386,23 @@ func writeOAuthManifest(dir string) {
 }
 
 func writeYAML(path string, data interface{}) {
-	f, err := os.Create(path)
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+	if err := validateRelPath(name); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR creating %s: %v\n", path, err)
+		os.Exit(1)
+	}
+	root, err := os.OpenRoot(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR creating %s: %v\n", path, err)
 		os.Exit(1)
 	}
-	defer f.Close()
+	defer root.Close()
+	f, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR creating %s: %v\n", path, err)
+		os.Exit(1)
+	}
 
 	enc := yaml.NewEncoder(f)
 	enc.SetIndent(2)
@@ -393,7 +410,30 @@ func writeYAML(path string, data interface{}) {
 		fmt.Fprintf(os.Stderr, "ERROR encoding YAML to %s: %v\n", path, err)
 		os.Exit(1)
 	}
-	enc.Close()
+	if err := enc.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR closing YAML encoder for %s: %v\n", path, err)
+		os.Exit(1)
+	}
+	if err := f.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR closing %s: %v\n", path, err)
+		os.Exit(1)
+	}
+}
+
+// writeYAMLStdout writes the manifest data to stdout as YAML. The
+// caller owns the process exit on error, matching the original
+// stdout-mode behaviour byte-for-byte.
+func writeYAMLStdout(data interface{}) {
+	enc := yaml.NewEncoder(os.Stdout)
+	enc.SetIndent(2)
+	if err := enc.Encode(data); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR encoding YAML to stdout: %v\n", err)
+		os.Exit(1)
+	}
+	if err := enc.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR closing YAML encoder: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func validateManifests(dir string) {
@@ -414,7 +454,19 @@ func validateManifests(dir string) {
 }
 
 func validateYAMLFile(path string, kind string) int {
-	data, err := os.ReadFile(path)
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+	if err := validateRelPath(name); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR reading %s: %v\n", path, err)
+		return 1
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR reading %s: %v\n", path, err)
+		return 1
+	}
+	defer root.Close()
+	data, err := root.ReadFile(name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR reading %s: %v\n", path, err)
 		return 1

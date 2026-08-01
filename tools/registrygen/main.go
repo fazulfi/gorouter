@@ -135,9 +135,40 @@ func repoRoot() (string, error) {
 	}
 }
 
+// validateRelPath rejects absolute paths and any path whose ".."
+// components would escape the repository root.
+func validateRelPath(rel string) error {
+	if rel == "" {
+		return fmt.Errorf("empty relative path")
+	}
+	rel = strings.ReplaceAll(rel, `\`, string(filepath.Separator))
+	if filepath.IsAbs(rel) {
+		return fmt.Errorf("absolute path %q is not allowed", rel)
+	}
+	clean := filepath.Clean(rel)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("path %q escapes the repository root", rel)
+	}
+	return nil
+}
+
+// safeReadWithinRoot opens a root-scoped handle on base and reads the
+// repository-relative path rel. os.Root rejects any traversal that
+// would escape base, so manifests are read only from the repository.
+func safeReadWithinRoot(base, rel string) ([]byte, error) {
+	if err := validateRelPath(rel); err != nil {
+		return nil, err
+	}
+	r, err := os.OpenRoot(base)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return r.ReadFile(rel)
+}
+
 func loadManifest(root string) (*providerManifest, error) {
-	path := filepath.Join(root, providerMatrixRel)
-	data, err := os.ReadFile(path)
+	data, err := safeReadWithinRoot(root, providerMatrixRel)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", providerMatrixRel, err)
 	}
@@ -397,20 +428,32 @@ func formatList(formats []string) string {
 	return "[]engine.RequestFormat{" + strings.Join(quoted, ", ") + "}"
 }
 
-func writeIfChanged(path string, content []byte) error {
+func writeIfChanged(root, rel string, content []byte) error {
+	if err := validateRelPath(rel); err != nil {
+		return fmt.Errorf("refusing to write %q: %w", rel, err)
+	}
 	formatted, err := format.Source(content)
 	if err != nil {
 		return fmt.Errorf("format generated output: %w", err)
 	}
-	old, err := os.ReadFile(path)
-	if err == nil && bytes.Equal(old, formatted) {
+	r, err := os.OpenRoot(root)
+	if err != nil {
+		return fmt.Errorf("open repository root %s: %w", root, err)
+	}
+	defer r.Close()
+	if old, err := r.ReadFile(rel); err == nil && bytes.Equal(old, formatted) {
 		return nil
 	}
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+	dir := filepath.Dir(rel)
+	if dir != "." {
+		if err := r.MkdirAll(dir, 0o750); err != nil {
+			return fmt.Errorf("create parent dirs %s: %w", dir, err)
+		}
 	}
-	return os.WriteFile(path, formatted, 0o644)
+	// 0o600/0o750 are the strictest modes gosec accepts; Git records
+	// only the executable bit, so both map to a non-executable 100644
+	// file and a 040000 directory in the committed tree.
+	return r.WriteFile(rel, formatted, 0o600)
 }
 
 func stdoutFormatted(content []byte) error {
@@ -468,12 +511,15 @@ func main() {
 	}
 
 	written := 0
-	for path, content := range map[string][]byte{
-		filepath.Join(root, typesOutputRel):    typesContent,
-		filepath.Join(root, registryOutputRel): registryContent,
-	} {
-		if err := writeIfChanged(path, content); err != nil {
-			fmt.Fprintf(os.Stderr, "registrygen: write %s: %v\n", path, err)
+	for _, rel := range []string{typesOutputRel, registryOutputRel} {
+		var content []byte
+		if rel == typesOutputRel {
+			content = typesContent
+		} else {
+			content = registryContent
+		}
+		if err := writeIfChanged(root, rel, content); err != nil {
+			fmt.Fprintf(os.Stderr, "registrygen: write %s: %v\n", filepath.Join(root, rel), err)
 			os.Exit(1)
 		}
 		written++

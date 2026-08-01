@@ -226,6 +226,9 @@ func TestLoadManifest(t *testing.T) {
 	if _, err := loadManifest(root); err == nil || !strings.Contains(err.Error(), "read docs/implementation/provider-matrix.yaml") {
 		t.Errorf("missing manifest error = %v, want read error", err)
 	}
+	if _, err := loadManifest(filepath.Join(root, "does-not-exist")); err == nil {
+		t.Errorf("missing root must error")
+	}
 
 	writeManifestFile(t, root, "{{{")
 	if _, err := loadManifest(root); err == nil || !strings.Contains(err.Error(), "parse docs/implementation/provider-matrix.yaml") {
@@ -557,11 +560,11 @@ func TestFormatList(t *testing.T) {
 
 func TestWriteIfChanged(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "nested", "out.go")
 	content := []byte("package p\n\nconst X = 1\n")
-	if err := writeIfChanged(path, content); err != nil {
+	if err := writeIfChanged(dir, filepath.Join("nested", "out.go"), content); err != nil {
 		t.Fatalf("first write: %v", err)
 	}
+	path := filepath.Join(dir, "nested", "out.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read: %v", err)
@@ -574,7 +577,7 @@ func TestWriteIfChanged(t *testing.T) {
 		t.Fatalf("stat: %v", err)
 	}
 	time.Sleep(5 * time.Millisecond)
-	if err := writeIfChanged(path, content); err != nil {
+	if err := writeIfChanged(dir, filepath.Join("nested", "out.go"), content); err != nil {
 		t.Fatalf("identical rewrite: %v", err)
 	}
 	fi2, err := os.Stat(path)
@@ -586,7 +589,7 @@ func TestWriteIfChanged(t *testing.T) {
 	}
 
 	time.Sleep(5 * time.Millisecond)
-	if err := writeIfChanged(path, []byte("package p\n\nconst X = 2\n")); err != nil {
+	if err := writeIfChanged(dir, filepath.Join("nested", "out.go"), []byte("package p\n\nconst X = 2\n")); err != nil {
 		t.Fatalf("changed rewrite: %v", err)
 	}
 	data, _ = os.ReadFile(path)
@@ -594,10 +597,68 @@ func TestWriteIfChanged(t *testing.T) {
 		t.Errorf("rewritten bytes = %q", string(data))
 	}
 
-	if err := writeIfChanged(filepath.Join(dir, "bad.go"), []byte("not go {")); err == nil {
+	if err := writeIfChanged(dir, "bad.go", []byte("not go {")); err == nil {
 		t.Errorf("invalid content: expected format error")
 	} else if !strings.Contains(err.Error(), "format generated output") {
 		t.Errorf("invalid content error = %v", err)
+	}
+}
+
+// TestWriteIfChangedRejectsEscape asserts the generator never writes
+// outside the repository root: a relative output path containing ".."
+// must be refused before any file is touched.
+func TestWriteIfChangedRejectsEscape(t *testing.T) {
+	dir := t.TempDir()
+	for _, rel := range []string{"..", "../out.go", "a/../../out.go"} {
+		if err := writeIfChanged(dir, rel, []byte("package p\n")); err == nil {
+			t.Errorf("writeIfChanged(rel=%q) = nil, want escape rejection", rel)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "out.go")); err == nil {
+		t.Errorf("escape write leaked outside the root")
+	}
+}
+
+// TestValidateRelPathRejectsEscapes covers the shared containment
+// guard used by the manifest reader and the generator writer.
+func TestValidateRelPathRejectsEscapes(t *testing.T) {
+	good := []string{
+		"docs/implementation/provider-matrix.yaml",
+		"internal/domain/provider/types_generated.go",
+		"./a/b.go",
+		"a/../b.go",
+	}
+	for _, rel := range good {
+		if err := validateRelPath(rel); err != nil {
+			t.Errorf("validateRelPath(%q) = %v, want nil", rel, err)
+		}
+	}
+	bad := []string{
+		"", "..", "../x", "a/../../x", "/etc/passwd", `..\x`, "./../x",
+	}
+	for _, rel := range bad {
+		if err := validateRelPath(rel); err == nil {
+			t.Errorf("validateRelPath(%q) = nil, want escape rejection", rel)
+		}
+	}
+}
+
+// TestSafeReadWithinRootRejectsEscape proves the rooted reader refuses
+// to open files outside the base directory even when they exist.
+func TestSafeReadWithinRootRejectsEscape(t *testing.T) {
+	base := t.TempDir()
+	secret := filepath.Join(filepath.Dir(base), "registrygen-escape.txt")
+	if err := os.WriteFile(secret, []byte("secret"), 0o600); err != nil {
+		t.Fatalf("write escape target: %v", err)
+	}
+	defer os.Remove(secret)
+	for _, rel := range []string{"..", "../registrygen-escape.txt", "/etc/hostname"} {
+		if _, err := safeReadWithinRoot(base, rel); err == nil {
+			t.Errorf("safeReadWithinRoot(rel=%q) = nil, want rejection", rel)
+		}
+	}
+	if _, err := safeReadWithinRoot(base, "does-not-exist.txt"); err == nil {
+		t.Errorf("safeReadWithinRoot(missing) = nil, want error")
 	}
 }
 
