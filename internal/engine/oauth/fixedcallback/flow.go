@@ -78,14 +78,14 @@ func (f *Flow) StartProxy(flowID oauth.FlowID) (*http.Server, <-chan CallbackRes
 	mux.HandleFunc("/callback", handler)
 	mux.HandleFunc("/", handler)
 
-	server := &http.Server{Handler: mux}
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	go server.Serve(listener) //nolint:errcheck
 
 	var closed bool
 	closeFn := func() {
 		if !closed {
 			closed = true
-			server.Close()
+			_ = server.Close()
 			close(ch)
 		}
 	}

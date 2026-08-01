@@ -95,6 +95,24 @@ func TestStartProxy_ReturnsBoundedChannel(t *testing.T) {
 	}
 }
 
+// TestStartProxy_ReadHeaderTimeout verifies the proxy server sets a
+// ReadHeaderTimeout to avoid slowloris-style header starvation.
+func TestStartProxy_ReadHeaderTimeout(t *testing.T) {
+	port := findFreePort()
+	if port == 0 {
+		t.Skip("no free port available")
+	}
+	f := NewFlow(&noopRepo{}, port)
+	server, _, closeFn, err := f.StartProxy(domainoauth.FlowCodex)
+	if err != nil {
+		t.Fatalf("StartProxy: %v", err)
+	}
+	defer closeFn()
+	if server.ReadHeaderTimeout <= 0 {
+		t.Error("ReadHeaderTimeout should be set to defend against slowloris")
+	}
+}
+
 func TestStartProxy_CloseReleasesResources(t *testing.T) {
 	port := findFreePort()
 	if port == 0 {

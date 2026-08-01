@@ -61,12 +61,16 @@ func (f *Flow) HandleRelay(ctx context.Context, msg *RelayMessage) (*oauth.Sessi
 		return nil, fmt.Errorf("session already in terminal state: %s", session.Status)
 	}
 	if time.Now().After(session.ExpiresAt) {
-		f.repo.UpdateStatus(ctx, session.ID, oauth.OAuthStateExpired, nil)
+		if updateErr := f.repo.UpdateStatus(ctx, session.ID, oauth.OAuthStateExpired, nil); updateErr != nil {
+			return nil, fmt.Errorf("session expired (marking expired failed: %v)", updateErr)
+		}
 		return nil, fmt.Errorf("session expired")
 	}
 	if msg.Error != "" {
 		errDetail := msg.Error + ": " + msg.ErrorDesc
-		f.repo.UpdateStatus(ctx, session.ID, oauth.OAuthStateFailed, &errDetail)
+		if updateErr := f.repo.UpdateStatus(ctx, session.ID, oauth.OAuthStateFailed, &errDetail); updateErr != nil {
+			return nil, fmt.Errorf("relay error: %s (marking failed: %v)", msg.Error, updateErr)
+		}
 		return nil, fmt.Errorf("relay error: %s", msg.Error)
 	}
 	now := time.Now()

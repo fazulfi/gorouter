@@ -90,6 +90,20 @@ func TestStartLocalServer_ReturnsNonNilChannel(t *testing.T) {
 	}
 }
 
+// TestStartLocalServer_ReadHeaderTimeout verifies the callback server sets a
+// ReadHeaderTimeout to avoid slowloris-style header starvation.
+func TestStartLocalServer_ReadHeaderTimeout(t *testing.T) {
+	ctx := context.Background()
+	server, _, _, closeFn, err := StartLocalServer(ctx)
+	if err != nil {
+		t.Fatalf("StartLocalServer: %v", err)
+	}
+	defer closeFn()
+	if server.ReadHeaderTimeout <= 0 {
+		t.Error("ReadHeaderTimeout should be set to defend against slowloris")
+	}
+}
+
 func TestStartLocalServer_CloseReleasesResources(t *testing.T) {
 	ctx := context.Background()
 	server, port, _, closeFn, err := StartLocalServer(ctx)

@@ -80,14 +80,14 @@ func StartLocalServer(ctx context.Context) (server *http.Server, port int, resul
 	mux.HandleFunc("/callback", handler)
 	mux.HandleFunc("/auth/callback", handler)
 
-	server = &http.Server{Handler: mux}
+	server = &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	go server.Serve(listener) //nolint:errcheck
 
 	closed := false
 	closeFn = func() {
 		if !closed {
 			closed = true
-			server.Close()
+			_ = server.Close()
 			close(ch)
 		}
 	}
