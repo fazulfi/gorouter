@@ -127,7 +127,7 @@ func (t *ClaudeToOpenAI) TranslateResponse(_ context.Context, resp *engine.Respo
 			Content   interface{}              `json:"content"`
 			ToolCalls []map[string]interface{} `json:"tool_calls,omitempty"`
 		}
-		json.Unmarshal(openaiResp.Choices[0].Message, &msg)
+		_ = json.Unmarshal(openaiResp.Choices[0].Message, &msg)
 		if msg.Content != nil {
 			if s, ok := msg.Content.(string); ok && s != "" {
 				contentBlocks = append(contentBlocks, map[string]interface{}{"type": "text", "text": s})
@@ -140,10 +140,10 @@ func (t *ClaudeToOpenAI) TranslateResponse(_ context.Context, resp *engine.Respo
 			}
 			if tc["function"] != nil {
 				fnBytes, _ := json.Marshal(tc["function"])
-				json.Unmarshal(fnBytes, &fn)
+				_ = json.Unmarshal(fnBytes, &fn)
 			}
 			var input json.RawMessage
-			json.Unmarshal([]byte(fn.Arguments), &input)
+			_ = json.Unmarshal([]byte(fn.Arguments), &input)
 			id, _ := tc["id"].(string)
 			if id == "" {
 				id = fn.Name
@@ -206,7 +206,7 @@ func (t *ClaudeToOpenAI) TranslateStreamChunk(_ context.Context, chunk *formats.
 		Content   string                   `json:"content,omitempty"`
 		ToolCalls []map[string]interface{} `json:"tool_calls,omitempty"`
 	}
-	json.Unmarshal(choice.Delta, &delta)
+	_ = json.Unmarshal(choice.Delta, &delta)
 	if delta.Content != "" {
 		cb, _ := json.Marshal(map[string]interface{}{
 			"type": "content_block_delta", "index": 0,

@@ -104,7 +104,7 @@ func openaiAssistantToClaude(rawMsg json.RawMessage) (json.RawMessage, error) {
 			continue
 		}
 		var args json.RawMessage
-		json.Unmarshal([]byte(tcObj.Function.Arguments), &args)
+		_ = json.Unmarshal([]byte(tcObj.Function.Arguments), &args)
 		blocks = append(blocks, map[string]interface{}{"type": "tool_use", "id": tcObj.ID, "name": tcObj.Function.Name, "input": args})
 	}
 	return json.Marshal(map[string]interface{}{"role": "assistant", "content": blocks})
@@ -119,7 +119,7 @@ func openaiToolToClaude(rawMsg json.RawMessage) (json.RawMessage, error) {
 		return nil, err
 	}
 	var contentStr string
-	json.Unmarshal(msg.Content, &contentStr)
+	_ = json.Unmarshal(msg.Content, &contentStr)
 	blocks := []map[string]interface{}{
 		{"type": "tool_result", "tool_use_id": msg.ToolCallID, "content": contentStr},
 	}
@@ -214,7 +214,7 @@ func claudeUserToOpenAI(rawMsg json.RawMessage) (json.RawMessage, error) {
 			}
 			if s, ok := b["source"]; ok {
 				srcBytes, _ := s.MarshalJSON()
-				json.Unmarshal(srcBytes, &src)
+				_ = json.Unmarshal(srcBytes, &src)
 			}
 			parts = append(parts, map[string]interface{}{
 				"type":      "image_url",
@@ -236,9 +236,9 @@ func claudeToolResultToOpenAI(blocks []map[string]json.RawMessage) (json.RawMess
 			continue
 		}
 		if t == "tool_result" {
-			json.Unmarshal(b["tool_use_id"], &toolUseID)
+			_ = json.Unmarshal(b["tool_use_id"], &toolUseID)
 			if c, ok := b["content"]; ok {
-				json.Unmarshal(c, &contentStr)
+				_ = json.Unmarshal(c, &contentStr)
 			}
 		}
 	}
@@ -282,8 +282,8 @@ func claudeAssistantToOpenAI(rawMsg json.RawMessage) (json.RawMessage, error) {
 			}
 		case "tool_use":
 			var id, name string
-			json.Unmarshal(b["id"], &id)
-			json.Unmarshal(b["name"], &name)
+			_ = json.Unmarshal(b["id"], &id)
+			_ = json.Unmarshal(b["name"], &name)
 			var input []byte
 			if inp, ok := b["input"]; ok {
 				input, _ = json.Marshal(inp)
@@ -425,7 +425,7 @@ func openaiAsstToGeminiParts(rawMsg json.RawMessage) (map[string]interface{}, er
 			continue
 		}
 		var args map[string]interface{}
-		json.Unmarshal([]byte(tcObj.Function.Arguments), &args)
+		_ = json.Unmarshal([]byte(tcObj.Function.Arguments), &args)
 		parts = append(parts, map[string]interface{}{
 			"functionCall": map[string]interface{}{"name": tcObj.Function.Name, "args": args},
 		})
@@ -442,7 +442,7 @@ func openaiToolToGeminiParts(rawMsg json.RawMessage) (map[string]interface{}, er
 		return nil, err
 	}
 	var contentStr string
-	json.Unmarshal(msg.Content, &contentStr)
+	_ = json.Unmarshal(msg.Content, &contentStr)
 	return map[string]interface{}{
 		"role": "function",
 		"parts": []map[string]interface{}{

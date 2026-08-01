@@ -117,7 +117,7 @@ func FromSafeIR(ir *SafeIR, target engine.RequestFormat) (json.RawMessage, error
 // ---- Extract: Source → SafeIR ----
 
 func extractOpenAI(raw map[string]json.RawMessage, ir *SafeIR) error {
-	json.Unmarshal(raw["model"], &ir.Model)
+	_ = json.Unmarshal(raw["model"], &ir.Model)
 	if msgsRaw, ok := raw["messages"]; ok {
 		var msgs []json.RawMessage
 		if json.Unmarshal(msgsRaw, &msgs) == nil {
@@ -143,7 +143,7 @@ func extractOpenAI(raw map[string]json.RawMessage, ir *SafeIR) error {
 		}
 	}
 	if mt, ok := raw["max_tokens"]; ok {
-		json.Unmarshal(mt, &ir.MaxTokens)
+		_ = json.Unmarshal(mt, &ir.MaxTokens)
 	}
 	if stop, ok := raw["stop"]; ok {
 		var arr []string
@@ -196,7 +196,7 @@ func extractOpenAIMessage(raw json.RawMessage) (Message, error) {
 	}
 	msg := Message{Role: base.Role}
 	if base.Role == "system" {
-		json.Unmarshal(base.Content, &msg.Text)
+		_ = json.Unmarshal(base.Content, &msg.Text)
 		return msg, nil
 	}
 	var text string
@@ -271,9 +271,9 @@ func extractOpenAIMessage(raw json.RawMessage) (Message, error) {
 }
 
 func extractClaude(raw map[string]json.RawMessage, ir *SafeIR) error {
-	json.Unmarshal(raw["model"], &ir.Model)
+	_ = json.Unmarshal(raw["model"], &ir.Model)
 	if sys, ok := raw["system"]; ok {
-		json.Unmarshal(sys, &ir.System)
+		_ = json.Unmarshal(sys, &ir.System)
 	}
 	if msgsRaw, ok := raw["messages"]; ok {
 		var msgs []json.RawMessage
@@ -294,10 +294,10 @@ func extractClaude(raw map[string]json.RawMessage, ir *SafeIR) error {
 		}
 	}
 	if mt, ok := raw["max_tokens"]; ok {
-		json.Unmarshal(mt, &ir.MaxTokens)
+		_ = json.Unmarshal(mt, &ir.MaxTokens)
 	}
 	if ss, ok := raw["stop_sequences"]; ok {
-		json.Unmarshal(ss, &ir.Stop)
+		_ = json.Unmarshal(ss, &ir.Stop)
 	}
 	if rawTools, ok := raw["tools"]; ok && len(rawTools) > 0 {
 		var tools []json.RawMessage
@@ -349,13 +349,13 @@ func extractClaudeMessage(raw json.RawMessage) (Message, error) {
 		}
 		switch blockType {
 		case "text":
-			json.Unmarshal(block["text"], &msg.Text)
+			_ = json.Unmarshal(block["text"], &msg.Text)
 		case "thinking":
-			json.Unmarshal(block["thinking"], &msg.Thinking)
+			_ = json.Unmarshal(block["thinking"], &msg.Thinking)
 		case "tool_use":
 			var id, name string
-			json.Unmarshal(block["id"], &id)
-			json.Unmarshal(block["name"], &name)
+			_ = json.Unmarshal(block["id"], &id)
+			_ = json.Unmarshal(block["name"], &name)
 			var input json.RawMessage
 			if raw, ok := block["input"]; ok {
 				var buf bytes.Buffer
@@ -367,9 +367,9 @@ func extractClaudeMessage(raw json.RawMessage) (Message, error) {
 			}
 			msg.ToolCalls = append(msg.ToolCalls, ToolCall{ID: id, Type: "function", Name: name, Arguments: input})
 		case "tool_result":
-			json.Unmarshal(block["tool_use_id"], &msg.ToolCallID)
+			_ = json.Unmarshal(block["tool_use_id"], &msg.ToolCallID)
 			if c, ok := block["content"]; ok {
-				json.Unmarshal(c, &msg.Text)
+				_ = json.Unmarshal(c, &msg.Text)
 			}
 		case "image":
 			if src, ok := block["source"]; ok {
@@ -516,7 +516,7 @@ func extractGeminiContent(raw json.RawMessage) (Message, error) {
 }
 
 func extractCodex(raw map[string]json.RawMessage, ir *SafeIR) error {
-	json.Unmarshal(raw["model"], &ir.Model)
+	_ = json.Unmarshal(raw["model"], &ir.Model)
 	if input, ok := raw["input"]; ok {
 		var str string
 		if json.Unmarshal(input, &str) == nil {
@@ -536,7 +536,7 @@ func extractCodex(raw map[string]json.RawMessage, ir *SafeIR) error {
 					}
 					if json.Unmarshal(item, &msgObj) == nil {
 						var txt string
-						json.Unmarshal(msgObj.Content, &txt)
+						_ = json.Unmarshal(msgObj.Content, &txt)
 						ir.Messages = append(ir.Messages, Message{Role: msgObj.Role, Text: txt})
 					}
 				}
@@ -544,10 +544,10 @@ func extractCodex(raw map[string]json.RawMessage, ir *SafeIR) error {
 		}
 	}
 	if instr, ok := raw["instructions"]; ok {
-		json.Unmarshal(instr, &ir.System)
+		_ = json.Unmarshal(instr, &ir.System)
 	}
 	if mt, ok := raw["max_output_tokens"]; ok {
-		json.Unmarshal(mt, &ir.MaxTokens)
+		_ = json.Unmarshal(mt, &ir.MaxTokens)
 	}
 	if temp, ok := raw["temperature"]; ok {
 		var t float64
@@ -713,7 +713,7 @@ func buildClaude(ir *SafeIR) (json.RawMessage, error) {
 			tcStr = v
 		} else {
 			raw, _ := json.Marshal(ir.ToolChoice)
-			json.Unmarshal(raw, &tcStr)
+			_ = json.Unmarshal(raw, &tcStr)
 		}
 		switch tcStr {
 		case "auto":

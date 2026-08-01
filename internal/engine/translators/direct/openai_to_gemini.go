@@ -45,7 +45,7 @@ func (t *OpenAIToGemini) TranslateRequest(_ context.Context, req *engine.Request
 		}
 		switch base.Role {
 		case "system":
-			json.Unmarshal(base.Content, &systemInstruction)
+			_ = json.Unmarshal(base.Content, &systemInstruction)
 		case "user":
 			parts, _ := openaiContentToGeminiParts(base.Content)
 			contents = append(contents, map[string]interface{}{"role": "user", "parts": parts})
@@ -132,7 +132,7 @@ func (t *OpenAIToGemini) TranslateResponse(_ context.Context, resp *engine.Respo
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}
-				json.Unmarshal(p.FuncCall, &fc)
+				_ = json.Unmarshal(p.FuncCall, &fc)
 				argsStr, _ := json.Marshal(fc.Args)
 				toolCalls = append(toolCalls, map[string]interface{}{
 					"id": fc.Name, "type": "function",

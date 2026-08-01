@@ -131,10 +131,10 @@ func (t *GeminiToOpenAI) TranslateResponse(_ context.Context, resp *engine.Respo
 			}
 			if tc["function"] != nil {
 				b, _ := json.Marshal(tc["function"])
-				json.Unmarshal(b, &fn)
+				_ = json.Unmarshal(b, &fn)
 			}
 			var args map[string]interface{}
-			json.Unmarshal([]byte(fn.Arguments), &args)
+			_ = json.Unmarshal([]byte(fn.Arguments), &args)
 			parts = append(parts, map[string]interface{}{
 				"functionCall": map[string]interface{}{"name": fn.Name, "args": args},
 			})
