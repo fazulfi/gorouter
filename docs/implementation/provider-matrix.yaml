@@ -1,0 +1,914 @@
+metadata:
+  description: Exhaustive provider registry derived from decolua/9router commit 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+  source: audit/02-provider-matrix.md, upstream open-sse/providers/registry/index.js
+  title: Provider Matrix
+  total: 100
+providers:
+  - provider_id: alicode
+    display_name: Ali Code
+    provider_type: alicode
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/alicode.js
+  - provider_id: alicode-intl
+    display_name: Ali Code (Intl)
+    provider_type: alicode-intl
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/alicode-intl.js
+  - provider_id: alims-intl
+    display_name: Ali MS (Intl)
+    provider_type: alims-intl
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/alims-intl.js
+  - provider_id: anthropic
+    display_name: Anthropic
+    provider_type: anthropic
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatAnthropic
+    source_citation: registry/anthropic.js
+  - provider_id: antigravity
+    display_name: Antigravity
+    provider_type: antigravity
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/antigravity.js, executors/antigravity.js
+  - provider_id: assemblyai
+    display_name: AssemblyAI
+    provider_type: assemblyai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/assemblyai.js
+  - provider_id: aws-polly
+    display_name: AWS Polly
+    provider_type: aws-polly
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/aws-polly.js
+  - provider_id: azure
+    display_name: Azure OpenAI
+    provider_type: azure
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/azure_openai
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/azure.js, executors/azure.js
+  - provider_id: black-forest-labs
+    display_name: Black Forest Labs
+    provider_type: black_forest_labs
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/black-forest-labs.js
+  - provider_id: blackbox
+    display_name: Blackbox
+    provider_type: blackbox
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/blackbox.js
+  - provider_id: brave-search
+    display_name: Brave Search
+    provider_type: brave_search
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/brave-search.js
+  - provider_id: byteplus
+    display_name: BytePlus
+    provider_type: byteplus
+    category: freeTier
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/byteplus.js
+  - provider_id: cartesia
+    display_name: Cartesia
+    provider_type: cartesia
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cartesia.js
+  - provider_id: cerebras
+    display_name: Cerebras
+    provider_type: cerebras
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cerebras.js
+  - provider_id: chutes
+    display_name: Chutes
+    provider_type: chutes
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/chutes.js
+  - provider_id: claude
+    display_name: Claude
+    provider_type: anthropic
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatAnthropic
+    source_citation: registry/claude.js
+  - provider_id: cline
+    display_name: Cline
+    provider_type: cline
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cline.js
+  - provider_id: clinepass
+    display_name: Cline Pass
+    provider_type: clinepass
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/clinepass.js
+  - provider_id: cloudflare-ai
+    display_name: Cloudflare AI
+    provider_type: cloudflare_ai
+    category: freeTier
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cloudflare-ai.js
+  - provider_id: codebuddy-cn
+    display_name: CodeBuddy CN
+    provider_type: codebuddy_cn
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/codebuddy-cn.js, executors/codebuddy-cn.js
+  - provider_id: codex
+    display_name: OpenAI Codex
+    provider_type: codex
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/codex
+    supported_formats:
+      - FormatCodexResponses
+    source_citation: registry/codex.js
+  - provider_id: cohere
+    display_name: Cohere
+    provider_type: cohere
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cohere.js
+  - provider_id: comfyui
+    display_name: ComfyUI
+    provider_type: comfyui
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/comfyui.js
+  - provider_id: commandcode
+    display_name: Command Code
+    provider_type: commandcode
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/commandcode.js, executors/commandcode.js
+  - provider_id: coqui
+    display_name: Coqui
+    provider_type: coqui
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/coqui.js (authType=none, noAuth=true)
+  - provider_id: cursor
+    display_name: Cursor
+    provider_type: cursor
+    category: oauth
+    auth_type: pat
+    executor_path: specialized/cursor
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/cursor.js, executors/cursor.js
+  - provider_id: deepgram
+    display_name: Deepgram
+    provider_type: deepgram
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/deepgram.js
+  - provider_id: deepseek
+    display_name: DeepSeek
+    provider_type: deepseek
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/deepseek
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/deepseek.js
+  - provider_id: edge-tts
+    display_name: Edge TTS
+    provider_type: edge_tts
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/edge-tts.js (authType=none, noAuth=true)
+  - provider_id: elevenlabs
+    display_name: ElevenLabs
+    provider_type: elevenlabs
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/elevenlabs.js
+  - provider_id: exa
+    display_name: Exa
+    provider_type: exa
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/exa.js
+  - provider_id: fal-ai
+    display_name: Fal AI
+    provider_type: fal_ai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/fal-ai.js
+  - provider_id: featherless
+    display_name: Featherless
+    provider_type: featherless
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/featherless.js
+  - provider_id: firecrawl
+    display_name: Firecrawl
+    provider_type: firecrawl
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/firecrawl.js
+  - provider_id: fireworks
+    display_name: Fireworks AI
+    provider_type: fireworks
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/fireworks
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/fireworks.js
+  - provider_id: gemini
+    display_name: Gemini
+    provider_type: gemini
+    category: freeTier
+    auth_type: apikey
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/gemini.js
+  - provider_id: gemini-cli
+    display_name: Gemini CLI
+    provider_type: gemini_cli
+    category: free
+    auth_type: none
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/gemini-cli.js, executors/gemini-cli.js
+  - provider_id: github
+    display_name: GitHub
+    provider_type: github_models
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/github_models
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/github.js, executors/github.js
+  - provider_id: gitlab
+    display_name: GitLab
+    provider_type: gitlab
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/gitlab.js
+  - provider_id: glm
+    display_name: GLM
+    provider_type: glm
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/glm.js
+  - provider_id: glm-cn
+    display_name: GLM (China)
+    provider_type: glm_cn
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/glm-cn.js
+  - provider_id: google-pse
+    display_name: Google PSE
+    provider_type: google_pse
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/google-pse.js
+  - provider_id: google-tts
+    display_name: Google TTS
+    provider_type: google_tts
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/google-tts.js (authType=none, noAuth=true)
+  - provider_id: grok-cli
+    display_name: Grok CLI
+    provider_type: grok_cli
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/grok-cli.js, executors/grok-cli.js
+  - provider_id: grok-web
+    display_name: Grok Web
+    provider_type: grok_web
+    category: webCookie
+    auth_type: cookie
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/grok-web.js, executors/grok-web.js
+  - provider_id: groq
+    display_name: Groq
+    provider_type: groq
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/groq
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/groq.js
+  - provider_id: huggingface
+    display_name: Hugging Face
+    provider_type: huggingface
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/huggingface.js
+  - provider_id: hyperbolic
+    display_name: Hyperbolic
+    provider_type: hyperbolic
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/hyperbolic.js
+  - provider_id: iflow
+    display_name: IFlow
+    provider_type: iflow
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/iflow.js, executors/iflow.js
+  - provider_id: inworld
+    display_name: Inworld
+    provider_type: inworld
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/inworld.js
+  - provider_id: jina-ai
+    display_name: Jina AI
+    provider_type: jina_ai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/jina-ai.js
+  - provider_id: jina-reader
+    display_name: Jina Reader
+    provider_type: jina_reader
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/jina-reader.js
+  - provider_id: kilocode
+    display_name: Kilocode
+    provider_type: kilocode
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/kilocode.js
+  - provider_id: kimchi
+    display_name: Kimchi
+    provider_type: kimchi
+    category: oauth
+    auth_type: cookie
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/kimchi.js, executors/kimchi.js
+  - provider_id: kimi
+    display_name: Kimi
+    provider_type: kimi
+    category: oauth
+    auth_type: oauth
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/kimi.js
+  - provider_id: kiro
+    display_name: Kiro
+    provider_type: kiro
+    category: free
+    auth_type: none
+    executor_path: specialized/kiro
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/kiro.js, executors/kiro.js
+  - provider_id: linkup
+    display_name: Linkup
+    provider_type: linkup
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/linkup.js
+  - provider_id: local-device
+    display_name: Local Device
+    provider_type: local_device
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/local-device.js
+  - provider_id: mimo-free
+    display_name: Mimo Free
+    provider_type: mimo_free
+    category: free
+    auth_type: none
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/mimo-free.js, executors/mimo-free.js
+  - provider_id: minimax
+    display_name: MiniMax
+    provider_type: minimax
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/minimax.js
+  - provider_id: minimax-cn
+    display_name: MiniMax (China)
+    provider_type: minimax_cn
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/minimax-cn.js
+  - provider_id: mistral
+    display_name: Mistral
+    provider_type: mistral
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/mistral
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/mistral.js
+  - provider_id: mmf
+    display_name: MMF
+    provider_type: mmf
+    category: apikey
+    auth_type: none
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/mmf.js (category=apikey, noAuth=true, double-entry with mimo-free.js)
+  - provider_id: nanobanana
+    display_name: Nanobanana
+    provider_type: nanobanana
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/nanobanana.js
+  - provider_id: nebius
+    display_name: Nebius
+    provider_type: nebius
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/nebius.js
+  - provider_id: nvidia
+    display_name: NVIDIA
+    provider_type: nvidia
+    category: freeTier
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/nvidia.js
+  - provider_id: ollama
+    display_name: Ollama
+    provider_type: ollama
+    category: freeTier
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/ollama.js
+  - provider_id: ollama-local
+    display_name: Ollama Local
+    provider_type: ollama_local
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/ollama-local.js, executors/ollama-local.js
+  - provider_id: openai
+    display_name: OpenAI
+    provider_type: openai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/openai.js
+  - provider_id: opencode
+    display_name: OpenCode
+    provider_type: opencode
+    category: free
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/opencode.js
+  - provider_id: opencode-go
+    display_name: OpenCode Go
+    provider_type: opencode_go
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/opencode-go.js
+  - provider_id: openrouter
+    display_name: OpenRouter
+    provider_type: openrouter
+    category: freeTier
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/openrouter.js
+  - provider_id: perplexity
+    display_name: Perplexity
+    provider_type: perplexity
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/perplexity
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/perplexity.js
+  - provider_id: perplexity-agent
+    display_name: Perplexity Agent
+    provider_type: perplexity_agent
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/perplexity
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/perplexity-agent.js
+  - provider_id: perplexity-web
+    display_name: Perplexity Web
+    provider_type: perplexity_web
+    category: webCookie
+    auth_type: cookie
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/perplexity-web.js, executors/perplexity-web.js
+  - provider_id: playht
+    display_name: PlayHT
+    provider_type: playht
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/playht.js
+  - provider_id: qoder
+    display_name: Qoder
+    provider_type: qoder
+    category: free
+    auth_type: none
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/qoder.js, executors/qoder.js
+  - provider_id: qwen
+    display_name: Qwen
+    provider_type: qwen
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/qwen.js, executors/qwen.js
+  - provider_id: recraft
+    display_name: Recraft
+    provider_type: recraft
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/recraft.js
+  - provider_id: runwayml
+    display_name: RunwayML
+    provider_type: runwayml
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/runwayml.js
+  - provider_id: sdwebui
+    display_name: SD Web UI
+    provider_type: sdwebui
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/sdwebui.js
+  - provider_id: searchapi
+    display_name: Search API
+    provider_type: searchapi
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/searchapi.js
+  - provider_id: searxng
+    display_name: SearXNG
+    provider_type: searxng
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/searxng.js (authType=none, noAuth=true)
+  - provider_id: serper
+    display_name: Serper
+    provider_type: serper
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/serper.js
+  - provider_id: siliconflow
+    display_name: SiliconFlow
+    provider_type: siliconflow
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/siliconflow.js
+  - provider_id: stability-ai
+    display_name: Stability AI
+    provider_type: stability_ai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/stability-ai.js
+  - provider_id: tavily
+    display_name: Tavily
+    provider_type: tavily
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/tavily.js
+  - provider_id: together
+    display_name: Together AI
+    provider_type: together
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/together
+    supported_formats:
+      - FormatOpenAIChat
+      - FormatOpenAICompat
+    source_citation: registry/together.js
+  - provider_id: topaz
+    display_name: Topaz
+    provider_type: topaz
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/topaz.js
+  - provider_id: tortoise
+    display_name: Tortoise TTS
+    provider_type: tortoise
+    category: freeTier
+    auth_type: none
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/tortoise.js (authType=none, noAuth=true)
+  - provider_id: venice
+    display_name: Venice
+    provider_type: venice
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/venice.js
+  - provider_id: vercel-ai-gateway
+    display_name: Vercel AI Gateway
+    provider_type: vercel_ai_gateway
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/vercel-ai-gateway.js
+  - provider_id: vertex
+    display_name: Vertex AI
+    provider_type: vertex
+    category: freeTier
+    auth_type: apikey
+    executor_path: specialized/gcp_vertex
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/vertex.js, executors/vertex.js
+  - provider_id: vertex-partner
+    display_name: Vertex AI Partner
+    provider_type: vertex_partner
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/gcp_vertex
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/vertex-partner.js, executors/vertex.js
+  - provider_id: volcengine-ark
+    display_name: Volcengine Ark
+    provider_type: volcengine_ark
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/volcengine-ark.js
+  - provider_id: voyage-ai
+    display_name: Voyage AI
+    provider_type: voyage_ai
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/voyage-ai.js
+  - provider_id: xai
+    display_name: xAI
+    provider_type: xai
+    category: oauth
+    auth_type: oauth
+    executor_path: specialized/xai
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/xai.js
+  - provider_id: xiaomi-mimo
+    display_name: Xiaomi Mimo
+    provider_type: xiaomi-mimo
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/xiaomi-mimo.js
+  - provider_id: xiaomi-tokenplan
+    display_name: Xiaomi Tokenplan
+    provider_type: xiaomi-tokenplan
+    category: apikey
+    auth_type: apikey
+    executor_path: specialized/gemini
+    supported_formats:
+      - FormatGemini
+    source_citation: registry/xiaomi-tokenplan.js, executors/xiaomi-tokenplan.js
+  - provider_id: youcom
+    display_name: You.com
+    provider_type: youcom
+    category: apikey
+    auth_type: apikey
+    executor_path: generic
+    supported_formats:
+      - FormatOpenAICompat
+    source_citation: registry/youcom.js

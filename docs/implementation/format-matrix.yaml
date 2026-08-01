@@ -1,0 +1,31 @@
+formats:
+  - format_constant: FormatOpenAIChat
+    codec_package: engine/formats/openai/
+    detection: Endpoint /v1/chat/completions or body has messages + model
+    terminal_event: 'data: [DONE]\n\n'
+    source_citation: internal/domain/engine/types.go:14, audit/05-streaming-translation.md:4.5
+  - format_constant: FormatOpenAICompat
+    codec_package: engine/formats/openai/
+    detection: Audited OpenAI-compatible endpoint/body rules from provider transport config
+    terminal_event: 'data: [DONE]\n\n (or provider-specific variant)'
+    source_citation: internal/domain/engine/types.go:15, audit/02-provider-matrix.md:97
+  - format_constant: FormatCodexResponses
+    codec_package: engine/formats/responses/
+    detection: Endpoint /v1/responses plus audited Codex/Responses discrimination
+    terminal_event: 'Response-typed completion/failure terminal from pinned source (event: done / response.failed)'
+    source_citation: internal/domain/engine/types.go:16, registry/codex.js transport.format=openai-responses, audit/05-streaming-translation.md:4.5
+  - format_constant: FormatAnthropic
+    codec_package: engine/formats/claude/
+    detection: Endpoint /v1/messages or anthropic-version header
+    terminal_event: 'event: message_stop\ndata: {}\n\n'
+    source_citation: internal/domain/engine/types.go:17, audit/05-streaming-translation.md:4.5
+  - format_constant: FormatGemini
+    codec_package: engine/formats/gemini/
+    detection: Endpoint /v1beta/models/* or x-goog-api-key header
+    terminal_event: finishReason in candidates; no [DONE] sentinel
+    source_citation: internal/domain/engine/types.go:18, audit/05-streaming-translation.md:4.5
+metadata:
+  description: Wire protocol format constants derived from decolua/9router commit 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+  source: internal/domain/engine/types.go, audit/05-streaming-translation.md
+  title: Format Matrix
+  total: 5
