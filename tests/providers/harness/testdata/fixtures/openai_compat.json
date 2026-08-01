@@ -1,0 +1,14 @@
+{
+  "id": "chatcmpl-gorouter-p3t14-compat",
+  "object": "chat.completion",
+  "created": 1750000000,
+  "model": "fixture-compat-model",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {"role": "assistant", "content": "pong"}
+    }
+  ],
+  "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3}
+}

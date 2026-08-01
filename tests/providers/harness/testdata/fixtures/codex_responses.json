@@ -1,0 +1,16 @@
+{
+  "id": "resp_gorouter_p3t14",
+  "object": "response",
+  "created_at": 1750000000,
+  "model": "fixture-model",
+  "status": "completed",
+  "output": [
+    {
+      "type": "message",
+      "id": "msg_gorouter_p3t14",
+      "role": "assistant",
+      "content": [{"type": "output_text", "text": "pong"}]
+    }
+  ],
+  "usage": {"input_tokens": 2, "output_tokens": 1, "total_tokens": 3}
+}

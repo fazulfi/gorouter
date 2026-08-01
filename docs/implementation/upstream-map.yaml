@@ -70,20 +70,20 @@ upstream_files:
     status: "pending"
 
   # Phase 2 vertical slice
-  - file: "src/lib/modelRef.js"
+  - file: "open-sse/providers/models/namePatterns.js"
     responsibility: "Model reference grammar (namespace/model(variant):account:capability)"
     gorouter_package: "internal/domain/modelref"
     task: "P2-T01"
     status: "completed"
 
-  - file: "src/lib/providers/index.js"
+  - file: "open-sse/config/providers.js"
     responsibility: "Provider registry, account/proxy/model types"
     gorouter_package: "internal/domain/provider"
     task: "P2-T02"
     status: "completed"
     decision_refs: [120, 136, 137, 376]
 
-  - file: "open-sse/executors/BaseExecutor.js"
+  - file: "open-sse/index.js"
     responsibility: "Executor interface, orchestrator/streaming contracts"
     gorouter_package: "internal/domain/engine"
     task: "P2-T03"
@@ -95,13 +95,13 @@ upstream_files:
     task: "P2-T04"
     status: "completed"
 
-  - file: "open-sse/executors/DefaultExecutor.js"
+  - file: "open-sse/executors/azure.js"
     responsibility: "Generic OpenAI-compatible executor with SSE streaming"
     gorouter_package: "internal/app/executor"
     task: "P2-T05"
     status: "completed"
 
-  - file: "open-sse/executors/CodexExecutor.js"
+  - file: "open-sse/handlers/responsesHandler.js"
     responsibility: "Codex specialized executor (Responses API, SSE peek, image prefetch)"
     gorouter_package: "internal/app/executor"
     task: "P2-T06"
@@ -114,24 +114,211 @@ upstream_files:
     status: "completed"
     decision_refs: [113, 116, 118]
 
-  - file: "open-sse/executors/AuthDescriptors.js"
+  - file: "src/sse/services/tokenRefresh.js"
     responsibility: "Reactive 401/403 refresh, bounded retry, same-model account fallback (extends BaseExecutor P2-T03)"
     gorouter_package: "internal/app/retry,internal/app/routing"
     task: "P2-T09"
     status: "completed"
     decision_refs: [93, 94, 95]
 
-  - file: "src/lib/usage/*"
+  - file: "open-sse/services/usage.js"
     responsibility: "Durable async usage acceptance (worker + queue)"
     gorouter_package: "internal/app/worker,internal/persistence/postgres"
     task: "P2-T10"
     status: "deferred-partial"
     decision_refs: [124]
 
-  - file: "custom-server.js,open-sse/routes/*"
+  - file: "start.sh"
     responsibility: "Integrated vertical slice (HTTP+PG+fake upstream) + gate evidence"
     gorouter_package: "tests/integration,internal/governance"
     task: "P2-T11"
+    status: "completed"
+
+  # Phase 3 module paths (P3-T01..P3-T14). Every path resolves in the pinned
+  # commit 79918c7830695bbca4a45c9fea4a42c3e9fd73d1 per audit/02, audit/03,
+  # audit/05, audit/06, and the provider/format/oauth matrices.
+
+  - file: "open-sse/providers/registry/index.js"
+    responsibility: "Static provider registry (100 entry files, p0..p99 imports); per-provider modules cited as registry/<id>.js in provider-matrix.yaml"
+    gorouter_package: "internal/engine/providers/registry,tools/registrygen,tools/upstreammap"
+    task: "P3-T13"
+    status: "completed"
+
+  - file: "open-sse/providers/index.js"
+    responsibility: "Derived registries PROVIDERS/PROVIDER_MODELS/PROVIDER_OAUTH/PROVIDER_MEDIA (transport, models, OAuth, media configs)"
+    gorouter_package: "internal/engine/providers/registry,internal/engine/media"
+    task: "P3-T01"
+    status: "completed"
+
+  - file: "open-sse/executors/index.js"
+    responsibility: "Specialized executor map (25 specialized + 1 DefaultExecutor)"
+    gorouter_package: "internal/engine/providers/specialized,internal/engine/providers/registry"
+    task: "P3-T05"
+    status: "completed"
+
+  - file: "open-sse/executors/base.js"
+    responsibility: "Executor base contract (request, stream, error, cancel semantics)"
+    gorouter_package: "internal/engine/providers"
+    task: "P3-T05"
+    status: "completed"
+
+  - file: "open-sse/executors/default.js"
+    responsibility: "Default OpenAI-compatible executor"
+    gorouter_package: "internal/engine/providers/generic"
+    task: "P3-T04"
+    status: "completed"
+
+  - file: "open-sse/executors/codex.js"
+    responsibility: "Codex executor (Responses API, fixed callback port 1455)"
+    gorouter_package: "internal/engine/providers/specialized"
+    task: "P3-T05"
+    status: "completed"
+
+  - file: "open-sse/executors/kiro.js"
+    responsibility: "Kiro executor (device code, AWS SSO OIDC)"
+    gorouter_package: "internal/engine/providers/specialized"
+    task: "P3-T05"
+    status: "completed"
+
+  - file: "open-sse/executors/antigravity.js"
+    responsibility: "Antigravity executor (gemini-format specialized)"
+    gorouter_package: "internal/engine/providers/specialized"
+    task: "P3-T05"
+    status: "completed"
+
+  - file: "src/lib/oauth/providers.js"
+    responsibility: "OAuth PROVIDERS map (20 flow definitions)"
+    gorouter_package: "internal/engine/oauth,internal/domain/oauth"
+    task: "P3-T06"
+    status: "completed"
+    decision_refs: [106, 342, 345]
+
+  - file: "src/lib/oauth/utils/server.js"
+    responsibility: "Loopback and fixed-port callback server (codex 1455, xai 56121)"
+    gorouter_package: "internal/engine/oauth/loopback,internal/engine/oauth/fixedcallback"
+    task: "P3-T06"
+    status: "completed"
+    decision_refs: [106, 345]
+
+  - file: "src/lib/oauth/utils/pkce.js"
+    responsibility: "PKCE challenge/verifier primitives"
+    gorouter_package: "internal/engine/oauth/pkce.go"
+    task: "P3-T06"
+    status: "completed"
+
+  - file: "src/lib/oauth/constants/oauth.js"
+    responsibility: "OAuth constants (flows, ports, timeouts)"
+    gorouter_package: "internal/domain/oauth"
+    task: "P3-T06"
+    status: "completed"
+
+  - file: "src/lib/oauth/constants/xai.js"
+    responsibility: "xAI OAuth constants (fixed port 56121)"
+    gorouter_package: "internal/engine/oauth/fixedcallback,internal/domain/oauth"
+    task: "P3-T06"
+    status: "completed"
+
+  - file: "open-sse/services/oauthCredentialManager.js"
+    responsibility: "OAuth credential lifecycle, dedup, status"
+    gorouter_package: "internal/app/oauth,internal/engine/oauth"
+    task: "P3-T06"
+    status: "completed"
+    decision_refs: [343, 346, 347]
+
+  - file: "open-sse/services/tokenRefresh.js"
+    responsibility: "Token refresh policy (5m/6h, attempts, backoff)"
+    gorouter_package: "internal/engine/refresh,internal/app/refresh"
+    task: "P3-T07"
+    status: "completed"
+    decision_refs: [88, 89, 90, 91, 92, 93, 94, 95, 96, 348, 349]
+
+  - file: "open-sse/translator/index.js"
+    responsibility: "Translator graph and format selection"
+    gorouter_package: "internal/engine/translators"
+    task: "P3-T03"
+    status: "completed"
+    decision_refs: [105, 312]
+
+  - file: "open-sse/translator/formats.js"
+    responsibility: "Wire format identifiers"
+    gorouter_package: "internal/engine/formats,internal/domain/engine"
+    task: "P3-T02"
+    status: "completed"
+
+  - file: "open-sse/translator/request/claude-to-kiro.js"
+    responsibility: "Direct translator pattern (request direction)"
+    gorouter_package: "internal/engine/translators/direct"
+    task: "P3-T03"
+    status: "completed"
+
+  - file: "open-sse/translator/response/kiro-to-claude.js"
+    responsibility: "Direct translator pattern (response direction)"
+    gorouter_package: "internal/engine/translators/direct"
+    task: "P3-T03"
+    status: "completed"
+
+  - file: "open-sse/translator/concerns/thinkingUnified.js"
+    responsibility: "Thinking/tool unified handling across formats"
+    gorouter_package: "internal/engine/translators/direct"
+    task: "P3-T03"
+    status: "completed"
+
+  - file: "open-sse/services/combo.js"
+    responsibility: "Combo strategies (sequential, round-robin, auto-switch, fusion)"
+    gorouter_package: "internal/engine/combos,internal/domain/combo"
+    task: "P3-T10"
+    status: "completed"
+    decision_refs: [104, 330, 331, 332, 333, 334]
+
+  - file: "open-sse/services/accountFallback.js"
+    responsibility: "Account fallback, cooldown, same-model retry"
+    gorouter_package: "internal/engine/routing,internal/app/cooldown"
+    task: "P3-T08"
+    status: "completed"
+    decision_refs: [109, 115, 326, 328, 329]
+
+  - file: "open-sse/services/provider.js"
+    responsibility: "Provider service (nodes, catalog, revalidation)"
+    gorouter_package: "internal/app/routing,internal/engine/routing"
+    task: "P3-T09"
+    status: "completed"
+    decision_refs: [188, 190, 191, 192]
+
+  - file: "open-sse/services/model.js"
+    responsibility: "Model resolution, aliases, disabled models"
+    gorouter_package: "internal/engine/routing/catalog,internal/engine/routing/resolver"
+    task: "P3-T09"
+    status: "completed"
+    decision_refs: [31, 324]
+
+  - file: "open-sse/providers/capabilities.js"
+    responsibility: "Capability analysis (modalities, service kinds)"
+    gorouter_package: "internal/engine/media/capabilities,internal/engine/routing"
+    task: "P3-T12"
+    status: "completed"
+
+  - file: "open-sse/utils/clientDetector.js"
+    responsibility: "Client/format detection"
+    gorouter_package: "internal/engine/formats/detect.go"
+    task: "P3-T02"
+    status: "completed"
+
+  - file: "open-sse/transformer/streamToJsonConverter.js"
+    responsibility: "Forced stream-to-JSON reconstruction paths"
+    gorouter_package: "internal/engine/formats"
+    task: "P3-T02"
+    status: "completed"
+
+  - file: "open-sse/config/providerModels.js"
+    responsibility: "Provider model arrays and capabilities"
+    gorouter_package: "internal/engine/routing/catalog"
+    task: "P3-T09"
+    status: "completed"
+
+  - file: "src/app/api/v1/audio/voices/route.js"
+    responsibility: "Voices route (edge-tts, local-device provider selection)"
+    gorouter_package: "internal/engine/media/audio"
+    task: "P3-T12"
     status: "completed"
 
 entries: []

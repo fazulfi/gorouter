@@ -105,7 +105,11 @@ jobs:
         # Review failures manually before making it required.
 
       - name: Save license report
-        run: go-licenses csv ./ > license-report.csv
+        # `./...` (not `./`): the module root package contains no Go files,
+        # so `go-licenses csv ./` fails with "no Go files in ..." and would
+        # upload an error message as the artifact. `./...` matches the
+        # working `go-licenses check` invocation above.
+        run: go-licenses csv ./... > license-report.csv
         continue-on-error: true
 
       - name: Upload license report

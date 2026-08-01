@@ -1,0 +1,10 @@
+{
+  "candidates": [
+    {
+      "content": {"parts": [{"text": "pong"}], "role": "model"},
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {"promptTokenCount": 2, "candidatesTokenCount": 1, "totalTokenCount": 3}
+}
