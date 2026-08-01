@@ -1,0 +1,13 @@
+{
+  "contents": [
+    {"role": "user", "parts": [{"text": "Explain quantum computing."}]}
+  ],
+  "generationConfig": {
+    "temperature": 0.9,
+    "maxOutputTokens": 2048,
+    "topP": 0.95
+  },
+  "safetySettings": [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"}
+  ]
+}

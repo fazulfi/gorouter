@@ -1,0 +1,5 @@
+{
+  "model": "custom-model",
+  "input": "binary protocol data",
+  "format": "native"
+}
