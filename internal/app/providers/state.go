@@ -190,21 +190,25 @@ func (s *StateService) checkpointLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			// ctx is already cancelled at this point — use a fresh
-			// bounded context so the final checkpoint actually completes.
-			freshCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_ = s.tryCheckpoint(freshCtx)
-			cancel()
+			s.finalCheckpoint(ctx)
 			return
 		case <-s.stopCh:
-			freshCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_ = s.tryCheckpoint(freshCtx)
-			cancel()
+			s.finalCheckpoint(ctx)
 			return
 		case <-ticker.C:
 			_ = s.tryCheckpoint(ctx)
 		}
 	}
+}
+
+// finalCheckpoint performs one last best-effort checkpoint during shutdown.
+// It derives a fresh bounded context from the request context without
+// inheriting its cancellation, so the write can still complete after shutdown
+// begins without leaking a background goroutine.
+func (s *StateService) finalCheckpoint(ctx context.Context) {
+	freshCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_ = s.tryCheckpoint(freshCtx)
 }
 
 func (s *StateService) cleanupLoop(ctx context.Context) {

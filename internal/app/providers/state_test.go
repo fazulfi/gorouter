@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -201,6 +202,123 @@ func TestStateService_StartStop(t *testing.T) {
 
 	svc.Stop()
 	cancel()
+}
+
+// recordingCheckpointer records checkpoint writes for lifecycle tests. It is
+// safe for concurrent use because it runs from the checkpoint goroutine.
+type recordingCheckpointer struct {
+	mu           sync.Mutex
+	saves        int
+	lastSnapshot map[uuid.UUID]*routing.AccountState
+	err          error
+}
+
+func (r *recordingCheckpointer) SaveCheckpoint(_ context.Context, snapshot map[uuid.UUID]*routing.AccountState) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.saves++
+	r.lastSnapshot = make(map[uuid.UUID]*routing.AccountState, len(snapshot))
+	for id, s := range snapshot {
+		r.lastSnapshot[id] = s
+	}
+	return r.err
+}
+
+func (r *recordingCheckpointer) LoadCheckpoint(_ context.Context) (map[uuid.UUID]*routing.AccountState, error) {
+	return nil, nil
+}
+
+func (r *recordingCheckpointer) SaveTransition(_ context.Context, _ routing.StateTransition) error {
+	return nil
+}
+
+func (r *recordingCheckpointer) ListTransitions(_ context.Context, _ uuid.UUID, _ time.Time) ([]routing.StateTransition, error) {
+	return nil, nil
+}
+
+func (r *recordingCheckpointer) CleanupTransitions(_ context.Context, _ time.Time) (int, error) {
+	return 0, nil
+}
+
+func (r *recordingCheckpointer) count() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.saves
+}
+
+func (r *recordingCheckpointer) snapshot() map[uuid.UUID]*routing.AccountState {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.lastSnapshot
+}
+
+// TestStateService_FinalCheckpointOnStop verifies a final checkpoint is
+// persisted during Stop even after the request context is cancelled.
+func TestStateService_FinalCheckpointOnStop(t *testing.T) {
+	state := routing.NewRoutingStateManagerWithClock(frozenNow)
+	cp := &recordingCheckpointer{}
+	svc := NewStateService(DefaultStateConfig(), state, cp)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	svc.Start(ctx)
+
+	accountID := uuid.New()
+	svc.RecordAccountFailure(ctx, accountID, routing.FailureUpstream, 502, "err", nil)
+
+	cancel()
+	svc.Stop()
+
+	if cp.count() == 0 {
+		t.Fatal("expected at least one checkpoint (final checkpoint on shutdown)")
+	}
+	snap := cp.snapshot()
+	if snap[accountID] == nil {
+		t.Error("final checkpoint should include the recorded account failure")
+	}
+}
+
+// TestStateService_FinalCheckpointOnStopErrorObserved verifies a failed final
+// checkpoint is observed without panicking or blocking Stop.
+func TestStateService_FinalCheckpointOnStopErrorObserved(t *testing.T) {
+	state := routing.NewRoutingStateManagerWithClock(frozenNow)
+	cp := &recordingCheckpointer{err: context.DeadlineExceeded}
+	svc := NewStateService(DefaultStateConfig(), state, cp)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	svc.Start(ctx)
+	cancel()
+	done := make(chan struct{})
+	go func() {
+		svc.Stop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Stop did not return after checkpoint failure")
+	}
+}
+
+// TestStateService_StopLeaksNoGoroutines verifies Start/Stop leaves no
+// checkpoint or cleanup goroutines behind.
+func TestStateService_StopLeaksNoGoroutines(t *testing.T) {
+	state := routing.NewRoutingStateManagerWithClock(frozenNow)
+	svc := NewStateService(DefaultStateConfig(), state, &recordingCheckpointer{})
+
+	before := runtime.NumGoroutine()
+	ctx, cancel := context.WithCancel(context.Background())
+	svc.Start(ctx)
+	svc.Stop()
+	cancel()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if runtime.NumGoroutine() <= before+2 {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Errorf("goroutine count after Stop = %d, before = %d", runtime.NumGoroutine(), before)
 }
 
 func TestStateService_StateManagerCheckpointer(t *testing.T) {
