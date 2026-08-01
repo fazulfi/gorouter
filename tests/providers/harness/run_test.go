@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -97,6 +98,50 @@ func TestRunProviderMockRequiresBaseURL(t *testing.T) {
 	m := fixtureManifest("openai", "apikey", "GOROUTER_LIVE_OPENAI_KEY", 5*time.Second, 0)
 	if _, err := harness.RunProvider(context.Background(), m, harness.Options{Mode: harness.ModeMock}); err == nil {
 		t.Error("mock mode without BaseURL must error")
+	}
+}
+
+func TestRunProviderMockRejectsFixtureTraversal(t *testing.T) {
+	srv := jsonServer(t, http.StatusOK, []byte(`{}`), 0)
+	defer srv.Close()
+	m := fixtureManifest("openai", "apikey", "GOROUTER_LIVE_OPENAI_KEY", 5*time.Second, 0)
+	m.MockFixtures = map[string]string{"FormatOpenAIChat": "../escape.json"}
+	if err := m.Validate(); err == nil {
+		t.Error("manifest with traversal fixture must fail validation")
+	}
+	res, err := harness.RunProvider(context.Background(), m, harness.Options{
+		Mode:    harness.ModeMock,
+		BaseURL: srv.URL,
+		BaseDir: t.TempDir(),
+	})
+	if err == nil {
+		t.Fatal("mock run with traversal fixture must error")
+	}
+	if res.Status != harness.ResultFail {
+		t.Errorf("status = %s, want fail", res.Status)
+	}
+}
+
+func TestRunProviderMockRejectsFixtureEscape(t *testing.T) {
+	secret := filepath.Join(t.TempDir(), "secret.json")
+	if err := os.WriteFile(secret, []byte(`{"choices":[]}`), 0o600); err != nil {
+		t.Fatalf("write secret: %v", err)
+	}
+	base := t.TempDir()
+	srv := jsonServer(t, http.StatusOK, []byte(`{}`), 0)
+	defer srv.Close()
+	m := fixtureManifest("openai", "apikey", "GOROUTER_LIVE_OPENAI_KEY", 5*time.Second, 0)
+	m.MockFixtures = map[string]string{"FormatOpenAIChat": "../" + filepath.Base(secret)}
+	res, err := harness.RunProvider(context.Background(), m, harness.Options{
+		Mode:    harness.ModeMock,
+		BaseURL: srv.URL,
+		BaseDir: base,
+	})
+	if err == nil {
+		t.Fatal("fixture path escaping the base dir must error")
+	}
+	if res.Status != harness.ResultFail {
+		t.Errorf("status = %s, want fail", res.Status)
 	}
 }
 

@@ -171,3 +171,26 @@ func TestLoadManifestMissingFile(t *testing.T) {
 		t.Error("missing manifest file must error")
 	}
 }
+
+func TestLoadManifestRejectsTraversal(t *testing.T) {
+	if _, err := harness.LoadManifest(filepath.Join(t.TempDir(), "..", "nope.yaml")); err == nil {
+		t.Error("manifest path escaping the directory must error")
+	}
+	if _, err := harness.LoadManifest("/etc/hostname"); err == nil {
+		t.Error("absolute manifest path must error")
+	}
+}
+
+func TestManifestValidateRejectsTraversalFixture(t *testing.T) {
+	m := &harness.Manifest{
+		ProviderID:   "openai",
+		ProviderType: "openai",
+		AuthType:     "apikey",
+		Timeout:      30 * time.Second,
+		Retries:      2,
+		MockFixtures: map[string]string{"FormatOpenAIChat": "../../../etc/passwd"},
+	}
+	if err := m.Validate(); err == nil {
+		t.Error("manifest with traversal fixture must fail validation")
+	}
+}

@@ -36,9 +36,37 @@ var validAuthTypes = map[string]bool{
 	"pat":    true,
 }
 
-// LoadManifest reads and validates one manifest file.
+// validateRelPath rejects absolute paths and any path whose ".."
+// components would escape the manifest/fixture base directory.
+func validateRelPath(rel string) error {
+	if rel == "" {
+		return fmt.Errorf("empty relative path")
+	}
+	rel = strings.ReplaceAll(rel, `\`, string(filepath.Separator))
+	if filepath.IsAbs(rel) {
+		return fmt.Errorf("absolute path %q is not allowed", rel)
+	}
+	clean := filepath.Clean(rel)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("path %q escapes the base directory", rel)
+	}
+	return nil
+}
+
+// LoadManifest reads and validates one manifest file. The file is read
+// through a root-scoped handle so it can never escape its directory.
 func LoadManifest(path string) (*Manifest, error) {
-	data, err := os.ReadFile(path)
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+	if err := validateRelPath(name); err != nil {
+		return nil, fmt.Errorf("harness: manifest %s: %w", path, err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, fmt.Errorf("harness: read manifest %s: %w", path, err)
+	}
+	defer root.Close()
+	data, err := root.ReadFile(name)
 	if err != nil {
 		return nil, fmt.Errorf("harness: read manifest %s: %w", path, err)
 	}
@@ -107,6 +135,9 @@ func (m *Manifest) Validate() error {
 		}
 		if strings.TrimSpace(fixture) == "" {
 			return fmt.Errorf("mock_fixtures[%s] must be a non-empty path", format)
+		}
+		if err := validateRelPath(fixture); err != nil {
+			return fmt.Errorf("mock_fixtures[%s] %q: %w", format, fixture, err)
 		}
 	}
 	if m.AuthType == "none" {

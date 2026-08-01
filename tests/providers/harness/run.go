@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"gorouter/internal/domain/engine"
@@ -252,7 +251,19 @@ func resolveFixture(opts Options, m *Manifest, format engine.RequestFormat) ([]b
 	if err != nil {
 		return nil, err
 	}
-	return os.ReadFile(filepath.Join(opts.BaseDir, rel))
+	if err := validateRelPath(rel); err != nil {
+		return nil, fmt.Errorf("provider %s: fixture path %q: %w", m.ProviderID, rel, err)
+	}
+	base := opts.BaseDir
+	if base == "" {
+		base = "."
+	}
+	root, err := os.OpenRoot(base)
+	if err != nil {
+		return nil, fmt.Errorf("provider %s: open fixture base %s: %w", m.ProviderID, base, err)
+	}
+	defer root.Close()
+	return root.ReadFile(rel)
 }
 
 func runMock(ctx context.Context, m *Manifest, opts Options, red *Redactor, res Result) (Result, error) {
