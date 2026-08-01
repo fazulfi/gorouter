@@ -57,6 +57,7 @@ func NewClient(opts ...ClientOption) *Client {
 
 // Do performs the request with the client's transport and timeout.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	// #nosec G704 -- DECISIONS #376: custom-provider URLs intentionally permit loopback/LAN/internal/link-local targets.
 	return c.httpClient.Do(req)
 }
 
