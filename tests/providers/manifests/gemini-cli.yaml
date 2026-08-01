@@ -1,0 +1,9 @@
+# Provider manifest: gemini-cli (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: gemini-cli
+provider_id: gemini-cli
+provider_type: gemini_cli
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

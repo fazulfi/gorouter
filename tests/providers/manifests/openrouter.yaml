@@ -1,0 +1,11 @@
+# Provider manifest: openrouter (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: openrouter
+provider_id: openrouter
+provider_type: openrouter
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_OPENROUTER_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAIChat: tests/providers/harness/testdata/fixtures/openai_chat.json
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

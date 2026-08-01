@@ -1,0 +1,10 @@
+# Provider manifest: serper (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: serper
+provider_id: serper
+provider_type: serper
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_SERPER_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

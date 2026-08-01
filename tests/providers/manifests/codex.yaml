@@ -1,0 +1,10 @@
+# Provider manifest: codex (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: codex
+provider_id: codex
+provider_type: codex
+auth_type: oauth
+credential_env_var: GOROUTER_LIVE_CODEX_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatCodexResponses: tests/providers/harness/testdata/fixtures/codex_responses.json

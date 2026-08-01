@@ -1,0 +1,10 @@
+# Provider manifest: blackbox (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: blackbox
+provider_id: blackbox
+provider_type: blackbox
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_BLACKBOX_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

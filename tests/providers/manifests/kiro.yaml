@@ -1,0 +1,9 @@
+# Provider manifest: kiro (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: kiro
+provider_id: kiro
+provider_type: kiro
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

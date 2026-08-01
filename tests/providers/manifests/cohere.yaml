@@ -1,0 +1,10 @@
+# Provider manifest: cohere (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: cohere
+provider_id: cohere
+provider_type: cohere
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_COHERE_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

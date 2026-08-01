@@ -1,0 +1,9 @@
+# Provider manifest: searxng (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: searxng
+provider_id: searxng
+provider_type: searxng
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

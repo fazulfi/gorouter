@@ -1,0 +1,10 @@
+# Provider manifest: black-forest-labs (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: black-forest-labs
+provider_id: black-forest-labs
+provider_type: black_forest_labs
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_BLACK_FOREST_LABS_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

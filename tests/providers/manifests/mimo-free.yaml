@@ -1,0 +1,9 @@
+# Provider manifest: mimo-free (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: mimo-free
+provider_id: mimo-free
+provider_type: mimo_free
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

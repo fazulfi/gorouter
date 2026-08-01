@@ -1,0 +1,9 @@
+# Provider manifest: mmf (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: mmf
+provider_id: mmf
+provider_type: mmf
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json
