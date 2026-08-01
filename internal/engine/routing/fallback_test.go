@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -317,5 +318,57 @@ func TestFallbackHandler_DeterministicJitter(t *testing.T) {
 	}
 	if d1a >= d2a {
 		t.Errorf("backoff(1)=%v should be < backoff(2)=%v", d1a, d2a)
+	}
+}
+
+// TestDeterministicJitterOffsetBounds verifies the overflow-safe deterministic
+// jitter stays within [-r, r] and is reproducible for the same attempt.
+func TestDeterministicJitterOffsetBounds(t *testing.T) {
+	attempts := []int64{0, 1, 2, 5, 10, 100}
+	ranges := []int64{1, 200_000_000, 3_000_000_000}
+	for _, r := range ranges {
+		for _, attempt := range attempts {
+			got := deterministicJitterOffset(attempt, r)
+			if got < -r || got > r {
+				t.Errorf("deterministicJitterOffset(%d, %d) = %d out of [-%d, %d]", attempt, r, got, r, r)
+			}
+			if again := deterministicJitterOffset(attempt, r); again != got {
+				t.Errorf("deterministicJitterOffset(%d, %d) not reproducible: %d vs %d", attempt, r, got, again)
+			}
+		}
+	}
+}
+
+// TestDeterministicJitterOffsetNoTruncation verifies the mix never truncates:
+// even with the largest possible span, the offset is bounded by r.
+func TestDeterministicJitterOffsetNoTruncation(t *testing.T) {
+	r := int64(3_000_000_000)
+	seen := make(map[int64]bool)
+	for attempt := int64(0); attempt < 1000; attempt++ {
+		got := deterministicJitterOffset(attempt, r)
+		seen[got] = true
+		if got < -r || got > r {
+			t.Fatalf("offset %d out of range for attempt %d", got, attempt)
+		}
+	}
+	if len(seen) < 10 {
+		t.Errorf("jitter spread too narrow across attempts: %d distinct values", len(seen))
+	}
+}
+
+// TestFallbackHandler_BackoffWithinJitterBounds verifies backoff with jitter
+// stays within the configured delay window.
+func TestFallbackHandler_BackoffWithinJitterBounds(t *testing.T) {
+	handler := NewFallbackHandler(DefaultFallbackConfig(), nil)
+	base := float64(handler.config.BaseDelay) * math.Pow(handler.config.BackoffFactor, 1)
+	r := base * handler.config.JitterFraction
+	low := time.Duration(base - r)
+	high := time.Duration(base + r)
+
+	for i := 0; i < 50; i++ {
+		d := handler.backoff(1)
+		if d < low || d > high {
+			t.Errorf("backoff(1) = %v, want within [%v, %v]", d, low, high)
+		}
 	}
 }

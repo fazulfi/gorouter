@@ -176,8 +176,7 @@ func (h *FallbackHandler) backoff(attempt int) time.Duration {
 
 	if h.config.JitterFraction > 0 {
 		jitterRange := delay * h.config.JitterFraction
-		offset := deterministicRandInt64Range(int64(-jitterRange), int64(jitterRange+1))
-		delay += float64(offset)
+		delay += float64(deterministicJitterOffset(int64(attempt), int64(jitterRange)))
 	}
 
 	if delay < 0 {
@@ -186,28 +185,21 @@ func (h *FallbackHandler) backoff(attempt int) time.Duration {
 	return time.Duration(delay)
 }
 
-// deterministicRandInt64Range returns a random int64 in [min, max).
-func deterministicRandInt64Range(min, max int64) int64 {
-	if max <= min {
-		return min
-	}
-	return deterministicRandInt64(max-min) + min
-}
-
-// deterministicRandInt64 returns a non-negative deterministic int64 in [0, max).
-// This is NOT cryptographically secure — it uses a hash-based deterministic
-// function suitable for jitter in retry/fallback backoff calculations where
-// reproducibility across runs is desirable.
-func deterministicRandInt64(max int64) int64 {
-	if max <= 0 {
+// deterministicJitterOffset returns a deterministic offset in [-r, r] derived
+// from a signed 64-bit integer mix of the attempt index. The mix stays in the
+// signed domain and masks the sign bit before the modulus, so it is
+// overflow-safe with no hidden truncation and deliberately non-cryptographic.
+func deterministicJitterOffset(attempt, r int64) int64 {
+	if r <= 0 {
 		return 0
 	}
-	return int64(hashInt(int(max))) % max
-}
-
-// hashInt provides a simple deterministic hash for seedable random behaviour.
-func hashInt(n int) int {
-	h := uint64(n) * 0x9e3779b97f4a7c15
-	h ^= h >> 37
-	return int(h)
+	h := attempt
+	h ^= h >> 33
+	h *= 2654435761
+	h ^= h >> 33
+	if h < 0 {
+		h &= math.MaxInt64
+	}
+	span := 2*r + 1
+	return h%span - r
 }
