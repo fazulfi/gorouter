@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 
-	"gorouter/internal/app/translate"
 	"gorouter/internal/domain/auth"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/shared"
@@ -36,14 +35,13 @@ func DefaultConfig() Config {
 type Handler struct {
 	config       Config
 	orchestrator engine.Orchestrator
-	translateSvc *translate.Service
 	logger       zerolog.Logger
 }
 
 const maxBodySize = 1 << 20
 
 // New creates an API Handler with the given dependencies.
-func New(cfg Config, orch engine.Orchestrator, translateSvc *translate.Service, logger zerolog.Logger) *Handler {
+func New(cfg Config, orch engine.Orchestrator, logger zerolog.Logger) *Handler {
 	if cfg.StreamKeepalive <= 0 {
 		cfg.StreamKeepalive = 15 * time.Second
 	}
@@ -53,7 +51,6 @@ func New(cfg Config, orch engine.Orchestrator, translateSvc *translate.Service, 
 	return &Handler{
 		config:       cfg,
 		orchestrator: orch,
-		translateSvc: translateSvc,
 		logger:       logger.With().Str("component", "api_handler").Logger(),
 	}
 }

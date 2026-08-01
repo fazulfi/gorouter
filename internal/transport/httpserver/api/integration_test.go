@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"gorouter/internal/app/translate"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/transport/httpserver/api"
 	"gorouter/internal/transport/middleware"
@@ -41,8 +40,7 @@ func TestInt_LegacyDoubleV1(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("{}")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	for _, p := range []string{"/v1/v1/chat/completions", "/v1/v1/responses"} {
@@ -60,8 +58,7 @@ func TestInt_ResponsesAlias(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("{}")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	req := httptest.NewRequest(http.MethodPost, "/responses", strings.NewReader("{}"))
@@ -77,8 +74,7 @@ func TestInt_CodexRoutes(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("{}")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	tcases := []struct{ method, path string }{
@@ -103,8 +99,7 @@ func TestInt_CodexRoutes(t *testing.T) {
 }
 
 func TestInt_Auth_MissingKey(t *testing.T) {
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, noopLogger())
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware(alwaysPassValidator{}))
@@ -119,8 +114,7 @@ func TestInt_Auth_MissingKey(t *testing.T) {
 }
 
 func TestInt_Auth_InvalidKey(t *testing.T) {
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, noopLogger())
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware(alwaysFailValidator{}))
@@ -139,8 +133,7 @@ func TestInt_Auth_ValidKey(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("{}")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware(alwaysPassValidator{}))
@@ -159,8 +152,7 @@ func TestInt_Auth_AllExtractions(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("ok")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware(alwaysPassValidator{}))
@@ -208,8 +200,7 @@ func TestInt_Auth_LegacyNoBypass(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("ok")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware(alwaysPassValidator{}))
@@ -233,8 +224,7 @@ func TestInt_Auth_LegacyNoBypass(t *testing.T) {
 }
 
 func TestInt_HealthPublic(t *testing.T) {
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
@@ -250,8 +240,7 @@ func TestInt_ErrorShape(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return nil, errors.New("fail")
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	body := `{"model":"gpt-4","messages":[{"role":"user","content":"hi"}]}`
@@ -286,8 +275,7 @@ func TestInt_NoCredentialLeak(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return nil, errors.New("secret-key-leaked")
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	body := `{"model":"gpt-4","messages":[{"role":"user","content":"hi"}]}`
@@ -304,8 +292,7 @@ func TestInt_XBaseURL_Stripped(t *testing.T) {
 	orch := &mockOrchestrator{executeFn: func(ctx context.Context, req *engine.Request) (*engine.Response, error) {
 		return &engine.Response{StatusCode: http.StatusOK, Body: []byte("{}")}, nil
 	}}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	body := `{"model":"gpt-4","messages":[{"role":"user","content":"hi"}]}`
@@ -320,8 +307,7 @@ func TestInt_XBaseURL_Stripped(t *testing.T) {
 }
 
 func TestInt_OversizedBody(t *testing.T) {
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), &mockOrchestrator{}, noopLogger())
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 	big := strings.Repeat("a", 2*1024*1024+1)

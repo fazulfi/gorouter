@@ -20,8 +20,6 @@ import (
 	"gorouter/internal/domain/auth"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/transport/httpserver/api"
-
-	"gorouter/internal/app/translate"
 )
 
 // ---------------------------------------------------------------------------
@@ -67,8 +65,7 @@ func TestHandleChatCompletions_NonStreaming(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -89,8 +86,7 @@ func TestHandleChatCompletions_NonStreaming(t *testing.T) {
 
 func TestHandleChatCompletions_InvalidBody(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -108,8 +104,7 @@ func TestHandleChatCompletions_InvalidBody(t *testing.T) {
 
 func TestHandleChatCompletions_EmptyBody(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -130,8 +125,7 @@ func TestHandleChatCompletions_OrchestratorError(t *testing.T) {
 			return nil, errors.New("provider unavailable")
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -162,8 +156,7 @@ func TestHandleChatCompletions_WithActorContext(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -192,8 +185,7 @@ func TestHandleChatCompletions_WithActorContext(t *testing.T) {
 
 func TestHandleModels(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -240,8 +232,7 @@ func TestHandleCodexResponses_NonStreaming(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -262,8 +253,7 @@ func TestHandleCodexResponses_NonStreaming(t *testing.T) {
 
 func TestHandleCodexResponses_InvalidBody(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -281,8 +271,7 @@ func TestHandleCodexResponses_InvalidBody(t *testing.T) {
 
 func TestHandleCodexResponses_EmptyBody(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -303,8 +292,7 @@ func TestHandleCodexResponses_OrchestratorError(t *testing.T) {
 			return nil, errors.New("upstream error")
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -344,8 +332,7 @@ func TestHandler_CustomConfig(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(cfg, orch, svc, noopLogger())
+	handler := api.New(cfg, orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -363,8 +350,7 @@ func TestHandler_CustomConfig(t *testing.T) {
 
 func TestRegisterRoutes(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -399,8 +385,7 @@ func TestRegisterRoutes(t *testing.T) {
 
 func TestHandleChatCompletions_MissingModel(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -418,8 +403,7 @@ func TestHandleChatCompletions_MissingModel(t *testing.T) {
 
 func TestHandleChatCompletions_MissingMessages(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -437,8 +421,7 @@ func TestHandleChatCompletions_MissingMessages(t *testing.T) {
 
 func TestHandleCodexResponses_MissingModel(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -456,8 +439,7 @@ func TestHandleCodexResponses_MissingModel(t *testing.T) {
 
 func TestHandleCodexResponses_MissingInput(t *testing.T) {
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -488,8 +470,7 @@ func TestHandleCodexResponses_WithActorContext(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
@@ -520,8 +501,7 @@ func TestWriteJSONError(t *testing.T) {
 	// writeJSONError is unexported but we can test it indirectly by
 	// triggering a 400 due to invalid JSON.
 	orch := &mockOrchestrator{}
-	svc := translate.NewService()
-	handler := api.New(api.DefaultConfig(), orch, svc, noopLogger())
+	handler := api.New(api.DefaultConfig(), orch, noopLogger())
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
