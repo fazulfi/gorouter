@@ -49,7 +49,7 @@ func (e *CursorExecutor) buildRequest(ctx context.Context, req *engine.Request, 
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -111,7 +111,7 @@ func (e *CursorExecutor) ExecuteStream(ctx context.Context, req *engine.Request,
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -185,7 +185,7 @@ func (e *KiroExecutor) ExecuteStream(ctx context.Context, req *engine.Request, a
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -302,7 +302,7 @@ func (e *KiroExecutor) buildRequest(ctx context.Context, req *engine.Request, ac
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}

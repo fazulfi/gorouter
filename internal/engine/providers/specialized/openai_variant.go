@@ -99,7 +99,7 @@ func (e *AzureExecutor) ExecuteStream(ctx context.Context, req *engine.Request, 
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -268,7 +268,7 @@ func (e *GitHubExecutor) executeChat(ctx context.Context, req *engine.Request, a
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -308,7 +308,7 @@ func isResponsesFallbackMarker(body []byte) bool {
 func (e *GitHubExecutor) handleChatResponse(ctx context.Context, req *engine.Request, resp *http.Response, model string, enableStream bool) (*engine.Response, error) {
 	if resp.StatusCode == http.StatusBadRequest {
 		respBody, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if supportsResponsesEndpoint(model) && isResponsesFallbackMarker(respBody) {
 			return &engine.Response{
 				RequestID:  req.ID,
@@ -321,7 +321,7 @@ func (e *GitHubExecutor) handleChatResponse(ctx context.Context, req *engine.Req
 		return nil, newUpstreamError(http.StatusBadRequest, string(respBody))
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	if enableStream {
@@ -336,7 +336,7 @@ func (e *GitHubExecutor) handleChatResponse(ctx context.Context, req *engine.Req
 		}, nil
 	}
 	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
@@ -356,7 +356,7 @@ func (e *GitHubExecutor) executeResponses(ctx context.Context, req *engine.Reque
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -377,7 +377,7 @@ func (e *GitHubExecutor) executeResponses(ctx context.Context, req *engine.Reque
 		return nil, fmt.Errorf("github responses request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	if enableStream {
@@ -392,7 +392,7 @@ func (e *GitHubExecutor) executeResponses(ctx context.Context, req *engine.Reque
 		}, nil
 	}
 	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
@@ -412,7 +412,7 @@ func (e *GitHubExecutor) executeMessages(ctx context.Context, req *engine.Reques
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -441,7 +441,7 @@ func (e *GitHubExecutor) executeMessagesStream(ctx context.Context, req *engine.
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -462,7 +462,7 @@ func (e *GitHubExecutor) executeMessagesStream(ctx context.Context, req *engine.
 		return nil, fmt.Errorf("github messages stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -478,11 +478,11 @@ func (e *GitHubExecutor) executeMessagesStream(ctx context.Context, req *engine.
 
 func (e *GitHubExecutor) handleResponse(req *engine.Request, resp *http.Response, model string, enableStream bool) (*engine.Response, error) {
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
@@ -553,7 +553,7 @@ func (e *QwenExecutor) ExecuteStream(ctx context.Context, req *engine.Request, a
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -630,7 +630,7 @@ func (e *OllamaLocalExecutor) Execute(ctx context.Context, req *engine.Request, 
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -665,7 +665,7 @@ func (e *OllamaLocalExecutor) ExecuteStream(ctx context.Context, req *engine.Req
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -686,7 +686,7 @@ func (e *OllamaLocalExecutor) ExecuteStream(ctx context.Context, req *engine.Req
 		return nil, fmt.Errorf("ollama stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -741,7 +741,7 @@ func (e *CommandCodeExecutor) executeOpenAI(ctx context.Context, req *engine.Req
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -769,7 +769,7 @@ func (e *CommandCodeExecutor) executeOpenAI(ctx context.Context, req *engine.Req
 
 	if enableStream {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -832,7 +832,7 @@ func (e *XiaomiTokenplanExecutor) executeOpenAI(ctx context.Context, req *engine
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -860,7 +860,7 @@ func (e *XiaomiTokenplanExecutor) executeOpenAI(ctx context.Context, req *engine
 
 	if enableStream {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -915,7 +915,7 @@ func (e *MimoFreeExecutor) Execute(ctx context.Context, req *engine.Request, acc
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -950,7 +950,7 @@ func (e *MimoFreeExecutor) ExecuteStream(ctx context.Context, req *engine.Reques
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -971,7 +971,7 @@ func (e *MimoFreeExecutor) ExecuteStream(ctx context.Context, req *engine.Reques
 		return nil, fmt.Errorf("mimo stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -1026,7 +1026,7 @@ func (e *CodeBuddyExecutor) executeOpenAI(ctx context.Context, req *engine.Reque
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -1054,7 +1054,7 @@ func (e *CodeBuddyExecutor) executeOpenAI(ctx context.Context, req *engine.Reque
 
 	if enableStream {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)

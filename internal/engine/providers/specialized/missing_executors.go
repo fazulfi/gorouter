@@ -68,7 +68,7 @@ func (e *DeepSeekExecutor) ExecuteStream(ctx context.Context, req *engine.Reques
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -88,7 +88,7 @@ func (e *DeepSeekExecutor) buildRequest(ctx context.Context, req *engine.Request
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -155,7 +155,7 @@ func (e *FireworksExecutor) executeOpenAI(ctx context.Context, req *engine.Reque
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -180,7 +180,7 @@ func (e *FireworksExecutor) executeOpenAI(ctx context.Context, req *engine.Reque
 	}
 	if streamEnabled {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -241,7 +241,7 @@ func (e *GroqExecutor) executeOpenAI(ctx context.Context, req *engine.Request, a
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -266,7 +266,7 @@ func (e *GroqExecutor) executeOpenAI(ctx context.Context, req *engine.Request, a
 	}
 	if streamEnabled {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -327,7 +327,7 @@ func (e *MistralExecutor) executeOpenAI(ctx context.Context, req *engine.Request
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -352,7 +352,7 @@ func (e *MistralExecutor) executeOpenAI(ctx context.Context, req *engine.Request
 	}
 	if streamEnabled {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -405,7 +405,7 @@ func (e *PerplexityExecutor) Execute(ctx context.Context, req *engine.Request, a
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -449,7 +449,7 @@ func (e *PerplexityExecutor) ExecuteStream(ctx context.Context, req *engine.Requ
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -474,7 +474,7 @@ func (e *PerplexityExecutor) ExecuteStream(ctx context.Context, req *engine.Requ
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -528,7 +528,7 @@ func (e *TogetherExecutor) executeOpenAI(ctx context.Context, req *engine.Reques
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -553,7 +553,7 @@ func (e *TogetherExecutor) executeOpenAI(ctx context.Context, req *engine.Reques
 	}
 	if streamEnabled {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
@@ -614,7 +614,7 @@ func (e *XAIExecutor) executeOpenAI(ctx context.Context, req *engine.Request, ac
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -639,7 +639,7 @@ func (e *XAIExecutor) executeOpenAI(ctx context.Context, req *engine.Request, ac
 	}
 	if streamEnabled {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)

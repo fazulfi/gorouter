@@ -130,7 +130,7 @@ func (e *GeminiExecutor) ExecuteStream(ctx context.Context, req *engine.Request,
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, redactGeminiError(err, geminiCredential(account))
 	}
 	st := stream.NewStream(ctx, 64)

@@ -135,7 +135,7 @@ func injectStreamParam(req *http.Request, enableStream bool) (*http.Request, err
 	if err != nil {
 		return req, nil //nolint:nilerr // best-effort
 	}
-	req.Body.Close()
+	_ = req.Body.Close()
 
 	var payload map[string]interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -173,7 +173,7 @@ func (a *atomicClose) Close(closer io.Closer) {
 	if a.closed.Swap(true) {
 		return
 	}
-	closer.Close() //nolint:errcheck
+	_ = closer.Close()
 }
 
 // parseResponse unmarshals OpenAI-format response JSON into an engine.Response.

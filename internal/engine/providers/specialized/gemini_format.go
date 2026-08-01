@@ -50,7 +50,7 @@ func (e *GeminiCLIExecutor) buildRequest(ctx context.Context, req *engine.Reques
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -131,7 +131,7 @@ func (e *GeminiCLIExecutor) ExecuteStream(ctx context.Context, req *engine.Reque
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -180,7 +180,7 @@ func (e *AntigravityExecutor) buildRequest(ctx context.Context, req *engine.Requ
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -255,7 +255,7 @@ func (e *AntigravityExecutor) ExecuteStream(ctx context.Context, req *engine.Req
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -337,7 +337,7 @@ func (e *VertexExecutor) ExecuteStream(ctx context.Context, req *engine.Request,
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -370,7 +370,7 @@ func (e *VertexExecutor) buildRequest(ctx context.Context, req *engine.Request, 
 		strings.TrimRight(baseURL, "/"), project, location, model, action)
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}

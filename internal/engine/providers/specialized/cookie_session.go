@@ -280,7 +280,7 @@ func (e *GrokWebExecutor) ExecuteStream(ctx context.Context, req *engine.Request
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		errMsg := fmt.Sprintf("Grok returned HTTP %d", resp.StatusCode)
 		if resp.StatusCode == 401 || resp.StatusCode == 403 {
 			errMsg = "Grok auth failed - SSO cookie may be expired"
@@ -483,7 +483,7 @@ func (e *PerplexityWebExecutor) executePPLX(ctx context.Context, req *engine.Req
 			Content string `json:"content"`
 		} `json:"messages"`
 	}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 
 	model := resolveModel(e.model, req)
 	pref := pplxModelMap[model]
@@ -543,7 +543,7 @@ func (e *PerplexityWebExecutor) executePPLX(ctx context.Context, req *engine.Req
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		errMsg := fmt.Sprintf("Perplexity returned HTTP %d", resp.StatusCode)
 		if resp.StatusCode == 401 || resp.StatusCode == 403 {
 			errMsg = "Perplexity auth failed - session cookie may be expired"

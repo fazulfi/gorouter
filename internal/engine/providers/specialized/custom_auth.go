@@ -53,7 +53,7 @@ func (e *IFlowExecutor) buildRequest(ctx context.Context, req *engine.Request, a
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -138,7 +138,7 @@ func (e *IFlowExecutor) ExecuteStream(ctx context.Context, req *engine.Request, 
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -214,7 +214,7 @@ func (e *GrokCliExecutor) Execute(ctx context.Context, req *engine.Request, acco
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	json.Unmarshal(respBody, &raw)
+	_ = json.Unmarshal(respBody, &raw)
 
 	engResp := &engine.Response{
 		RequestID:  req.ID,
@@ -244,7 +244,7 @@ func (e *GrokCliExecutor) ExecuteStream(ctx context.Context, req *engine.Request
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -265,7 +265,7 @@ func (e *GrokCliExecutor) buildRequest(ctx context.Context, req *engine.Request,
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -348,7 +348,7 @@ func (e *QoderExecutor) ExecuteStream(ctx context.Context, req *engine.Request, 
 		return nil, fmt.Errorf("execute stream request: %w", err)
 	}
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 	st := stream.NewStream(ctx, 64)
@@ -369,7 +369,7 @@ func (e *QoderExecutor) buildRequest(ctx context.Context, req *engine.Request, a
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -433,7 +433,7 @@ func (e *KimchiExecutor) executeOpenAI(ctx context.Context, req *engine.Request,
 		baseURL = v
 	}
 	var payload map[string]interface{}
-	json.Unmarshal(body, &payload)
+	_ = json.Unmarshal(body, &payload)
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -455,7 +455,7 @@ func (e *KimchiExecutor) executeOpenAI(ctx context.Context, req *engine.Request,
 	}
 	if enableStream {
 		if err := checkResponseStatus(resp); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
 		st := stream.NewStream(ctx, 64)
