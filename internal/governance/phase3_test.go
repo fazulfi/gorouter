@@ -19,8 +19,9 @@ import (
 //
 //   - accept phase "3" evidence with the full cumulative required-check set
 //     (all Phase 2 checks plus one check per P3 task family);
-//   - accept honest "pending" statuses for Phase 3 (final gates and audits
-//     are pending and must not be faked as release completion);
+//   - accept honest "pending" statuses for Phase 3 while final gates and
+//     audits are still open (the shipped document no longer uses pending
+//     once all six final gates completed and the evidence flipped to "pass");
 //   - keep rejecting "pending" for the closed Phase 1/2 gates;
 //   - keep enforcing that every parity ledger row is owned (task assignment)
 //     and that Phase 3 rows only reference the fourteen approved task IDs.
@@ -203,9 +204,9 @@ func TestGateEvidence_Phase3_MissingRequiredCheckFails(t *testing.T) {
 // docs/implementation/gate-evidence/phase-3.json, unmarshals it, and runs the
 // full ValidateGateEvidence requirements check. The shipped document must be
 // structurally valid for phase "3" (every required Phase 1/2 inherited name and
-// the fourteen P3-T01..P3-T14 additions present with honest statuses) while
-// GateEvidencePassed stays false because the six final release/audit/CI/merge/
-// deploy/live gates are still pending. Run with:
+// the fourteen P3-T01..P3-T14 additions present with honest statuses) and, on
+// the final revision, must report GateEvidencePassed true with all six final
+// release/audit/CI/merge/deploy/live gates satisfied. Run with:
 //
 //	go test ./internal/governance/ -run TestPhase3EvidenceFileValidates -count=1
 func TestPhase3EvidenceFileValidates(t *testing.T) {
@@ -228,11 +229,11 @@ func TestPhase3EvidenceFileValidates(t *testing.T) {
 	if err := ValidateGateEvidence(ge); err != nil {
 		t.Fatalf("RED: shipped phase-3.json fails ValidateGateEvidence: %v", err)
 	}
-	if GateEvidencePassed(ge) {
-		t.Fatal("shipped phase-3.json must not report GateEvidencePassed while final gates are pending")
+	if !GateEvidencePassed(ge) {
+		t.Fatal("shipped phase-3.json must report GateEvidencePassed once all final gates are satisfied")
 	}
-	if ge.Status != "pending" {
-		t.Errorf("overall phase-3.json status = %q, want \"pending\" while the final gates are open", ge.Status)
+	if ge.Status != "pass" {
+		t.Errorf("overall phase-3.json status = %q, want \"pass\" once the final gates are closed", ge.Status)
 	}
 
 	// Every name returned by RequiredPhase3CheckNames() must be present in the
@@ -254,9 +255,9 @@ func TestPhase3EvidenceFileValidates(t *testing.T) {
 		}
 	}
 
-	// Exactly the six final-gate checks may remain pending; no check may
-	// claim a pass it does not have.
-	pendingFinalGates := map[string]bool{
+	// The six final-gate checks must all be present and pass; no check may
+	// remain pending or claim a pass it does not have.
+	finalGates := map[string]bool{
 		"gate-final-full-matrix": true,
 		"gate-five-audits":       true,
 		"gate-pr-ci":             true,
@@ -265,16 +266,25 @@ func TestPhase3EvidenceFileValidates(t *testing.T) {
 		"gate-live-validation":   true,
 	}
 	pendingCount := 0
+	finalGatePassCount := 0
 	for _, c := range ge.Checks {
 		if c.Status == "pending" {
 			pendingCount++
-			if !pendingFinalGates[c.Name] {
-				t.Errorf("unexpected pending check %q (only the six final gates may be pending)", c.Name)
+			t.Errorf("unexpected pending check %q: all final gates are satisfied", c.Name)
+		}
+		if finalGates[c.Name] {
+			if c.Status == "pass" {
+				finalGatePassCount++
+			} else {
+				t.Errorf("final gate %q must have status pass, got %q", c.Name, c.Status)
 			}
 		}
 	}
-	if pendingCount != 6 {
-		t.Errorf("shipped phase-3.json has %d pending checks, want exactly the 6 final gates", pendingCount)
+	if pendingCount != 0 {
+		t.Errorf("shipped phase-3.json has %d pending checks, want 0 once all final gates are satisfied", pendingCount)
+	}
+	if finalGatePassCount != len(finalGates) {
+		t.Errorf("shipped phase-3.json has %d/6 final gates passing, want all six", finalGatePassCount)
 	}
 }
 
