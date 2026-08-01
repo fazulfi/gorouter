@@ -1,11 +1,3 @@
-// Package cooldown provides an in-memory cooldown registry that tracks provider
-// account failures and prevents selection of recently-failed accounts.
-//
-// The registry is thread-safe via sync.RWMutex and uses a background goroutine
-// to periodically purge stale entries. Cooldown durations escalate with repeated
-// failures to provide exponential backoff.
-//
-// This is an in-memory implementation only (decision D114 — no persistence).
 package cooldown
 
 import (
@@ -197,6 +189,56 @@ func (r *Registry) Reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.entries = make(map[uuid.UUID]*entry)
+}
+
+// CheckpointEntry represents a serializable cooldown entry for persistence.
+type CheckpointEntry struct {
+	AccountID     uuid.UUID
+	Status        string
+	Failures      int
+	LastErr       string
+	CooldownUntil time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+// Checkpoint returns a snapshot of all cooldown entries suitable for persistence.
+func (r *Registry) Checkpoint(_ context.Context) []CheckpointEntry {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	result := make([]CheckpointEntry, 0, len(r.entries))
+	for _, e := range r.entries {
+		result = append(result, CheckpointEntry{
+			AccountID:     e.accountID,
+			Status:        string(e.status),
+			Failures:      e.failures,
+			LastErr:       e.lastErr,
+			CooldownUntil: e.cooldownUntil,
+			CreatedAt:     e.createdAt,
+			UpdatedAt:     e.updatedAt,
+		})
+	}
+	return result
+}
+
+// Restore loads cooldown entries from a checkpoint snapshot.
+func (r *Registry) Restore(_ context.Context, entries []CheckpointEntry) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.entries = make(map[uuid.UUID]*entry, len(entries))
+	for _, ce := range entries {
+		r.entries[ce.AccountID] = &entry{
+			accountID:     ce.AccountID,
+			status:        provider.AccountStatus(ce.Status),
+			failures:      ce.Failures,
+			lastErr:       ce.LastErr,
+			cooldownUntil: ce.CooldownUntil,
+			createdAt:     ce.CreatedAt,
+			updatedAt:     ce.UpdatedAt,
+		}
+	}
 }
 
 // Healthy returns nil if the registry is operational. Always returns nil for
