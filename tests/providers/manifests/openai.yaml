@@ -1,0 +1,11 @@
+# Provider manifest: openai (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: openai
+provider_id: openai
+provider_type: openai
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_OPENAI_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAIChat: tests/providers/harness/testdata/fixtures/openai_chat.json
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

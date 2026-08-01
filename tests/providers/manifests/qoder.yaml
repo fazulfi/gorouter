@@ -1,0 +1,9 @@
+# Provider manifest: qoder (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: qoder
+provider_id: qoder
+provider_type: qoder
+auth_type: none
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

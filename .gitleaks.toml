@@ -1,0 +1,37 @@
+# Gitleaks configuration for gorouter.
+#
+# CI runs `gitleaks detect --source . --verbose --no-git` from the repo root,
+# which auto-discovers this file. Default rules stay enabled (useDefault), so
+# real-secret detection is unchanged. The allowlist below is deliberately
+# scoped: it covers ONLY the gitignored upstream reference clone and the ten
+# exact fake literals used by the three Phase 3 positive-control test files.
+# No real secret is allowlisted, and no broad prefix/class patterns are used.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Scoped: gitignored upstream reference clone (audit-recommended, security-audit-phase1.md §5) plus the exact fake fixture literals of the three Phase 3 positive-control test files. Zero real secrets allowed."
+
+# gitignored upstream reference clone — never committed, absent from CI
+# checkouts, present only in developer/VPS clones. Findings there are the
+# upstream project's own public test fixtures, not repository secrets.
+paths = [
+  '''(^|/)upstream-original/''',
+]
+
+# Exact fake fixture values (each regex is the full fake literal):
+#   internal/engine/providers/specialized/gemini_native_test.go  (1)
+#   internal/engine/refresh/coordinator_test.go                  (1)
+#   tests/providers/harness/redact_test.go                       (8)
+regexes = [
+  '''AIzaSyTESTKEY1234567890''',   # gemini_native_test.go: literal contains "TESTKEY"
+  '''sk-secret-12345''',           # coordinator_test.go: TestCoordinatorRedaction fixture
+  '''sk-proj-1234567890abcdef1234567890abcdef''',      # redact_test.go: openai-key fixture
+  '''gho_1234567890abcdef1234567890abcdef''',          # redact_test.go: github-oauth fixture
+  '''glpat-abcdef1234567890abcd''',                  # redact_test.go: gitlab-pat fixture (rule truncates secret to glpat-+20 chars)
+  '''xoxb-1234567890-1234567890-abcdef123456''',       # redact_test.go: slack-bot-token fixture
+  '''AIzaSyA1234567890abcdefghijklmnopqrstuv''',       # redact_test.go: google-api-key + x-goog-api-key fixtures
+  '''AKIA1234567890ABCDEF''',                          # redact_test.go: aws-access-key fixture
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiJ0ZXN0In0\.abcdefghijklmnopqrstuvwxyz123456''',  # redact_test.go: jwt fixture (payload {"sub":"test"})
+]

@@ -1,7 +1,6 @@
 {
   "phase": "2",
   "status": "pass",
-  "base_sha": "0bcad615ce71da81fde00dcaf0bc90fb59667849",
   "timestamp": "2026-07-30T09:27:28Z",
   "duration_seconds": 548.0,
   "checks": [

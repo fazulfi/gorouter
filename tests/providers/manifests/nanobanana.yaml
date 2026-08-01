@@ -1,0 +1,10 @@
+# Provider manifest: nanobanana (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: nanobanana
+provider_id: nanobanana
+provider_type: nanobanana
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_NANOBANANA_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

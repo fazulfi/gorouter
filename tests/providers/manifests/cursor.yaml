@@ -1,0 +1,10 @@
+# Provider manifest: cursor (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: cursor
+provider_id: cursor
+provider_type: cursor
+auth_type: pat
+credential_env_var: GOROUTER_LIVE_CURSOR_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

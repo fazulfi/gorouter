@@ -1,0 +1,10 @@
+# Provider manifest: recraft (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: recraft
+provider_id: recraft
+provider_type: recraft
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_RECRAFT_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

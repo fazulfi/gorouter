@@ -14,15 +14,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"gorouter/internal/app/cooldown"
-	"gorouter/internal/app/executor"
 	"gorouter/internal/app/orchestrator"
 	"gorouter/internal/app/retry"
 	"gorouter/internal/app/routing"
-	"gorouter/internal/app/translate"
 	"gorouter/internal/app/tx"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/engine/formats"
+	"gorouter/internal/engine/providers/registry"
 	"gorouter/internal/persistence/postgres/repositories"
 	"gorouter/internal/shared"
 	"gorouter/internal/transport/httpserver"
@@ -85,14 +85,14 @@ func dispatchServer(app *App) (int, error) {
 
 	router.Get("/health", health.PublicHandler())
 	modelKeyValidator := buildKeyValidator(app)
-	translateSvc := translate.NewService()
+	detector := formats.NewDetector()
 
-	orch, cd, err := buildOrchestrator(app, translateSvc)
+	orch, cd, err := buildOrchestrator(app, detector)
 	if err != nil {
 		return 1, fmt.Errorf("build orchestrator: %w", err)
 	}
 
-	apiHandler := api.New(api.DefaultConfig(), orch, translateSvc, app.Logger)
+	apiHandler := api.New(api.DefaultConfig(), orch, app.Logger)
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.ModelKeyAuth(modelKeyValidator))
 		apiHandler.RegisterRoutes(r)
@@ -173,12 +173,12 @@ func buildKeyValidator(app *App) middleware.ModelKeyValidator {
 	)
 }
 
-func buildOrchestrator(app *App, translateSvc *translate.Service) (engine.Orchestrator, *cooldown.Registry, error) {
+func buildOrchestrator(app *App, detector *formats.Detector) (engine.Orchestrator, *cooldown.Registry, error) {
 	if app.DB == nil || app.TxMgr == nil {
 		return nil, nil, fmt.Errorf("database not configured — production orchestrator requires PostgreSQL")
 	}
 
-	execFactory := executor.NewFactory(http.DefaultTransport)
+	execFactory := registry.NewFactory(http.DefaultTransport)
 
 	cd := cooldown.New(cooldown.DefaultConfig())
 	cd.Start(context.Background())
@@ -206,7 +206,7 @@ func buildOrchestrator(app *App, translateSvc *translate.Service) (engine.Orches
 	o := orchestrator.New(
 		orchestrator.DefaultConfig(),
 		resolver,
-		translateSvc,
+		detector,
 		execFactory,
 		accountSel,
 		adapter,

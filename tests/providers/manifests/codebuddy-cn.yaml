@@ -1,0 +1,10 @@
+# Provider manifest: codebuddy-cn (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: codebuddy-cn
+provider_id: codebuddy-cn
+provider_type: codebuddy_cn
+auth_type: oauth
+credential_env_var: GOROUTER_LIVE_CODEBUDDY_CN_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

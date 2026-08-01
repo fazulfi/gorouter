@@ -7,6 +7,7 @@ import (
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/modelref"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/engine/translators"
 )
 
 // PipelineError is an intermediate error that carries both the stage name
@@ -56,7 +57,7 @@ func (o *Orchestrator) resolveModelStage(ctx context.Context, req *engine.Reques
 // detectFormatStage examines the raw request body and determines the wire
 // protocol format.
 func (o *Orchestrator) detectFormatStage(ctx context.Context, req *engine.Request) (engine.RequestFormat, error) {
-	detected, err := o.translateSvc.DetectFormat(ctx, req.RawBody)
+	detected, err := o.detector.Detect(ctx, "", req.RawBody)
 	if err != nil {
 		return "", &pipelineError{
 			Stage: "detect_format",
@@ -77,9 +78,9 @@ func (o *Orchestrator) translateStage(ctx context.Context, req *engine.Request, 
 
 	switch detected {
 	case engine.FormatOpenAIChat, engine.FormatOpenAICompat:
-		translated, err = o.translateSvc.TranslateChatToRequest(ctx, req.RawBody)
+		translated, err = translators.ParseChatToCanonical(ctx, req.RawBody)
 	case engine.FormatCodexResponses:
-		translated, err = o.translateSvc.TranslateCodexToRequest(ctx, req.RawBody)
+		translated, err = translators.ParseCodexToCanonical(ctx, req.RawBody)
 	default:
 		return &pipelineError{
 			Stage: "translate",

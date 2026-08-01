@@ -10,12 +10,12 @@ import (
 	"github.com/rs/zerolog"
 
 	"gorouter/internal/app/retry"
-	"gorouter/internal/app/translate"
 	"gorouter/internal/app/tx"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/engine/stream"
 	"gorouter/internal/domain/modelref"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/engine/formats"
 )
 
 // Config controls top-level orchestrator behaviour.
@@ -44,16 +44,16 @@ type CooldownRegistry interface {
 // request lifecycle: model resolution, format detection, translation,
 // executor dispatch, retry/fallback, and stream lifecycle.
 type Orchestrator struct {
-	config       Config
-	resolver     modelref.Resolver
-	translateSvc *translate.Service
-	execFactory  engine.ExecutorFactory
-	accountSel   provider.AccountSelector
-	accountRepo  provider.AccountRepository
-	cooldown     CooldownRegistry
-	retryCfg     retry.Config
-	txManager    *tx.TransactionManager
-	logger       zerolog.Logger
+	config      Config
+	resolver    modelref.Resolver
+	detector    *formats.Detector
+	execFactory engine.ExecutorFactory
+	accountSel  provider.AccountSelector
+	accountRepo provider.AccountRepository
+	cooldown    CooldownRegistry
+	retryCfg    retry.Config
+	txManager   *tx.TransactionManager
+	logger      zerolog.Logger
 
 	mu      sync.RWMutex
 	streams map[uuid.UUID]*stream.Stream
@@ -64,7 +64,7 @@ type Orchestrator struct {
 func New(
 	config Config,
 	resolver modelref.Resolver,
-	translateSvc *translate.Service,
+	detector *formats.Detector,
 	execFactory engine.ExecutorFactory,
 	accountSel provider.AccountSelector,
 	accountRepo provider.AccountRepository,
@@ -77,17 +77,17 @@ func New(
 		config = DefaultConfig()
 	}
 	return &Orchestrator{
-		config:       config,
-		resolver:     resolver,
-		translateSvc: translateSvc,
-		execFactory:  execFactory,
-		accountSel:   accountSel,
-		accountRepo:  accountRepo,
-		cooldown:     cooldown,
-		retryCfg:     retryCfg,
-		txManager:    txManager,
-		logger:       logger.With().Str("component", "orchestrator").Logger(),
-		streams:      make(map[uuid.UUID]*stream.Stream),
+		config:      config,
+		resolver:    resolver,
+		detector:    detector,
+		execFactory: execFactory,
+		accountSel:  accountSel,
+		accountRepo: accountRepo,
+		cooldown:    cooldown,
+		retryCfg:    retryCfg,
+		txManager:   txManager,
+		logger:      logger.With().Str("component", "orchestrator").Logger(),
+		streams:     make(map[uuid.UUID]*stream.Stream),
 	}
 }
 

@@ -1,0 +1,10 @@
+# Provider manifest: anthropic (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: anthropic
+provider_id: anthropic
+provider_type: anthropic
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_ANTHROPIC_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatAnthropic: tests/providers/harness/testdata/fixtures/anthropic.json

@@ -1,0 +1,10 @@
+# Provider manifest: antigravity (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: antigravity
+provider_id: antigravity
+provider_type: antigravity
+auth_type: oauth
+credential_env_var: GOROUTER_LIVE_ANTIGRAVITY_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

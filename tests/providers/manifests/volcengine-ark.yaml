@@ -1,0 +1,10 @@
+# Provider manifest: volcengine-ark (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: volcengine-ark
+provider_id: volcengine-ark
+provider_type: volcengine_ark
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_VOLCENGINE_ARK_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

@@ -460,3 +460,206 @@ func TestConsecutiveCallsDontResetFailures(t *testing.T) {
 		t.Error("expected not on cooldown at 2 failures after reset")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// P3-T08: Single cooldown authority, escalation, concurrency.
+// ---------------------------------------------------------------------------
+
+// TestRegistryIsSoleCooldownAuthority verifies that the cooldown Registry
+// is the only place where escalation/threshold policy lives. It validates
+// that the registry correctly implements the full policy: threshold before
+// activation, escalation factor, and max cap.
+func TestRegistryIsSoleCooldownAuthority(t *testing.T) {
+	// Policy: threshold=3, base=500ms, factor=2.0, max=10s.
+	r := New(Config{
+		DefaultCooldown:  500 * time.Millisecond,
+		MaxCooldown:      10 * time.Second,
+		FailureThreshold: 3,
+		EscalationFactor: 2.0,
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	// Below threshold — no cooldown.
+	for i := 0; i < 2; i++ {
+		r.RecordFailure(ctx, acctID, errors.New("err"))
+	}
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected no cooldown below threshold (2 < 3)")
+	}
+
+	// At threshold — cooldown activated.
+	r.RecordFailure(ctx, acctID, errors.New("err"))
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Fatal("expected cooldown at threshold (3 failures)")
+	}
+
+	// Wait for base cooldown (500ms) plus margin (300ms).
+	time.Sleep(800 * time.Millisecond)
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Fatal("expected base cooldown to expire")
+	}
+
+	// Surpass threshold again — but since the entry was eagerly deleted on
+	// expiry, the new entry starts fresh: 4 failures = 1 above threshold =
+	// 500ms * 2^1 = 1000ms.
+	r.RecordFailure(ctx, acctID, errors.New("err")) // 1
+	r.RecordFailure(ctx, acctID, errors.New("err")) // 2
+	r.RecordFailure(ctx, acctID, errors.New("err")) // 3 — threshold hit, base 500ms
+	r.RecordFailure(ctx, acctID, errors.New("err")) // 4 — 1 above threshold: 500ms * 2^1 = 1000ms
+
+	time.Sleep(750 * time.Millisecond)
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected escalated cooldown (1s) to still be active at 750ms")
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected escalated cooldown to expire")
+	}
+}
+
+// TestRegistryEscalationCap verifies that the max cooldown cap is enforced.
+func TestRegistryEscalationCap(t *testing.T) {
+	r := New(Config{
+		DefaultCooldown:  100 * time.Millisecond,
+		MaxCooldown:      200 * time.Millisecond,
+		FailureThreshold: 1,
+		EscalationFactor: 100.0, // massive escalation, but capped
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	r.RecordFailure(ctx, acctID, errors.New("err"))
+	// Should be capped at 200ms, not 10s.
+	time.Sleep(250 * time.Millisecond)
+
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected escalation to be capped at MaxCooldown (200ms)")
+	}
+}
+
+// TestRegistryRecordSuccessResetsFailureCount verifies that success resets
+// the consecutive failure counter, allowing the account to be re-used.
+func TestRegistryRecordSuccessResetsFailureCount(t *testing.T) {
+	r := New(Config{
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 3,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	// 2 failures — below threshold.
+	r.RecordFailure(ctx, acctID, errors.New("err1"))
+	r.RecordFailure(ctx, acctID, errors.New("err2"))
+	r.RecordSuccess(ctx, acctID)
+
+	// After success, 2 more failures should NOT trigger cooldown (only 2 after reset).
+	r.RecordFailure(ctx, acctID, errors.New("err3"))
+	r.RecordFailure(ctx, acctID, errors.New("err4"))
+
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected no cooldown after success reset + 2 failures")
+	}
+
+	// 3rd failure after reset should trigger cooldown.
+	r.RecordFailure(ctx, acctID, errors.New("err5"))
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected cooldown at 3 failures after reset")
+	}
+}
+
+// TestRegistryConcurrentAccess verifies thread safety under concurrent
+// read/write operations.
+func TestRegistryConcurrentAccess(t *testing.T) {
+	r := New(Config{
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 2,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			id := uuid.New()
+			r.RecordFailure(ctx, id, errors.New("err"))
+			_ = r.IsOnCooldown(ctx, id)
+			r.RecordSuccess(ctx, id)
+			_ = r.Status(ctx, id)
+		}()
+	}
+	wg.Wait()
+	// If we reach here without data race, the test passes.
+}
+
+// TestRegistryCheckpointRestore verifies that checkpoint/restore round-trips
+// correctly and preserves cooldown state.
+func TestRegistryCheckpointRestore(t *testing.T) {
+	r := New(Config{
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 2,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	r.RecordFailure(ctx, acctID, errors.New("err1"))
+	r.RecordFailure(ctx, acctID, errors.New("err2"))
+
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Fatal("expected cooldown before checkpoint")
+	}
+
+	// Checkpoint.
+	entries := r.Checkpoint(ctx)
+	if len(entries) != 1 {
+		t.Fatalf("Checkpoint returned %d entries, want 1", len(entries))
+	}
+
+	// Restore into new registry.
+	r2 := New(DefaultConfig())
+	r2.Restore(ctx, entries)
+
+	if !r2.IsOnCooldown(ctx, acctID) {
+		t.Error("expected cooldown after restore")
+	}
+	s := r2.Status(ctx, acctID)
+	if s == nil {
+		t.Fatal("expected non-nil status after restore")
+	}
+	if s.RetryCount != 2 {
+		t.Errorf("expected RetryCount 2, got %d", s.RetryCount)
+	}
+}
+
+// TestRegistryThresholdFailureHandling verifies that a single failure with
+// threshold=1 activates cooldown regardless of error type.
+func TestRegistryThresholdFailureHandling(t *testing.T) {
+	r := New(Config{
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 1,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
+	})
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	// Single failure with threshold=1 should activate cooldown.
+	r.RecordFailure(ctx, acctID, errors.New("any error"))
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Error("expected cooldown after single failure with threshold=1")
+	}
+}

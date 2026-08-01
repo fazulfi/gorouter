@@ -1,0 +1,10 @@
+{
+  "id": "msg_gorouter_p3t14",
+  "type": "message",
+  "role": "assistant",
+  "model": "fixture-model",
+  "content": [{"type": "text", "text": "pong"}],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {"input_tokens": 2, "output_tokens": 1}
+}

@@ -1,0 +1,10 @@
+# Provider manifest: ollama-local (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: ollama-local
+provider_id: ollama-local
+provider_type: ollama_local
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_OLLAMA_LOCAL_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

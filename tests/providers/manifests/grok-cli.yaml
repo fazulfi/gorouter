@@ -1,0 +1,10 @@
+# Provider manifest: grok-cli (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: grok-cli
+provider_id: grok-cli
+provider_type: grok_cli
+auth_type: oauth
+credential_env_var: GOROUTER_LIVE_GROK_CLI_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatGemini: tests/providers/harness/testdata/fixtures/gemini.json

@@ -12,11 +12,11 @@ import (
 	"github.com/rs/zerolog"
 
 	"gorouter/internal/app/retry"
-	"gorouter/internal/app/translate"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/engine/stream"
 	"gorouter/internal/domain/modelref"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/engine/formats"
 )
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ func testOrchestrator() *Orchestrator {
 			}, true
 		},
 	}
-	svc := translate.NewService()
+	detector := formats.NewDetector()
 
 	logger := noopLogger()
 
@@ -183,7 +183,7 @@ func testOrchestrator() *Orchestrator {
 		BaseDelay:   1 * time.Millisecond,
 		MaxDelay:    5 * time.Millisecond,
 	}
-	return New(DefaultConfig(), nil, svc, execFact, nil, nil, nil, retryCfg, nil, logger)
+	return New(DefaultConfig(), nil, detector, execFact, nil, nil, nil, retryCfg, nil, logger)
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +232,7 @@ func TestExecuteRequest_Success(t *testing.T) {
 	o := New(
 		DefaultConfig(),
 		resolver,
-		translate.NewService(),
+		formats.NewDetector(),
 		execFact,
 		accountSel,
 		&mockAccountRepo{
@@ -389,7 +389,7 @@ func TestExecuteRequest_ExplicitAccount(t *testing.T) {
 	o := New(
 		DefaultConfig(),
 		resolver,
-		translate.NewService(),
+		formats.NewDetector(),
 		execFact,
 		&mockAccountSelector{
 			selectFn: func(_ context.Context, _ uuid.UUID, _ string) (*provider.Account, []provider.Account, error) {
@@ -498,7 +498,7 @@ func TestExecuteRequest_Streaming(t *testing.T) {
 	o := New(
 		DefaultConfig(),
 		resolver,
-		translate.NewService(),
+		formats.NewDetector(),
 		execFact,
 		accountSel,
 		&mockAccountRepo{},
@@ -628,7 +628,7 @@ func TestExecuteRequest_ContextTimeout(t *testing.T) {
 	o := New(
 		Config{DefaultMaxTokens: 4096, RequestTimeout: 50 * time.Millisecond},
 		resolver,
-		translate.NewService(),
+		formats.NewDetector(),
 		execFact,
 		accountSel,
 		&mockAccountRepo{},
@@ -702,7 +702,7 @@ func TestExecuteRequest_CodexFormat(t *testing.T) {
 	o := New(
 		DefaultConfig(),
 		resolver,
-		translate.NewService(),
+		formats.NewDetector(),
 		execFact,
 		accountSel,
 		&mockAccountRepo{},

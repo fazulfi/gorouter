@@ -9,6 +9,7 @@ import (
 
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/engine/stream"
+	"gorouter/internal/engine/translators"
 )
 
 func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func (h *Handler) HandleChatCompletions(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	req, err := h.translateSvc.TranslateChatToRequest(r.Context(), body)
+	req, err := translators.ParseChatToCanonical(r.Context(), body)
 	if err != nil {
 		log.Warn().Err(err).Msg("invalid chat request")
 		writeJSONError(w, r, http.StatusBadRequest, "request body invalid")

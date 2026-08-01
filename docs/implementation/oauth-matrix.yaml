@@ -1,0 +1,166 @@
+metadata:
+  description: OAuth flow definitions derived from decolua/9router commit 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+  source: audit/03-oauth-token-lifecycle.md, src/lib/oauth/providers.js
+  title: OAuth Flow Matrix
+  total: 20
+oauth_flows:
+  - flow_id: claude
+    mechanism: Authorization code with PKCE (standard callback)
+    port_behavior: find_free
+    pkce: S256
+    providers:
+      - claude
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:72, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: codex
+    mechanism: Authorization code with PKCE plus fixed-port proxy (port 1455)
+    port_behavior: fixed (1455)
+    pkce: S256
+    providers:
+      - codex
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:73, registry/codex.js oauth.fixedPort:1455, src/lib/oauth/utils/server.js
+  - flow_id: openai
+    mechanism: Authorization code with PKCE (standard callback)
+    port_behavior: find_free
+    pkce: S256
+    providers:
+      - openai
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:74, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: gemini-cli
+    mechanism: Authorization code (no PKCE, standard callback)
+    port_behavior: find_free
+    pkce: none
+    providers:
+      - gemini-cli
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:75, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: antigravity
+    mechanism: Authorization code (no PKCE, standard callback)
+    port_behavior: find_free
+    pkce: none
+    providers:
+      - antigravity
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:76, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: iflow
+    mechanism: Authorization code (no PKCE, standard callback)
+    port_behavior: find_free
+    pkce: none
+    providers:
+      - iflow
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:77, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: qwen
+    mechanism: Device code flow with PKCE
+    port_behavior: none
+    pkce: S256
+    providers:
+      - qwen
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:78, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: qoder
+    mechanism: Device code flow (custom) with PKCE
+    port_behavior: none
+    pkce: S256
+    providers:
+      - qoder
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:79, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: github
+    mechanism: Device code flow (no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - github
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:80, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: kiro
+    mechanism: Device code flow (AWS SSO OIDC, no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - kiro
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:81, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: kimi
+    mechanism: Device code flow (no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - kimi
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:82, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: kilocode
+    mechanism: Device code flow (custom, no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - kilocode
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:83, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: codebuddy-cn
+    mechanism: Device code flow (custom, no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - codebuddy-cn
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:84, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: grok-cli
+    mechanism: Device code flow (no PKCE)
+    port_behavior: none
+    pkce: none
+    providers:
+      - grok-cli
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:85, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: gitlab
+    mechanism: Authorization code with PKCE (standard callback)
+    port_behavior: find_free
+    pkce: S256
+    providers:
+      - gitlab
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:86, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: cline
+    mechanism: Authorization code (no PKCE)
+    port_behavior: find_free
+    pkce: none
+    providers:
+      - cline
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:87, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: clinepass
+    mechanism: Authorization code (no PKCE, pass-through)
+    port_behavior: find_free
+    pkce: none
+    providers:
+      - clinepass
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:88, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: kimchi
+    mechanism: Browser token import (cookie-based)
+    port_behavior: none
+    pkce: none
+    providers:
+      - kimchi
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:89, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: cursor
+    mechanism: IDE token import (local credential discovery)
+    port_behavior: none
+    pkce: none
+    providers:
+      - cursor
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:90, src/lib/oauth/providers.js PROVIDERS
+  - flow_id: xai
+    mechanism: Authorization code with PKCE plus fixed-port proxy (port 56121)
+    port_behavior: fixed (56121)
+    pkce: S256
+    providers:
+      - xai
+    restart_policy: cancel_all_pending
+    source_citation: audit/03-oauth-token-lifecycle.md:91, registry/xai.js oauth.fixedPort:56121, src/lib/oauth/utils/server.js

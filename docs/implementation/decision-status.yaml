@@ -324,4 +324,404 @@ active_decisions:
     task: "P2-T02"
     status: "completed"
 
+  # --- Phase 3: Engine and provider matrix (P3-T01..P3-T14) ---
+  # Titles follow DECISIONS.md summary table; status reflects the Phase 3
+  # implementation state (independent technical gates P3-T01..P3-T14 passed).
+
+  - id: 17
+    title: "Redis untuk OAuth state ditolak; PostgreSQL expires_at + auto-cleanup"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 19
+    title: "OAuth state storage di PostgreSQL"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 20
+    title: "Target parity: full parity bertahap"
+    phase: 3
+    task: "P3-T01"
+    status: "awareness"
+
+  - id: 21
+    title: "Batas MVP production: super-full upstream parity"
+    phase: 3
+    task: "P3-T02"
+    status: "awareness"
+
+  - id: 23
+    title: "Gate provider: semua provider wajib tervalidasi nyata"
+    phase: 3
+    task: "P3-T14"
+    status: "prepared"
+
+  - id: 24
+    title: "Target deployment: cross-platform lengkap"
+    phase: 3
+    task: "P3-T12"
+    status: "awareness"
+
+  - id: 31
+    title: "Grammar model: syntax original + extension baru"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 32
+    title: "Format API client-facing: semua format original tetap native"
+    phase: 3
+    task: "P3-T02"
+    status: "completed"
+
+  - id: 51
+    title: "Ekstensibilitas provider: compatible dinamis, khusus via source"
+    phase: 3
+    task: "P3-T04"
+    status: "completed"
+
+  - id: 62
+    title: "Aktivasi dan status validasi akun bertahap"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 88
+    title: "Proactive refresh 5 menit sebelum expires_at"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 89
+    title: "Token OAuth tanpa expiry: refresh 6 jam"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 90
+    title: "Refresh OAuth bersamaan: concurrency terbatas dengan jitter"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 91
+    title: "Batas concurrency refresh: maksimal 4 bersamaan"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 92
+    title: "Request saat refresh: tunggu singleflight 10 detik lalu fallback"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 96
+    title: "Override refresh per provider dari audit"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 97
+    title: "Sifat proyek: rewrite 9Router original"
+    phase: 3
+    task: "P3-T01"
+    status: "awareness"
+
+  - id: 98
+    title: "Fallback akun dan model sama seperti upstream"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 99
+    title: "Metode rewrite upstream: port modul demi modul"
+    phase: 3
+    task: "P3-T01"
+    status: "awareness"
+
+  - id: 103
+    title: "Fleksibilitas proses rewrite: source-backed tetapi tidak kaku"
+    phase: 3
+    task: "P3-T12"
+    status: "awareness"
+
+  - id: 104
+    title: "Combo routing: pertahankan seluruh mode upstream lalu harden"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 105
+    title: "Arsitektur translator: direct translators + native passthrough + typed IR aman"
+    phase: 3
+    task: "P3-T03"
+    status: "completed"
+
+  - id: 106
+    title: "Implementasi OAuth provider per mekanisme upstream"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 108
+    title: "Token-saver dan request mutator port mengikuti upstream"
+    phase: 3
+    task: "P3-T11"
+    status: "completed"
+
+  - id: 109
+    title: "State fallback akun: hot state memory + checkpoint PostgreSQL"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 115
+    title: "Retensi riwayat state runtime 7 hari"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 121
+    title: "Penambahan provider account: langsung aktif, status bertahap"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 122
+    title: "Pemilihan account: priority + cooldown + fallback upstream"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 162
+    title: "Aktivasi request mutators/token savers sama seperti upstream"
+    phase: 3
+    task: "P3-T11"
+    status: "completed"
+
+  - id: 165
+    title: "Credential live provider test dari secret store CI/lab"
+    phase: 3
+    task: "P3-T14"
+    status: "prepared"
+
+  - id: 166
+    title: "Live provider matrix dijalankan sebelum beta dan stable"
+    phase: 3
+    task: "P3-T14"
+    status: "pending-live"
+
+  - id: 167
+    title: "Parity provider Free Tier penuh"
+    phase: 3
+    task: "P3-T01"
+    status: "awareness"
+
+  - id: 174
+    title: "Pxpipe: port mutator inti; lifecycle dashboard fase 4"
+    phase: 3
+    task: "P3-T11"
+    status: "completed-core"
+
+  - id: 188
+    title: "Alias dan custom model parity penuh"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 190
+    title: "Disabled-model workflow: enable/disable model individual"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 191
+    title: "Provider node management parity penuh"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 192
+    title: "Retensi custom model saat discovery: tidak pernah dihapus otomatis"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 309
+    title: "Provider boundary: dua level provider adapter"
+    phase: 3
+    task: "P3-T04"
+    status: "completed"
+
+  - id: 312
+    title: "Streaming contract mengikuti upstream"
+    phase: 3
+    task: "P3-T03"
+    status: "completed"
+
+  - id: 316
+    title: "Provider persistence shape: core columns + JSONB"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 322
+    title: "Provider credential storage: restricted plaintext"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 324
+    title: "Model resolution persis upstream + extension"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 325
+    title: "Account selection: priority + cooldown seperti upstream"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 326
+    title: "Routing state: memory + PostgreSQL checkpoint"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 328
+    title: "Same-model account fallback antar-account"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 329
+    title: "Single-model fallback: tidak berpindah model otomatis"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 330
+    title: "Sequential combo persis upstream"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 331
+    title: "Round-robin combo: state rotation upstream"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 332
+    title: "Capability auto-switch persis upstream"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 333
+    title: "Fusion combo: panel paralel, quorum/grace/timeout, judge"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 334
+    title: "Fusion degradation: 0/1/multiple panel"
+    phase: 3
+    task: "P3-T10"
+    status: "completed"
+
+  - id: 335
+    title: "Provider retry policy: provider-aware upstream policy"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 336
+    title: "Auth error handling: refresh 401/403 lalu retry terbatas"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 337
+    title: "Definitive credential invalidation: disable, jangan hapus"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 338
+    title: "Final routing error: sanitized structured error"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 339
+    title: "Cooldown duration: upstream/provider-aware policy"
+    phase: 3
+    task: "P3-T08"
+    status: "completed"
+
+  - id: 340
+    title: "Priority tie-break: preserve priority/order upstream"
+    phase: 3
+    task: "P3-T09"
+    status: "completed"
+
+  - id: 342
+    title: "OAuth module boundary: per-provider flow module"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 343
+    title: "OAuth pending state: PostgreSQL with TTL"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 344
+    title: "OAuth credential persistence: provider connection JSONB"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 345
+    title: "OAuth callback contract: preserve provider contract"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 346
+    title: "OAuth pending session setelah restart: selalu batalkan"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 347
+    title: "OAuth account dedup: provider-specific seperti upstream"
+    phase: 3
+    task: "P3-T06"
+    status: "completed"
+
+  - id: 348
+    title: "OAuth refresh coordinator: satu coordinator proactive + reactive"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 349
+    title: "Refresh singleflight result: shared per account"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
+  - id: 352
+    title: "Refresh persistence transaction: atomic domain transaction"
+    phase: 3
+    task: "P3-T07"
+    status: "completed"
+
 entries: []

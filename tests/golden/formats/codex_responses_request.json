@@ -1,0 +1,10 @@
+{
+  "model": "gpt-4",
+  "input": [
+    {"role": "system", "content": "You are helpful."},
+    {"role": "user", "content": "Tell me a joke."}
+  ],
+  "instructions": "Be concise and witty.",
+  "max_output_tokens": 150,
+  "temperature": 0.8
+}

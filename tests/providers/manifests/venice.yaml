@@ -1,0 +1,10 @@
+# Provider manifest: venice (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: venice
+provider_id: venice
+provider_type: venice
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_VENICE_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

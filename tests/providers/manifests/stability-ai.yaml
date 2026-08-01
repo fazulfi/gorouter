@@ -1,0 +1,10 @@
+# Provider manifest: stability-ai (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: stability-ai
+provider_id: stability-ai
+provider_type: stability_ai
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_STABILITY_AI_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json

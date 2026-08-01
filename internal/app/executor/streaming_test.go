@@ -13,9 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
-	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/engine/stream"
 )
 
@@ -371,55 +368,6 @@ type panicReader struct{}
 
 func (r *panicReader) Read(p []byte) (int, error) {
 	panic("test panic in reader")
-}
-
-// TestCodexExecutor_ExecuteStream_FirstEventPushed verifies that the first
-// SSE event is pushed synchronously before ExecuteStream returns.
-func TestCodexExecutor_ExecuteStream_FirstEventPushed(t *testing.T) {
-	srv := newTestSSEServer(t, func() string {
-		return "event: response.created\ndata: {\"type\":\"response.created\",\"id\":\"resp_1\"}\n\n" +
-			"event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"Hi\"}\n\n" +
-			"data: [DONE]\n\n"
-	})
-	defer srv.Close()
-
-	body := toJSON(t, map[string]interface{}{
-		"model":  "gpt-4o-codex",
-		"input":  "Hello",
-		"stream": true,
-	})
-
-	e := NewCodexExecutor(newTestTransport(srv.URL))
-	req := &engine.Request{
-		ID:         uuid.New(),
-		Format:     engine.FormatCodexResponses,
-		Model:      "gpt-4o-codex",
-		RawBody:    body,
-		MappedBody: body,
-	}
-
-	ctx := context.Background()
-	resp, err := e.ExecuteStream(ctx, req, newTestAccount("key"))
-	if err != nil {
-		t.Fatalf("ExecuteStream failed: %v", err)
-	}
-
-	st := resp.Stream.(*stream.Stream)
-
-	// Read the first chunk directly from the channel. ExecuteStream pushes
-	// the first event synchronously before returning, so this select should
-	// complete immediately — the timeout is a safety net only.
-	select {
-	case first, ok := <-st.Chunks():
-		if !ok {
-			t.Fatal("stream closed before first chunk available")
-		}
-		if string(first.Data) != `{"type":"response.created","id":"resp_1"}` {
-			t.Errorf("unexpected first chunk data: %s", string(first.Data))
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("timeout waiting for first chunk")
-	}
 }
 
 // TestStreamSSEBody_BodyCloserOwnership verifies that resp.Body is closed

@@ -1,0 +1,10 @@
+# Provider manifest: perplexity-agent (P3-T14)
+# Matrix row: docs/implementation/provider-matrix.yaml -> provider_id: perplexity-agent
+provider_id: perplexity-agent
+provider_type: perplexity_agent
+auth_type: apikey
+credential_env_var: GOROUTER_LIVE_PERPLEXITY_AGENT_KEY
+timeout: 30s
+retries: 2
+mock_fixtures:
+  FormatOpenAICompat: tests/providers/harness/testdata/fixtures/openai_compat.json
