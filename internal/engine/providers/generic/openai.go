@@ -142,7 +142,7 @@ func (e *CompatibleOpenAIExecutor) ExecuteStream(ctx context.Context, req *engin
 	}
 
 	if err := checkResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 
@@ -192,7 +192,7 @@ func injectStreamParam(req *http.Request, stream bool) (*http.Request, error) {
 	if err != nil {
 		return req, nil //nolint:nilerr // best-effort
 	}
-	req.Body.Close()
+	_ = req.Body.Close()
 
 	var payload map[string]interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -219,7 +219,7 @@ func checkResponseStatus(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		bodyStr := string(bodyBytes)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		switch resp.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
@@ -451,7 +451,7 @@ func (a *atomicClose) Close(closer io.Closer) {
 	if a.closed.Swap(true) {
 		return
 	}
-	closer.Close() //nolint:errcheck
+	_ = closer.Close()
 }
 
 // -- error constructors -------------------------------------------------------

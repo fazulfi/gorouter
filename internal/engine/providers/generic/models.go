@@ -100,7 +100,7 @@ func ProbeEmbeddings(ctx context.Context, client *Client, account *provider.Acco
 	if err != nil {
 		return false, nil
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Any 2xx means the endpoint exists.
 	return resp.StatusCode >= 200 && resp.StatusCode < 300, nil

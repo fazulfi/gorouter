@@ -138,7 +138,7 @@ func (e *CompatibleAnthropicExecutor) ExecuteStream(ctx context.Context, req *en
 	}
 
 	if err := checkAnthropicResponseStatus(resp); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
 
@@ -160,7 +160,7 @@ func checkAnthropicResponseStatus(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		bodyStr := string(bodyBytes)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		switch resp.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
@@ -183,7 +183,7 @@ func injectAnthropicStreamParam(req *http.Request, stream bool) (*http.Request, 
 	if err != nil {
 		return req, nil //nolint:nilerr
 	}
-	req.Body.Close()
+	_ = req.Body.Close()
 
 	var payload map[string]interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
