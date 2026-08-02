@@ -75,7 +75,7 @@ func TestNewTxScope(t *testing.T) {
 		nil, nil,
 		nil,
 		nil, nil, nil,
-		nil, nil,
+		nil, nil, nil,
 	)
 	if scope.tx == nil {
 		t.Error("expected non-nil tx")
@@ -108,6 +108,7 @@ func TestTxScopeAccessors(t *testing.T) {
 		{"OAuth", func() interface{} { return scope.OAuth() }},
 		{"Pools", func() interface{} { return scope.Pools() }},
 		{"Nodes", func() interface{} { return scope.Nodes() }},
+		{"Usage", func() interface{} { return scope.Usage() }},
 	}
 	for _, a := range accessors {
 		t.Run(a.name, func(t *testing.T) {

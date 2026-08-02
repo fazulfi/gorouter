@@ -14,6 +14,7 @@ import (
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/oauth"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/domain/usage"
 	enginerouting "gorouter/internal/engine/routing"
 
 	"github.com/google/uuid"
@@ -74,6 +75,7 @@ type TxScope struct {
 	oauth     oauth.Repository
 	pools     provider.PoolRepository
 	nodes     enginerouting.NodeStore
+	usage     usage.UsageRepository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -85,7 +87,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	accounts provider.AccountRepository, proxies provider.ProxyRepository,
 	models ModelRepository, aliases enginerouting.AliasRepository,
 	combos combo.Repository, oauth oauth.Repository,
-	pools provider.PoolRepository, nodes enginerouting.NodeStore) *TxScope {
+	pools provider.PoolRepository, nodes enginerouting.NodeStore,
+	usage usage.UsageRepository) *TxScope {
 	return &TxScope{
 		tx:        tx,
 		users:     users,
@@ -103,6 +106,7 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		oauth:     oauth,
 		pools:     pools,
 		nodes:     nodes,
+		usage:     usage,
 	}
 }
 
@@ -160,6 +164,9 @@ func (s *TxScope) Pools() provider.PoolRepository { return s.pools }
 
 // Nodes returns the scoped routing NodeStore.
 func (s *TxScope) Nodes() enginerouting.NodeStore { return s.nodes }
+
+// Usage returns the scoped UsageRepository.
+func (s *TxScope) Usage() usage.UsageRepository { return s.usage }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle

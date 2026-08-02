@@ -35,6 +35,7 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		NewOAuthRepo(pgTx),
 		&proxyPoolRepo{tx: pgTx},
 		&nodeStore{tx: pgTx},
+		NewUsageRepo(pgTx),
 	)
 }
 

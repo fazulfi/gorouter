@@ -74,6 +74,9 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Nodes() == nil {
 			t.Error("Nodes() returned nil")
 		}
+		if scope.Usage() == nil {
+			t.Error("Usage() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -100,6 +103,7 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.OAuth()
 		_ = scope.Pools()
 		_ = scope.Nodes()
+		_ = scope.Usage()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -156,6 +160,9 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Nodes().(*nodeStore); !ok {
 			t.Error("Nodes() is not *nodeStore")
+		}
+		if _, ok := scope.Usage().(*usageRepo); !ok {
+			t.Error("Usage() is not *usageRepo")
 		}
 	})
 }
