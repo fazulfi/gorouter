@@ -59,6 +59,15 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Models() == nil {
 			t.Error("Models() returned nil")
 		}
+		if scope.Aliases() == nil {
+			t.Error("Aliases() returned nil")
+		}
+		if scope.Combos() == nil {
+			t.Error("Combos() returned nil")
+		}
+		if scope.OAuth() == nil {
+			t.Error("OAuth() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -80,6 +89,9 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Accounts()
 		_ = scope.Proxies()
 		_ = scope.Models()
+		_ = scope.Aliases()
+		_ = scope.Combos()
+		_ = scope.OAuth()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -121,6 +133,15 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Models().(*ModelRepository); !ok {
 			t.Error("Models() is not *ModelRepository")
+		}
+		if _, ok := scope.Aliases().(*aliasRepo); !ok {
+			t.Error("Aliases() is not *aliasRepo")
+		}
+		if _, ok := scope.Combos().(*comboRepo); !ok {
+			t.Error("Combos() is not *comboRepo")
+		}
+		if _, ok := scope.OAuth().(*oauthRepo); !ok {
+			t.Error("OAuth() is not *oauthRepo")
 		}
 	})
 }

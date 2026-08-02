@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/domain/combo"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
+	"gorouter/internal/domain/oauth"
 	"gorouter/internal/domain/provider"
+	enginerouting "gorouter/internal/engine/routing"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -66,6 +69,9 @@ type TxScope struct {
 	accounts  provider.AccountRepository
 	proxies   provider.ProxyRepository
 	models    ModelRepository
+	aliases   enginerouting.AliasRepository
+	combos    combo.Repository
+	oauth     oauth.Repository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -75,7 +81,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	providers provider.ProviderRepository, jrs jobs.JobRepository,
 	auditLog AuditLogRepository,
 	accounts provider.AccountRepository, proxies provider.ProxyRepository,
-	models ModelRepository) *TxScope {
+	models ModelRepository, aliases enginerouting.AliasRepository,
+	combos combo.Repository, oauth oauth.Repository) *TxScope {
 	return &TxScope{
 		tx:        tx,
 		users:     users,
@@ -88,6 +95,9 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		accounts:  accounts,
 		proxies:   proxies,
 		models:    models,
+		aliases:   aliases,
+		combos:    combos,
+		oauth:     oauth,
 	}
 }
 
@@ -130,6 +140,15 @@ func (s *TxScope) Proxies() provider.ProxyRepository { return s.proxies }
 
 // Models returns the scoped ModelRepository.
 func (s *TxScope) Models() ModelRepository { return s.models }
+
+// Aliases returns the scoped AliasRepository.
+func (s *TxScope) Aliases() enginerouting.AliasRepository { return s.aliases }
+
+// Combos returns the scoped combo.Repository.
+func (s *TxScope) Combos() combo.Repository { return s.combos }
+
+// OAuth returns the scoped oauth.Repository.
+func (s *TxScope) OAuth() oauth.Repository { return s.oauth }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle
