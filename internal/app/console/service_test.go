@@ -185,9 +185,9 @@ func TestConsoleServiceAppendErrorRollback(t *testing.T) {
 	}
 }
 
-func TestConsoleServiceAppendMaxSeqErrorRollback(t *testing.T) {
+func TestConsoleServiceAppendNextSeqErrorRollback(t *testing.T) {
 	scope, repo := newFakeScope()
-	repo.maxSeqErr = errors.New("max seq failed")
+	repo.nextSeqErr = errors.New("next seq failed")
 	svc := NewConsoleService(newFakeBeginner(scope))
 	if err := svc.Append(context.Background(), &console.ConsoleLog{}); err == nil {
 		t.Fatal("expected error")

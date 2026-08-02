@@ -37,11 +37,17 @@ func (s *ConsoleService) WithClock(now func() time.Time) { s.now = now }
 // overwritten with the same redacted text, so raw input never reaches the
 // database.
 //
-// The sequence number is derived from the persisted watermark (MaxSeq + 1),
-// which keeps sequences strictly increasing across process restarts: a
-// fresh service instance continues from the durable watermark. A caller
-// supplied Seq is ignored; the assigned Seq, RedactedMessage, OccurredAt
-// (when nil) and RetentionUntil (when nil) are written back to the entry.
+// The sequence number comes from the repository's atomic NextSeq, which
+// reads a purge-proof gorouter_runtime_state watermark: sequences stay
+// strictly increasing across process restarts and full retention sweeps,
+// and concurrent Appends can never receive the same Seq. A caller supplied
+// Seq is ignored; the assigned Seq, RedactedMessage, OccurredAt (when nil)
+// and RetentionUntil (when nil) are written back to the entry.
+//
+// The caller's entry is the mutation target: on any failure (begin,
+// allocation, append or commit error) the entry may already carry the
+// redacted message and the assigned Seq/timestamps from the failed
+// transaction. Callers must not reuse an entry after a failed Append.
 func (s *ConsoleService) Append(ctx context.Context, entry *console.ConsoleLog) error {
 	if entry == nil {
 		return fmt.Errorf("console: entry is required")
@@ -59,11 +65,11 @@ func (s *ConsoleService) Append(ctx context.Context, entry *console.ConsoleLog) 
 	}
 	defer func() { _ = scope.Rollback(ctx) }()
 
-	max, err := scope.ConsoleLogs().MaxSeq(ctx)
+	seq, err := scope.ConsoleLogs().NextSeq(ctx)
 	if err != nil {
-		return fmt.Errorf("console: max seq: %w", err)
+		return fmt.Errorf("console: next seq: %w", err)
 	}
-	entry.Seq = max + 1
+	entry.Seq = seq
 	now := s.now().UTC()
 	if entry.OccurredAt == nil {
 		entry.OccurredAt = &now
@@ -86,7 +92,10 @@ func (s *ConsoleService) Append(ctx context.Context, entry *console.ConsoleLog) 
 // replay contract. The limit is normalized to the default cap (50):
 // non-positive values default to 50 and values above 50 are capped at 50,
 // so the repository's fail-closed negative-limit error is unreachable
-// through the service. The returned entries expose only redacted text.
+// through the service. Every returned row carries only redacted text:
+// Message and RedactedMessage both hold the redacted form written by
+// Append, and consumers must serve RedactedMessage (Message mirrors it for
+// diagnostics and is never a raw-text channel).
 func (s *ConsoleService) ListAfter(ctx context.Context, seq int64, limit int) ([]console.ConsoleLog, error) {
 	if limit <= 0 || limit > console.DefaultCap {
 		limit = console.DefaultCap

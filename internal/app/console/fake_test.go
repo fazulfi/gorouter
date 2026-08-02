@@ -19,11 +19,13 @@ type fakeConsoleRepo struct {
 	entries     []console.ConsoleLog
 	appendErr   error
 	listErr     error
+	nextSeqErr  error
 	maxSeqErr   error
 	purgeErr    error
 	purgeCutoff time.Time
 	purgeOut    int64
 	listLimits  []int
+	nextSeq     int64
 }
 
 func (f *fakeConsoleRepo) Append(_ context.Context, entry *console.ConsoleLog) error {
@@ -56,6 +58,16 @@ func (f *fakeConsoleRepo) ListAfter(_ context.Context, seq int64, limit int) ([]
 		out = out[:limit]
 	}
 	return out, nil
+}
+
+func (f *fakeConsoleRepo) NextSeq(context.Context) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.nextSeqErr != nil {
+		return 0, f.nextSeqErr
+	}
+	f.nextSeq++
+	return f.nextSeq, nil
 }
 
 func (f *fakeConsoleRepo) MaxSeq(context.Context) (int64, error) {
