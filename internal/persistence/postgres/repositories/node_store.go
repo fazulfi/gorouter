@@ -26,6 +26,9 @@ type nodeStore struct {
 	tx pgx.Tx
 }
 
+// Compile-time interface assertion.
+var _ enginerouting.NodeStore = (*nodeStore)(nil)
+
 func (s *nodeStore) List(ctx context.Context) ([]enginerouting.ProviderNode, error) {
 	rows, err := s.tx.Query(ctx,
 		`SELECT id, provider_id, name, base_url, region, priority, is_active, metadata
@@ -56,6 +59,9 @@ func (s *nodeStore) List(ctx context.Context) ([]enginerouting.ProviderNode, err
 		}
 		nodeID := id.String()
 		if extID, ok := meta[nodeExternalIDKey]; ok && extID != "" {
+			if deriveUUID(extID) != id {
+				continue // corrupt row: reserved key does not derive to stored UUID
+			}
 			nodeID = extID
 			delete(meta, nodeExternalIDKey)
 		}

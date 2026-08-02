@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 
 	"gorouter/internal/domain/provider"
 
@@ -10,20 +9,11 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// Compile-time interface assertion.
+var _ provider.PoolRepository = (*proxyPoolRepo)(nil)
+
 type proxyPoolRepo struct {
 	tx pgx.Tx
-}
-
-func scanProxyPool(row pgx.Row) (*provider.ProxyPool, error) {
-	p := &provider.ProxyPool{}
-	err := row.Scan(&p.ID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return p, nil
 }
 
 func (r *proxyPoolRepo) List(ctx context.Context) ([]provider.ProxyPool, error) {
@@ -68,7 +58,7 @@ func (r *proxyPoolRepo) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *proxyPoolRepo) Members(ctx context.Context, poolID uuid.UUID) ([]provider.PoolMember, error) {
 	rows, err := r.tx.Query(ctx,
 		`SELECT pool_id, proxy_config_id, position
-		 FROM gorouter_proxy_pool_members WHERE pool_id = $1 ORDER BY position`, poolID)
+		 FROM gorouter_proxy_pool_members WHERE pool_id = $1 ORDER BY position, proxy_config_id`, poolID)
 	if err != nil {
 		return nil, err
 	}

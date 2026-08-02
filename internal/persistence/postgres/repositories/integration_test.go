@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -592,6 +593,82 @@ func TestNodeStore_IdentitySpoofPrevention_Integration(t *testing.T) {
 			t.Error("original non-UUID node not found in List after metadata collision")
 		}
 	})
+}
+
+func TestNodeStore_CorruptReservedKeyExcluded_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	provID := uuid.New()
+	_, err = tx.Exec(ctx,
+		`INSERT INTO gorouter_providers (id, name, type, base_url, is_enabled) VALUES ($1, $2, 'openai', 'https://corrupt-test.example.com', true)`, provID, "corrupt-prov")
+	if err != nil {
+		t.Fatalf("insert provider: %v", err)
+	}
+
+	store := &nodeStore{tx: tx}
+
+	// Save a legitimate non-UUID node.
+	node := enginerouting.ProviderNode{
+		ID: "legit:node", ProviderID: provID, Name: "legit-node", IsActive: true,
+		Metadata: map[string]string{"source": "test"},
+	}
+	if err := store.Save(ctx, node); err != nil {
+		t.Fatalf("Save legit node: %v", err)
+	}
+
+	// Save a UUID node as baseline.
+	uuidID := uuid.New()
+	if err := store.Save(ctx, enginerouting.ProviderNode{
+		ID: uuidID.String(), ProviderID: provID, Name: "uuid-baseline", IsActive: true,
+	}); err != nil {
+		t.Fatalf("Save baseline UUID node: %v", err)
+	}
+
+	// Direct SQL: insert a corrupt row where __gorouter_node_id does not derive to the row UUID.
+	corruptUUID := uuid.New() // will not match deriveUUID("stolen-identity")
+	corruptMeta, _ := json.Marshal(map[string]string{
+		"source":          "attacker-direct-sql",
+		nodeExternalIDKey: "stolen-identity",
+	})
+	_, err = tx.Exec(ctx,
+		`INSERT INTO gorouter_provider_nodes (id, provider_id, name, is_active, metadata, created_at, updated_at)
+		 VALUES ($1, $2, $3, true, $4, NOW(), NOW())`,
+		corruptUUID, provID, "corrupt-row", corruptMeta)
+	if err != nil {
+		t.Fatalf("insert corrupt row via SQL: %v", err)
+	}
+
+	nodes, err := store.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+
+	foundLegit := false
+	foundUUID := false
+	for _, n := range nodes {
+		if n.ID == "legit:node" {
+			foundLegit = true
+		}
+		if n.ID == uuidID.String() {
+			foundUUID = true
+		}
+		if n.ID == "stolen-identity" {
+			t.Error("RESERVED-KEY SPOOF: List returned node with stolen identity from corrupt DB row")
+		}
+	}
+	if !foundLegit {
+		t.Error("legitimate non-UUID node excluded alongside corrupt row (false positive)")
+	}
+	if !foundUUID {
+		t.Error("legitimate UUID node excluded alongside corrupt row (false positive)")
+	}
 }
 
 func nodeIDs(nodes []enginerouting.ProviderNode) []string {

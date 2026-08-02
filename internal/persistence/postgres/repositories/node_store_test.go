@@ -384,4 +384,39 @@ func TestNodeStore_StableIDRoundtrip(t *testing.T) {
 			t.Error("user metadata key lost alongside reserved key")
 		}
 	})
+
+	t.Run("List ignores row where reserved key does not derive to stored UUID", func(t *testing.T) {
+		// Corrupt row: the DB UUID does not match deriveUUID(extID).
+		corruptUUID := uuid.New() // random UUID, definitely not deriveUUID("stolen-identity")
+		name := "corrupt-node"
+		metaWithSpoof := map[string]string{
+			"source":          "attacker",
+			nodeExternalIDKey: "stolen-identity",
+		}
+		metaBytes, _ := json.Marshal(metaWithSpoof)
+
+		tx := &mockTx{
+			queryFn: func(_ context.Context, _ string, _ ...interface{}) (pgx.Rows, error) {
+				return &mockRows{
+					rows: [][]interface{}{
+						{corruptUUID, provID, &name, nil, nil, 0, true, metaBytes},
+					},
+				}, nil
+			},
+		}
+		store := &nodeStore{tx: tx}
+		nodes, err := store.List(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, n := range nodes {
+			if n.ID == "stolen-identity" {
+				t.Error("RESERVED-KEY SPOOF: node returned with stolen identity from corrupt reserved key")
+			}
+		}
+		// The corrupt row should be excluded entirely.
+		if len(nodes) != 0 {
+			t.Errorf("expected 0 nodes after filtering corrupt row, got %d", len(nodes))
+		}
+	})
 }
