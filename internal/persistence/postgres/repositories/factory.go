@@ -36,6 +36,7 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		&proxyPoolRepo{tx: pgTx},
 		&nodeStore{tx: pgTx},
 		NewUsageRepo(pgTx),
+		NewConsoleLogRepo(pgTx),
 	)
 }
 

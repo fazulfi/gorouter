@@ -77,6 +77,9 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Usage() == nil {
 			t.Error("Usage() returned nil")
 		}
+		if scope.ConsoleLogs() == nil {
+			t.Error("ConsoleLogs() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -104,6 +107,7 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Pools()
 		_ = scope.Nodes()
 		_ = scope.Usage()
+		_ = scope.ConsoleLogs()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -163,6 +167,9 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Usage().(*usageRepo); !ok {
 			t.Error("Usage() is not *usageRepo")
+		}
+		if _, ok := scope.ConsoleLogs().(*consoleLogRepo); !ok {
+			t.Error("ConsoleLogs() is not *consoleLogRepo")
 		}
 	})
 }
