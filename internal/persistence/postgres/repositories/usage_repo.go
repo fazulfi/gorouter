@@ -118,3 +118,48 @@ func (r *usageRepo) RecentHistory(ctx context.Context, limit int) ([]usage.Reque
 	}
 	return out, rows.Err()
 }
+
+func (r *usageRepo) DetailsBetween(ctx context.Context, since time.Time) ([]usage.RequestDetail, error) {
+	rows, err := r.tx.Query(ctx,
+		`SELECT id, request_id, provider_id, model, prompt_tokens, completion_tokens, cost, status, error_kind, occurred_at, debug_opt_in
+		 FROM gorouter_request_details WHERE occurred_at >= $1
+		 ORDER BY occurred_at ASC NULLS LAST, id ASC`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []usage.RequestDetail
+	for rows.Next() {
+		var d usage.RequestDetail
+		if err := rows.Scan(&d.ID, &d.RequestID, &d.ProviderID, &d.Model,
+			&d.PromptTokens, &d.CompletionTokens, &d.Cost,
+			&d.Status, &d.ErrorKind, &d.OccurredAt, &d.DebugOptIn); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+func (r *usageRepo) PurgeBefore(ctx context.Context, cutoff time.Time) (usage.PurgeStats, error) {
+	var stats usage.PurgeStats
+	tag, err := r.tx.Exec(ctx,
+		`DELETE FROM gorouter_request_details WHERE occurred_at < $1`, cutoff)
+	if err != nil {
+		return stats, err
+	}
+	stats.DetailsPurged = tag.RowsAffected()
+	tag, err = r.tx.Exec(ctx,
+		`DELETE FROM gorouter_request_history WHERE occurred_at < $1`, cutoff)
+	if err != nil {
+		return stats, err
+	}
+	stats.HistoryPurged = tag.RowsAffected()
+	tag, err = r.tx.Exec(ctx,
+		`DELETE FROM gorouter_usage_daily WHERE day < $1::date`, cutoff)
+	if err != nil {
+		return stats, err
+	}
+	stats.DailyPurged = tag.RowsAffected()
+	return stats, nil
+}

@@ -374,3 +374,174 @@ func TestUsageRepo_History_Integration(t *testing.T) {
 
 func intPtr(i int) *int           { return &i }
 func floatPtr(f float64) *float64 { return &f }
+
+func TestUsageRepo_DetailsBetween_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	repo := &usageRepo{tx: tx}
+	base := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+
+	write := func(at *time.Time) uuid.UUID {
+		id := uuid.New()
+		if err := repo.WriteRequestDetail(ctx, &usage.RequestDetail{
+			ID: id, Model: strPtr("gpt-4o"), PromptTokens: intPtr(7),
+			CompletionTokens: intPtr(8), Cost: floatPtr(0.01), OccurredAt: at,
+		}); err != nil {
+			t.Fatalf("WriteRequestDetail: %v", err)
+		}
+		return id
+	}
+
+	before := write(timePtr(base.Add(-2 * time.Hour)))
+	atSince := write(timePtr(base.Add(-1 * time.Hour)))
+	after := write(timePtr(base.Add(1 * time.Hour)))
+	untimed := write(nil)
+
+	since := base.Add(-1 * time.Hour)
+	got, err := repo.DetailsBetween(ctx, since)
+	if err != nil {
+		t.Fatalf("DetailsBetween: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 details >= since, got %d", len(got))
+	}
+	// Ordered ascending by occurred_at.
+	if got[0].ID != atSince || got[1].ID != after {
+		t.Errorf("order wrong: %s, %s (want %s, %s)", got[0].ID, got[1].ID, atSince, after)
+	}
+	// The nil-timestamp detail and the pre-since detail are excluded.
+	for _, d := range got {
+		if d.ID == before || d.ID == untimed {
+			t.Errorf("detail %s must be excluded", d.ID)
+		}
+	}
+}
+
+func TestUsageRepo_PurgeBefore_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	repo := &usageRepo{tx: tx}
+	cutoff := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	old := time.Date(2026, 5, 4, 11, 59, 59, 0, time.UTC)
+	atCutoff := cutoff
+	newer := time.Date(2026, 5, 4, 12, 0, 1, 0, time.UTC)
+
+	t.Run("purges strictly older rows across all three tables", func(t *testing.T) {
+		oldDetail := uuid.New()
+		oldHist := uuid.New()
+		atCutoffDetail := uuid.New()
+		atCutoffHist := uuid.New()
+		newDetail := uuid.New()
+		newHist := uuid.New()
+		for _, tc := range []struct {
+			id  uuid.UUID
+			at  *time.Time
+			his bool
+		}{
+			{oldDetail, timePtr(old), false},
+			{atCutoffDetail, timePtr(atCutoff), false},
+			{newDetail, timePtr(newer), false},
+			{oldHist, timePtr(old), true},
+			{atCutoffHist, timePtr(atCutoff), true},
+			{newHist, timePtr(newer), true},
+		} {
+			if tc.his {
+				if err := repo.AppendHistory(ctx, &usage.RequestHistoryEntry{
+					ID: tc.id, Model: strPtr("m"), OccurredAt: tc.at,
+				}); err != nil {
+					t.Fatalf("AppendHistory: %v", err)
+				}
+			} else {
+				if err := repo.WriteRequestDetail(ctx, &usage.RequestDetail{
+					ID: tc.id, Model: strPtr("m"), OccurredAt: tc.at,
+				}); err != nil {
+					t.Fatalf("WriteRequestDetail: %v", err)
+				}
+			}
+		}
+		// Daily aggregates: one row on the cutoff day (survives), one strictly before (purged).
+		oldDay := time.Date(2026, 5, 3, 0, 0, 0, 0, time.UTC)
+		cutoffDay := time.Date(2026, 5, 4, 0, 0, 0, 0, time.UTC)
+		for _, day := range []time.Time{oldDay, cutoffDay} {
+			if err := repo.AggregateDaily(ctx, &usage.DailyAggregate{
+				Day: day, Requests: intPtr(1), PromptTokens: int64Ptr(10), CompletionTokens: int64Ptr(20),
+			}); err != nil {
+				t.Fatalf("AggregateDaily: %v", err)
+			}
+		}
+
+		stats, err := repo.PurgeBefore(ctx, cutoff)
+		if err != nil {
+			t.Fatalf("PurgeBefore: %v", err)
+		}
+		if stats.DetailsPurged != 1 || stats.HistoryPurged != 1 || stats.DailyPurged != 1 {
+			t.Fatalf("stats = %+v, want 1/1/1", stats)
+		}
+
+		if d, _ := repo.RequestDetail(ctx, oldDetail); d != nil {
+			t.Error("detail strictly before cutoff must be purged")
+		}
+		if d, _ := repo.RequestDetail(ctx, atCutoffDetail); d == nil {
+			t.Error("detail exactly at cutoff must survive (strict boundary)")
+		}
+		if d, _ := repo.RequestDetail(ctx, newDetail); d == nil {
+			t.Error("detail after cutoff must survive")
+		}
+
+		hist, err := repo.RecentHistory(ctx, 50)
+		if err != nil {
+			t.Fatalf("RecentHistory: %v", err)
+		}
+		seen := map[uuid.UUID]bool{}
+		for _, e := range hist {
+			seen[e.ID] = true
+		}
+		if seen[oldHist] {
+			t.Error("history strictly before cutoff must be purged")
+		}
+		if !seen[atCutoffHist] || !seen[newHist] {
+			t.Error("history at/after cutoff must survive")
+		}
+
+		rows, err := repo.Daily(ctx, oldDay)
+		if err != nil {
+			t.Fatalf("Daily: %v", err)
+		}
+		if len(rows) != 0 {
+			t.Errorf("daily row before cutoff day must be purged, got %d", len(rows))
+		}
+		rows, err = repo.Daily(ctx, cutoffDay)
+		if err != nil {
+			t.Fatalf("Daily: %v", err)
+		}
+		if len(rows) != 1 {
+			t.Errorf("daily row on cutoff day must survive, got %d", len(rows))
+		}
+	})
+
+	t.Run("second purge removes nothing (idempotent)", func(t *testing.T) {
+		stats, err := repo.PurgeBefore(ctx, cutoff)
+		if err != nil {
+			t.Fatalf("PurgeBefore #2: %v", err)
+		}
+		if stats.DetailsPurged != 0 || stats.HistoryPurged != 0 || stats.DailyPurged != 0 {
+			t.Errorf("idempotent purge stats = %+v, want 0/0/0", stats)
+		}
+	})
+}
+
+func int64Ptr(i int64) *int64 { return &i }
