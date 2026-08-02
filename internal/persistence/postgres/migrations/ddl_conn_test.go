@@ -88,6 +88,7 @@ func TestRunMigrations_UsesDedicatedDDLConnection(t *testing.T) {
 		{"000005", "000005_proxy_pools.up.sql", "(?i)CREATE TABLE"},
 		{"000006", "000006_usage.up.sql", "(?i)CREATE TABLE"},
 		{"000007", "000007_console_logs.up.sql", "(?i)CREATE TABLE"},
+		{"000008", "000008_password_resets.up.sql", "(?i)CREATE TABLE"},
 	} {
 		mock.ExpectBegin()
 		mock.ExpectExec(m.content).WillReturnResult(pgxmock.NewResult("CREATE", 0))
@@ -109,8 +110,8 @@ func TestRunMigrations_UsesDedicatedDDLConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunMigrations: %v", err)
 	}
-	if len(result.Applied) != 7 {
-		t.Errorf("applied = %d, want 7", len(result.Applied))
+	if len(result.Applied) != 8 {
+		t.Errorf("applied = %d, want 8", len(result.Applied))
 	}
 	if len(result.Skipped) != 0 {
 		t.Errorf("skipped = %d, want 0", len(result.Skipped))
