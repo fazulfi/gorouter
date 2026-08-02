@@ -51,6 +51,12 @@ func (c *Config) validate() {
 	}
 }
 
+// drainTimeout bounds status persistence once the execution context has been
+// cancelled (shutdown drain or request timeout): the transaction manager
+// refuses to begin on a cancelled context, so persisting with the execution
+// context would strand an interrupted job in the running state.
+const drainTimeout = 10 * time.Second
+
 // JobStatusUpdater handles transactional job status updates. The production
 // implementation wraps tx.TransactionManager to ensure status changes are
 // atomic. Tests provide a mock.
@@ -306,7 +312,10 @@ func (w *Worker) releaseSem() {
 //  4. Stores the result and marks the job completed, or marks it failed on error
 //
 // All status updates are performed through the JobStatusUpdater, which in
-// production wraps tx.TransactionManager for atomicity.
+// production wraps tx.TransactionManager for atomicity. Status persistence
+// runs on a bounded context that stays usable after the execution context is
+// cancelled, so an interrupted job is never left stranded in the running
+// state.
 func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	log := w.logger.With().
 		Str("job_id", job.ID.String()).
@@ -315,7 +324,7 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 		Logger()
 
 	log.Info().Msg("processing job")
-	if err := w.updateJobStatus(ctx, job.ID, jobs.JobRunning, nil, nil); err != nil {
+	if err := w.updateJobStatus(job.ID, jobs.JobRunning, nil, nil); err != nil {
 		log.Error().Err(err).Msg("failed to set job status to running")
 		return
 	}
@@ -323,7 +332,7 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	req, err := w.buildRequest(job)
 	if err != nil {
 		errMsg := err.Error()
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
+		if updateErr := w.updateJobStatus(job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
 			log.Error().Err(updateErr).Msg("failed to persist job failure")
 		}
 		log.Error().Err(err).Msg("failed to build engine request from job payload")
@@ -332,9 +341,14 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 
 	resp, err := w.pipeline.ExecuteRequest(ctx, req)
 	if err != nil {
+		status := jobs.JobFailed
 		errMsg := fmt.Sprintf("execution failed: %v", err)
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
-			log.Error().Err(updateErr).Msg("failed to persist job failure")
+		if ctx.Err() != nil {
+			status = jobs.JobCancelled
+			errMsg = fmt.Sprintf("execution cancelled: %v", ctx.Err())
+		}
+		if updateErr := w.updateJobStatus(job.ID, status, nil, &errMsg); updateErr != nil {
+			log.Error().Err(updateErr).Msg("failed to persist job terminal state")
 		}
 		log.Error().Err(err).Msg("job execution failed")
 		return
@@ -343,14 +357,14 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	result, err := json.Marshal(resp)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to marshal response: %v", err)
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
+		if updateErr := w.updateJobStatus(job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
 			log.Error().Err(updateErr).Msg("failed to persist job failure")
 		}
 		log.Error().Err(err).Msg("failed to marshal response")
 		return
 	}
 
-	if err := w.updateJobStatus(ctx, job.ID, jobs.JobCompleted, result, nil); err != nil {
+	if err := w.updateJobStatus(job.ID, jobs.JobCompleted, result, nil); err != nil {
 		log.Error().Err(err).Msg("failed to persist job completion")
 		return
 	}
@@ -378,12 +392,18 @@ func (w *Worker) buildRequest(job *jobs.Job) (*engine.Request, error) {
 	}, nil
 }
 
+// updateJobStatus persists a status transition on a bounded context derived
+// from context.Background() rather than the execution context: the execution
+// context is cancelled during shutdown drain and on request timeout, and the
+// transaction manager refuses to begin on a cancelled context, which would
+// strand an interrupted job in the running state.
 func (w *Worker) updateJobStatus(
-	ctx context.Context,
 	jobID uuid.UUID,
 	status jobs.JobStatus,
 	result json.RawMessage,
 	errMsg *string,
 ) error {
-	return w.updater.UpdateJobStatus(ctx, jobID, status, result, errMsg)
+	pctx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+	defer cancel()
+	return w.updater.UpdateJobStatus(pctx, jobID, status, result, errMsg)
 }
