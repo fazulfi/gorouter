@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -294,21 +293,29 @@ func TestDispatchServerOrdering(t *testing.T) {
 		select {
 		case res = <-done:
 		case <-time.After(10 * time.Second):
-			// dispatchServer with unwired validateBackup seam proceeded
-			// past the gate into listen — the gate hasn't been wired yet
-			// (observed RED). Kill it and record what we got.
-			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
-			select {
-			case res = <-done:
-			case <-time.After(5 * time.Second):
-				t.Fatalf("dispatchServer did not return after SIGTERM; recorded: %v", rec.snapshot())
-			}
+			t.Fatalf("dispatchServer did not return; gate may be unwired (recorded: %v)", rec.snapshot())
 		}
-		// With the safe-mode gate unwired, dispatchServer proceeds to
-		// lock/worker/listen instead of refusing. The exit code may be 0
-		// and the error nil, and the recorded steps include lock/worker.
-		if res.code == 0 && res.err == nil && !strings.Contains(fmt.Sprint(rec.snapshot()), "backup validation failed") {
-			t.Error("safe-mode gate absent: backup validation failure did not prevent server progression")
+		if res.code != 1 {
+			t.Errorf("dispatchServer exit code = %d, want 1", res.code)
+		}
+		if res.err == nil {
+			t.Fatal("dispatchServer error = nil, want safe-mode refusal")
+		}
+		if !strings.Contains(res.err.Error(), "safe mode") {
+			t.Errorf("dispatchServer error = %q, want mention of safe mode", res.err.Error())
+		}
+		if !strings.Contains(res.err.Error(), "validated backup") {
+			t.Errorf("dispatchServer error = %q, want mention of validated backup", res.err.Error())
+		}
+		got := rec.snapshot()
+		want := []string{"backup validation failed"}
+		if len(got) != len(want) {
+			t.Fatalf("recorded steps = %v, want exactly %v", got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("step %d = %q, want %q; full sequence %v", i, got[i], want[i], got)
+			}
 		}
 	})
 
@@ -360,15 +367,29 @@ func TestDispatchServerOrdering(t *testing.T) {
 		select {
 		case res = <-done:
 		case <-time.After(10 * time.Second):
-			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
-			select {
-			case res = <-done:
-			case <-time.After(5 * time.Second):
-				t.Fatalf("dispatchServer did not return after SIGTERM; recorded: %v", rec.snapshot())
-			}
+			t.Fatalf("dispatchServer did not return; gate may be unwired (recorded: %v)", rec.snapshot())
 		}
-		if res.code == 0 && res.err == nil && !strings.Contains(fmt.Sprint(rec.snapshot()), "migrations failed") {
-			t.Error("safe-mode gate absent: migration batch failure did not prevent server progression")
+		if res.code != 1 {
+			t.Errorf("dispatchServer exit code = %d, want 1", res.code)
+		}
+		if res.err == nil {
+			t.Fatal("dispatchServer error = nil, want safe-mode refusal")
+		}
+		if !strings.Contains(res.err.Error(), "safe mode") {
+			t.Errorf("dispatchServer error = %q, want mention of safe mode", res.err.Error())
+		}
+		if !strings.Contains(res.err.Error(), "migration batch") {
+			t.Errorf("dispatchServer error = %q, want mention of migration batch", res.err.Error())
+		}
+		got := rec.snapshot()
+		want := []string{"backup validated", "migrations failed"}
+		if len(got) != len(want) {
+			t.Fatalf("recorded steps = %v, want exactly %v", got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("step %d = %q, want %q; full sequence %v", i, got[i], want[i], got)
+			}
 		}
 	})
 }
