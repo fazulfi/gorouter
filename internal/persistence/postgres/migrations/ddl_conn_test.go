@@ -247,7 +247,7 @@ func TestEnsureAuditLogOwnership_TransfersOwner(t *testing.T) {
 	}
 	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
 		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("gorouter"))
-	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+	mock.ExpectExec(`ALTER TABLE gorouter_audit_log OWNER TO "gorouter_ddl"`).
 		WillReturnResult(pgxmock.NewResult("ALTER TABLE", 0))
 
 	if err := ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser); err != nil {
@@ -268,7 +268,7 @@ func TestEnsureAuditLogOwnership_TransferRefusedFailsClosed(t *testing.T) {
 	}
 	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
 		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("postgres"))
-	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+	mock.ExpectExec(`ALTER TABLE gorouter_audit_log OWNER TO "gorouter_ddl"`).
 		WillReturnError(errors.New("must be owner of table gorouter_audit_log"))
 
 	err = ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser)
@@ -301,7 +301,7 @@ func TestRunMigrations_OwnershipPreconditionFailsClosed(t *testing.T) {
 
 	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
 		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("postgres"))
-	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+	mock.ExpectExec(`ALTER TABLE gorouter_audit_log OWNER TO "gorouter_ddl"`).
 		WillReturnError(errors.New("must be owner of table gorouter_audit_log"))
 	mock.ExpectClose()
 
