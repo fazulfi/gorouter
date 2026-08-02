@@ -63,6 +63,53 @@ func TestNodeService(t *testing.T) {
 		if details["name"] != "node-a" || details["base_url"] != "https://api.example.com" {
 			t.Errorf("details missing node fields: %v", details)
 		}
+		if details["id"] != node.ID {
+			t.Errorf("details id = %v, want %q", details["id"], node.ID)
+		}
+	})
+
+	t.Run("save with non-uuid id audits raw id", func(t *testing.T) {
+		b := newFakeBeginner()
+		svc := NewNodeService(b, testLogger())
+		mustBegin(t, b)
+
+		nonUUIDNode := node
+		nonUUIDNode.ID = "default:openai"
+
+		if err := svc.Save(ctx, actor, nonUUIDNode); err != nil {
+			t.Fatal(err)
+		}
+		stored, ok := b.nodes.nodes[nonUUIDNode.ID]
+		if !ok || stored.ID != nonUUIDNode.ID {
+			t.Errorf("node not delegated to store with raw id: %+v", b.nodes.nodes)
+		}
+		entries := b.audit.all()
+		if len(entries) != 1 {
+			t.Fatalf("expected 1 audit entry, got %d", len(entries))
+		}
+		e := entries[0]
+		if e.ResourceID != nil {
+			t.Errorf("resource id = %v, want nil for non-uuid id", e.ResourceID)
+		}
+		if e.ActorID == nil || *e.ActorID != actor.UserID {
+			t.Errorf("actor id = %v, want %v", e.ActorID, actor.UserID)
+		}
+		if e.Action != "node.save" || e.ResourceType != "provider_node" {
+			t.Errorf("action/resource type = %q/%q, want node.save/provider_node", e.Action, e.ResourceType)
+		}
+		details := decodeDetails(t, e)
+		if details["id"] != nonUUIDNode.ID {
+			t.Errorf("details id = %v, want %q", details["id"], nonUUIDNode.ID)
+		}
+		want := []string{"id", "name", "base_url", "region", "priority", "is_active"}
+		if len(details) != len(want) {
+			t.Errorf("details keys = %v, want exactly %v", details, want)
+		}
+		for _, k := range want {
+			if _, ok := details[k]; !ok {
+				t.Errorf("details missing whitelisted key %q: %v", k, details)
+			}
+		}
 	})
 
 	t.Run("delete delegates and audits", func(t *testing.T) {

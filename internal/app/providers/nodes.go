@@ -51,6 +51,7 @@ func (s *NodeService) Save(ctx context.Context, actor *auth.Actor, node enginero
 		return fmt.Errorf("save node: %w", err)
 	}
 	details := map[string]any{
+		"id":        node.ID,
 		"name":      node.Name,
 		"base_url":  node.BaseURL,
 		"region":    node.Region,
