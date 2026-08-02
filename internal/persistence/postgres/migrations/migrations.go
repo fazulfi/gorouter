@@ -620,6 +620,11 @@ func (r *Runner) UpgradeTo(ctx context.Context, targetVersion string) (*Result, 
 	var result Result
 	found := false
 	for _, m := range migrations {
+		if found {
+			// Target version already reached; skip everything beyond.
+			result.Skipped = append(result.Skipped, m.Name)
+			continue
+		}
 		if _, wasApplied := applied[m.Version]; wasApplied {
 			result.Skipped = append(result.Skipped, m.Name)
 			if m.Version == targetVersion {
@@ -633,7 +638,6 @@ func (r *Runner) UpgradeTo(ctx context.Context, targetVersion string) (*Result, 
 		result.Applied = append(result.Applied, m.Name)
 		if m.Version == targetVersion {
 			found = true
-			break
 		}
 	}
 	if !found {
