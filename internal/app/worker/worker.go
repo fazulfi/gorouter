@@ -58,21 +58,29 @@ type JobStatusUpdater interface {
 	UpdateJobStatus(ctx context.Context, id uuid.UUID, status jobs.JobStatus, result json.RawMessage, errMsg *string) error
 }
 
+// ScopeBeginner begins a transaction scope. tx.TransactionManager satisfies
+// this interface; it is an interface so tests can drive the updater with a
+// recording scope.
+type ScopeBeginner interface {
+	Begin(ctx context.Context) (*tx.TxScope, error)
+}
+
 // TransactionalJobUpdater implements JobStatusUpdater by delegating to a
 // tx.TransactionManager for atomic status changes.
 type TransactionalJobUpdater struct {
-	txManager *tx.TransactionManager
-	jobRepo   jobs.JobRepository
+	beginner ScopeBeginner
 }
 
 // NewTransactionalJobUpdater creates a JobStatusUpdater that persists status
 // changes through the transaction manager, ensuring atomicity.
-func NewTransactionalJobUpdater(txManager *tx.TransactionManager, jobRepo jobs.JobRepository) *TransactionalJobUpdater {
-	return &TransactionalJobUpdater{txManager: txManager, jobRepo: jobRepo}
+func NewTransactionalJobUpdater(beginner ScopeBeginner) *TransactionalJobUpdater {
+	return &TransactionalJobUpdater{beginner: beginner}
 }
 
-// UpdateJobStatus begins a transaction, delegates to the scoped JobRepository,
-// and commits. On any error the transaction is rolled back.
+// UpdateJobStatus begins a single transaction, delegates the status change to
+// the scoped JobRepository, and commits. On any error the transaction is
+// rolled back. No repository is called outside the scope, so a status
+// transition uses exactly one pool connection and its atomicity is real.
 func (u *TransactionalJobUpdater) UpdateJobStatus(
 	ctx context.Context,
 	id uuid.UUID,
@@ -80,7 +88,7 @@ func (u *TransactionalJobUpdater) UpdateJobStatus(
 	result json.RawMessage,
 	errMsg *string,
 ) error {
-	scope, err := u.txManager.Begin(ctx)
+	scope, err := u.beginner.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
@@ -88,7 +96,7 @@ func (u *TransactionalJobUpdater) UpdateJobStatus(
 		_ = scope.Rollback(ctx)
 	}()
 
-	if err := u.jobRepo.UpdateStatus(ctx, id, status, result, errMsg); err != nil {
+	if err := scope.Jobs().UpdateStatus(ctx, id, status, result, errMsg); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 	return scope.Commit(ctx)
@@ -116,8 +124,7 @@ type Worker struct {
 }
 
 // New creates a Worker with the given dependencies. If updater is nil, a
-// default TransactionalJobUpdater is constructed from the txManager and
-// jobRepo.
+// default TransactionalJobUpdater is constructed from the txManager.
 func New(
 	cfg Config,
 	jobRepo jobs.JobRepository,
@@ -136,7 +143,7 @@ func New(
 		signals:   make(chan uuid.UUID, cfg.QueueSize),
 		sem:       make(chan struct{}, cfg.MaxConcurrent),
 	}
-	w.updater = NewTransactionalJobUpdater(txManager, jobRepo)
+	w.updater = NewTransactionalJobUpdater(txManager)
 	return w
 }
 
