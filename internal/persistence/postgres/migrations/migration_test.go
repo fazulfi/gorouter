@@ -375,14 +375,21 @@ func TestRunner_Migrate_Up_AppliesAll(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectExec("(?i)CREATE TABLE").WillReturnResult(pgxmock.NewResult("CREATE", 0))
+	mock.ExpectExec("INSERT INTO gorouter_migrations").
+		WithArgs("000006", "000006_usage.up.sql", pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	runner := NewRunner(mock)
 	result, err := runner.Migrate(context.Background(), DirectionUp)
 	if err != nil {
 		t.Fatalf("Migrate(up): %v", err)
 	}
-	if len(result.Applied) != 5 {
-		t.Errorf("expected 5 applied, got %d", len(result.Applied))
+	if len(result.Applied) != 6 {
+		t.Errorf("expected 6 applied, got %d", len(result.Applied))
 	}
 	if len(result.Skipped) != 0 {
 		t.Errorf("expected 0 skipped, got %d", len(result.Skipped))
@@ -432,14 +439,21 @@ func TestRunner_Migrate_Up_SkipsApplied(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectExec("(?i)CREATE TABLE").WillReturnResult(pgxmock.NewResult("CREATE", 0))
+	mock.ExpectExec("INSERT INTO gorouter_migrations").
+		WithArgs("000006", "000006_usage.up.sql", pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	runner := NewRunner(mock)
 	result, err := runner.Migrate(context.Background(), DirectionUp)
 	if err != nil {
 		t.Fatalf("Migrate(up): %v", err)
 	}
-	if len(result.Applied) != 4 {
-		t.Errorf("expected 4 applied, got %d", len(result.Applied))
+	if len(result.Applied) != 5 {
+		t.Errorf("expected 5 applied, got %d", len(result.Applied))
 	}
 	if len(result.Skipped) != 1 {
 		t.Errorf("expected 1 skipped, got %d", len(result.Skipped))
@@ -687,14 +701,21 @@ func TestRunner_Up_DelegatesToMigrate(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectExec("(?i)CREATE TABLE").WillReturnResult(pgxmock.NewResult("CREATE", 0))
+	mock.ExpectExec("INSERT INTO gorouter_migrations").
+		WithArgs("000006", "000006_usage.up.sql", pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	runner := NewRunner(mock)
 	result, err := runner.Up(context.Background())
 	if err != nil {
 		t.Fatalf("Up: %v", err)
 	}
-	if len(result.Applied) != 5 {
-		t.Errorf("expected 5 applied, got %d", len(result.Applied))
+	if len(result.Applied) != 6 {
+		t.Errorf("expected 6 applied, got %d", len(result.Applied))
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -761,8 +782,8 @@ func TestRunner_ListPending_AllPending(t *testing.T) {
 	if pending == nil {
 		t.Fatal("expected non-nil pending list")
 	}
-	if len(pending) != 5 {
-		t.Errorf("expected 5 pending, got %d", len(pending))
+	if len(pending) != 6 {
+		t.Errorf("expected 6 pending, got %d", len(pending))
 	}
 	if pending[0].Version != "000001" {
 		t.Errorf("expected version 000001, got %s", pending[0].Version)
@@ -778,6 +799,9 @@ func TestRunner_ListPending_AllPending(t *testing.T) {
 	}
 	if pending[4].Version != "000005" {
 		t.Errorf("expected version 000005, got %s", pending[4].Version)
+	}
+	if pending[5].Version != "000006" {
+		t.Errorf("expected version 000006, got %s", pending[5].Version)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -805,8 +829,8 @@ func TestRunner_ListPending_NonePending(t *testing.T) {
 	if pending == nil {
 		t.Fatal("expected non-nil pending, got nil")
 	}
-	if len(pending) != 4 {
-		t.Fatalf("expected 4 pending, got %d", len(pending))
+	if len(pending) != 5 {
+		t.Fatalf("expected 5 pending, got %d", len(pending))
 	}
 	if pending[0].Version != "000002" {
 		t.Errorf("expected version 000002, got %s", pending[0].Version)
@@ -819,6 +843,9 @@ func TestRunner_ListPending_NonePending(t *testing.T) {
 	}
 	if pending[3].Version != "000005" {
 		t.Errorf("expected version 000005, got %s", pending[3].Version)
+	}
+	if pending[4].Version != "000006" {
+		t.Errorf("expected version 000006, got %s", pending[4].Version)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1291,8 +1318,8 @@ func TestRunner_Inspect_AllPending(t *testing.T) {
 	if status == nil {
 		t.Fatal("expected non-nil status")
 	}
-	if len(status) != 5 {
-		t.Fatalf("expected 5 statuses, got %d", len(status))
+	if len(status) != 6 {
+		t.Fatalf("expected 6 statuses, got %d", len(status))
 	}
 	if status[0].Status != StatusPending {
 		t.Errorf("expected pending, got %s", status[0].Status)
@@ -1308,6 +1335,9 @@ func TestRunner_Inspect_AllPending(t *testing.T) {
 	}
 	if status[4].Status != StatusPending {
 		t.Errorf("expected pending, got %s", status[4].Status)
+	}
+	if status[5].Status != StatusPending {
+		t.Errorf("expected pending, got %s", status[5].Status)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1332,8 +1362,8 @@ func TestRunner_Inspect_AllApplied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
-	if len(status) != 5 {
-		t.Fatalf("expected 5 statuses, got %d", len(status))
+	if len(status) != 6 {
+		t.Fatalf("expected 6 statuses, got %d", len(status))
 	}
 	if status[0].Status != StatusApplied {
 		t.Errorf("expected applied, got %s", status[0].Status)
@@ -1349,6 +1379,9 @@ func TestRunner_Inspect_AllApplied(t *testing.T) {
 	}
 	if status[4].Status != StatusPending {
 		t.Errorf("expected pending, got %s", status[4].Status)
+	}
+	if status[5].Status != StatusPending {
+		t.Errorf("expected pending, got %s", status[5].Status)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1512,9 +1545,9 @@ func TestRunner_PendingCount_Some(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PendingCount: %v", err)
 	}
-	// 000001 is already applied, 000002-000005 are pending
-	if count != 4 {
-		t.Errorf("expected 4 pending, got %d", count)
+	// 000001 is already applied, 000002-000006 are pending
+	if count != 5 {
+		t.Errorf("expected 5 pending, got %d", count)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1540,8 +1573,8 @@ func TestRunner_PendingCount_Zero(t *testing.T) {
 		t.Fatalf("PendingCount: %v", err)
 	}
 	// 000001 is already applied in PendingCount_Zero data set
-	if count != 4 {
-		t.Errorf("expected 4 pending, got %d", count)
+	if count != 5 {
+		t.Errorf("expected 5 pending, got %d", count)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1703,14 +1736,21 @@ func TestRunner_MustMigrate_ReturnsResult(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectExec("(?i)CREATE TABLE").WillReturnResult(pgxmock.NewResult("CREATE", 0))
+	mock.ExpectExec("INSERT INTO gorouter_migrations").
+		WithArgs("000006", "000006_usage.up.sql", pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	runner := NewRunner(mock)
 	result := runner.MustMigrate(context.Background(), DirectionUp)
 	if result == nil {
 		t.Fatal("expected non-nil result")
 	}
-	if len(result.Applied) != 5 {
-		t.Errorf("expected 5 applied, got %d", len(result.Applied))
+	if len(result.Applied) != 6 {
+		t.Errorf("expected 6 applied, got %d", len(result.Applied))
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1741,8 +1781,8 @@ func TestRunner_DryRun_Up_Pending(t *testing.T) {
 	if names == nil {
 		t.Fatal("expected non-nil names")
 	}
-	if len(names) != 5 {
-		t.Errorf("expected 5 migrations, got %d", len(names))
+	if len(names) != 6 {
+		t.Errorf("expected 6 migrations, got %d", len(names))
 	}
 	if names[0] != "000001_foundation.up.sql" {
 		t.Errorf("expected 000001_foundation.up.sql, got %s", names[0])
@@ -1758,6 +1798,9 @@ func TestRunner_DryRun_Up_Pending(t *testing.T) {
 	}
 	if names[4] != "000005_proxy_pools.up.sql" {
 		t.Errorf("expected 000005_proxy_pools.up.sql, got %s", names[4])
+	}
+	if names[5] != "000006_usage.up.sql" {
+		t.Errorf("expected 000006_usage.up.sql, got %s", names[5])
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -1817,8 +1860,8 @@ func TestRunner_DryRun_NonePending(t *testing.T) {
 	if names == nil {
 		t.Fatal("expected non-nil names, got nil")
 	}
-	if len(names) != 4 {
-		t.Fatalf("expected 4 migrations, got %d", len(names))
+	if len(names) != 5 {
+		t.Fatalf("expected 5 migrations, got %d", len(names))
 	}
 	if names[0] != "000002_engine.up.sql" {
 		t.Errorf("expected 000002_engine.up.sql, got %s", names[0])
@@ -1831,6 +1874,9 @@ func TestRunner_DryRun_NonePending(t *testing.T) {
 	}
 	if names[3] != "000005_proxy_pools.up.sql" {
 		t.Errorf("expected 000005_proxy_pools.up.sql, got %s", names[3])
+	}
+	if names[4] != "000006_usage.up.sql" {
+		t.Errorf("expected 000006_usage.up.sql, got %s", names[4])
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -2113,7 +2159,8 @@ func TestRunner_IsUpToDate_True(t *testing.T) {
 			AddRow("000002", "000002_engine.up.sql").
 			AddRow("000003", "000003_rename_api_key_column.up.sql").
 			AddRow("000004", "000004_engine_matrix.up.sql").
-			AddRow("000005", "000005_proxy_pools.up.sql"))
+			AddRow("000005", "000005_proxy_pools.up.sql").
+			AddRow("000006", "000006_usage.up.sql"))
 
 	runner := NewRunner(mock)
 	uptodate, err := runner.IsUpToDate(context.Background())
@@ -2474,8 +2521,8 @@ func TestRunner_UpgradeTo_AlreadyApplied(t *testing.T) {
 	if len(result.Applied) != 0 {
 		t.Errorf("expected 0 applied, got %d", len(result.Applied))
 	}
-	if len(result.Skipped) != 5 {
-		t.Errorf("expected 5 skipped, got %d", len(result.Skipped))
+	if len(result.Skipped) != 6 {
+		t.Errorf("expected 6 skipped, got %d", len(result.Skipped))
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -2823,8 +2870,8 @@ func TestRunner_UnappliedSince_HasUnapplied(t *testing.T) {
 	if results == nil {
 		t.Fatal("expected non-nil results, got nil")
 	}
-	if len(results) != 4 {
-		t.Fatalf("expected 4 results, got %d", len(results))
+	if len(results) != 5 {
+		t.Fatalf("expected 5 results, got %d", len(results))
 	}
 	if results[0].Version != "000002" {
 		t.Errorf("expected version 000002, got %s", results[0].Version)
@@ -2837,6 +2884,9 @@ func TestRunner_UnappliedSince_HasUnapplied(t *testing.T) {
 	}
 	if results[3].Version != "000005" {
 		t.Errorf("expected version 000005, got %s", results[3].Version)
+	}
+	if results[4].Version != "000006" {
+		t.Errorf("expected version 000006, got %s", results[4].Version)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -3031,7 +3081,7 @@ func TestRunner_PendingCount_NoMigrations(t *testing.T) {
 	}
 	defer mock.Close()
 
-	// DirectionDown has 5 files (000001-000005).
+	// DirectionDown has 6 files (000001-000006).
 	// When all are applied, PendingCount returns 0 but still needs the table.
 	mock.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
 		WillReturnResult(pgxmock.NewResult("CREATE", 0))
@@ -3041,7 +3091,8 @@ func TestRunner_PendingCount_NoMigrations(t *testing.T) {
 			AddRow("000002", "000002_engine.down.sql").
 			AddRow("000003", "000003_rename_api_key_column.down.sql").
 			AddRow("000004", "000004_engine_matrix.down.sql").
-			AddRow("000005", "000005_proxy_pools.down.sql"))
+			AddRow("000005", "000005_proxy_pools.down.sql").
+			AddRow("000006", "000006_usage.down.sql"))
 
 	runner := NewRunner(mock)
 	count, err := runner.PendingCount(context.Background(), DirectionDown)
@@ -3390,14 +3441,14 @@ func TestRunner_Summary_HasValues(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Summary: %v", err)
 	}
-	if s["total"] != 5 {
-		t.Errorf("expected total=5, got %d", s["total"])
+	if s["total"] != 6 {
+		t.Errorf("expected total=6, got %d", s["total"])
 	}
 	if s["applied"] != 1 {
 		t.Errorf("expected applied=1, got %d", s["applied"])
 	}
-	if s["pending"] != 4 {
-		t.Errorf("expected pending=4, got %d", s["pending"])
+	if s["pending"] != 5 {
+		t.Errorf("expected pending=5, got %d", s["pending"])
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
