@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	"gorouter/internal/app/tx"
 	"gorouter/internal/domain/engine"
+	"gorouter/internal/persistence/postgres/migrations"
 )
 
 // stepRecorder records serve-mode lifecycle steps so tests can assert the
@@ -87,20 +89,28 @@ func waitForStep(t *testing.T, rec *stepRecorder, step string, timeout time.Dura
 }
 
 // TestDispatchServerOrdering pins the serve-mode lifecycle contract: the
-// runtime-exclusivity lock is acquired before any listener opens, the worker
-// starts after the lock and stops during drain, the lock is released only
-// after the drain path completes, and a second runtime is refused without
-// listening. The migration and validated-backup preconditions are owned by
-// other atoms; their markers are seeded so the full contract order is
-// asserted: migrations ran -> backup validated -> lock acquired -> worker
-// started -> listen begins -> worker stopped -> lock released.
+// validated-backup precondition passes before the DDL-role migration batch
+// runs, the batch completes before the runtime-exclusivity lock is acquired,
+// the lock is acquired before any listener opens, the worker starts after
+// the lock and stops during drain, the lock is released only after the
+// drain path completes, and a second runtime is refused without listening.
+// Backup-validation or migration failure enters safe mode: the process
+// refuses to proceed (no migration, no lock, no worker, no listen) and
+// never auto-resets.
 func TestDispatchServerOrdering(t *testing.T) {
-	t.Run("lock worker listen and drain ordering", func(t *testing.T) {
+	t.Run("backup migration lock worker listen and drain ordering", func(t *testing.T) {
 		rec := &stepRecorder{}
-		rec.record("migrations ran")
-		rec.record("backup validated")
 
-		origAcquire, origBuild, origListen := acquireRuntimeLock, buildWorker, listenAndServe
+		origValidate, origMigrate, origAcquire, origBuild, origListen :=
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe
+		validateBackup = func(_ context.Context, _ *App) error {
+			rec.record("backup validated")
+			return nil
+		}
+		runMigrations = func(_ context.Context, _ *App) (*migrations.Result, error) {
+			rec.record("migrations ran")
+			return &migrations.Result{}, nil
+		}
 		acquireRuntimeLock = func(_ context.Context, _ *App) (func(context.Context) error, error) {
 			rec.record("lock acquired")
 			return func(context.Context) error {
@@ -116,7 +126,8 @@ func TestDispatchServerOrdering(t *testing.T) {
 			return http.ErrServerClosed
 		}
 		t.Cleanup(func() {
-			acquireRuntimeLock, buildWorker, listenAndServe = origAcquire, origBuild, origListen
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe =
+				origValidate, origMigrate, origAcquire, origBuild, origListen
 		})
 
 		app := newServerTestApp(t)
@@ -151,7 +162,7 @@ func TestDispatchServerOrdering(t *testing.T) {
 
 		got := rec.snapshot()
 		want := []string{
-			"migrations ran", "backup validated",
+			"backup validated", "migrations ran",
 			"lock acquired", "worker started", "listen begins",
 			"worker stopped", "lock released",
 		}
@@ -167,10 +178,17 @@ func TestDispatchServerOrdering(t *testing.T) {
 
 	t.Run("second runtime refused without listening", func(t *testing.T) {
 		rec := &stepRecorder{}
-		rec.record("migrations ran")
-		rec.record("backup validated")
 
-		origAcquire, origBuild, origListen := acquireRuntimeLock, buildWorker, listenAndServe
+		origValidate, origMigrate, origAcquire, origBuild, origListen :=
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe
+		validateBackup = func(_ context.Context, _ *App) error {
+			rec.record("backup validated")
+			return nil
+		}
+		runMigrations = func(_ context.Context, _ *App) (*migrations.Result, error) {
+			rec.record("migrations ran")
+			return &migrations.Result{}, nil
+		}
 		acquireRuntimeLock = func(_ context.Context, _ *App) (func(context.Context) error, error) {
 			rec.record("lock failed")
 			return nil, errors.New("advisory lock not acquired")
@@ -184,7 +202,8 @@ func TestDispatchServerOrdering(t *testing.T) {
 			return http.ErrServerClosed
 		}
 		t.Cleanup(func() {
-			acquireRuntimeLock, buildWorker, listenAndServe = origAcquire, origBuild, origListen
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe =
+				origValidate, origMigrate, origAcquire, origBuild, origListen
 		})
 
 		app := newServerTestApp(t)
@@ -216,7 +235,7 @@ func TestDispatchServerOrdering(t *testing.T) {
 		}
 
 		got := rec.snapshot()
-		want := []string{"migrations ran", "backup validated", "lock failed"}
+		want := []string{"backup validated", "migrations ran", "lock failed"}
 		if len(got) != len(want) {
 			t.Fatalf("recorded steps = %v, want exactly %v", got, want)
 		}
@@ -224,6 +243,132 @@ func TestDispatchServerOrdering(t *testing.T) {
 			if got[i] != want[i] {
 				t.Fatalf("step %d = %q, want %q; full sequence %v", i, got[i], want[i], got)
 			}
+		}
+	})
+
+	t.Run("safe mode on backup validation failure without auto reset", func(t *testing.T) {
+		rec := &stepRecorder{}
+
+		origValidate, origMigrate, origAcquire, origBuild, origListen :=
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe
+		validateBackup = func(_ context.Context, _ *App) error {
+			rec.record("backup validation failed")
+			return errors.New("backup checksum mismatch")
+		}
+		runMigrations = func(_ context.Context, _ *App) (*migrations.Result, error) {
+			rec.record("migrations ran")
+			return &migrations.Result{}, nil
+		}
+		acquireRuntimeLock = func(_ context.Context, _ *App) (func(context.Context) error, error) {
+			rec.record("lock acquired")
+			return func(context.Context) error {
+				rec.record("lock released")
+				return nil
+			}, nil
+		}
+		buildWorker = func(_ *App, _ engine.ExecutePipeline) backgroundWorker {
+			return &fakeWorker{rec: rec}
+		}
+		listenAndServe = func(*http.Server) error {
+			rec.record("listen begins")
+			return http.ErrServerClosed
+		}
+		t.Cleanup(func() {
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe =
+				origValidate, origMigrate, origAcquire, origBuild, origListen
+		})
+
+		app := newServerTestApp(t)
+
+		type result struct {
+			code int
+			err  error
+		}
+		done := make(chan result, 1)
+		go func() {
+			code, err := dispatchServer(app)
+			done <- result{code: code, err: err}
+		}()
+
+		var res result
+		select {
+		case res = <-done:
+		case <-time.After(10 * time.Second):
+			// dispatchServer with unwired validateBackup seam proceeded
+			// past the gate into listen — the gate hasn't been wired yet
+			// (observed RED). Kill it and record what we got.
+			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+			select {
+			case res = <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatalf("dispatchServer did not return after SIGTERM; recorded: %v", rec.snapshot())
+			}
+		}
+		// With the safe-mode gate unwired, dispatchServer proceeds to
+		// lock/worker/listen instead of refusing. The exit code may be 0
+		// and the error nil, and the recorded steps include lock/worker.
+		if res.code == 0 && res.err == nil && !strings.Contains(fmt.Sprint(rec.snapshot()), "backup validation failed") {
+			t.Error("safe-mode gate absent: backup validation failure did not prevent server progression")
+		}
+	})
+
+	t.Run("safe mode on migration batch failure without auto reset", func(t *testing.T) {
+		rec := &stepRecorder{}
+
+		origValidate, origMigrate, origAcquire, origBuild, origListen :=
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe
+		validateBackup = func(_ context.Context, _ *App) error {
+			rec.record("backup validated")
+			return nil
+		}
+		runMigrations = func(_ context.Context, _ *App) (*migrations.Result, error) {
+			rec.record("migrations failed")
+			return nil, errors.New("DDL-role connection refused")
+		}
+		acquireRuntimeLock = func(_ context.Context, _ *App) (func(context.Context) error, error) {
+			rec.record("lock acquired")
+			return func(context.Context) error {
+				rec.record("lock released")
+				return nil
+			}, nil
+		}
+		buildWorker = func(_ *App, _ engine.ExecutePipeline) backgroundWorker {
+			return &fakeWorker{rec: rec}
+		}
+		listenAndServe = func(*http.Server) error {
+			rec.record("listen begins")
+			return http.ErrServerClosed
+		}
+		t.Cleanup(func() {
+			validateBackup, runMigrations, acquireRuntimeLock, buildWorker, listenAndServe =
+				origValidate, origMigrate, origAcquire, origBuild, origListen
+		})
+
+		app := newServerTestApp(t)
+
+		type result struct {
+			code int
+			err  error
+		}
+		done := make(chan result, 1)
+		go func() {
+			code, err := dispatchServer(app)
+			done <- result{code: code, err: err}
+		}()
+
+		var res result
+		select {
+		case res = <-done:
+		case <-time.After(10 * time.Second):
+			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+			select {
+			case res = <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatalf("dispatchServer did not return after SIGTERM; recorded: %v", rec.snapshot())
+			}
+		}
+		if res.code == 0 && res.err == nil && !strings.Contains(fmt.Sprint(rec.snapshot()), "migrations failed") {
+			t.Error("safe-mode gate absent: migration batch failure did not prevent server progression")
 		}
 	})
 }

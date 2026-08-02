@@ -27,6 +27,7 @@ import (
 	"gorouter/internal/engine/formats"
 	"gorouter/internal/engine/providers/registry"
 	"gorouter/internal/persistence/postgres"
+	"gorouter/internal/persistence/postgres/migrations"
 	"gorouter/internal/persistence/postgres/repositories"
 	"gorouter/internal/shared"
 	"gorouter/internal/transport/httpserver"
@@ -120,6 +121,22 @@ func dispatchServer(app *App) (int, error) {
 	shutdownCtx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Fail-closed bootstrap preconditions (design §8): a validated backup
+	// must pass before any DDL migration batch, and the batch must complete
+	// before the runtime pool acquires the runtime lock. Failure at either
+	// step enters safe mode: the process refuses to migrate or listen and
+	// never auto-resets.
+	if err := validateBackup(shutdownCtx, app); err != nil {
+		cd.Stop()
+		return 1, fmt.Errorf("safe mode: validated backup failed; refusing to run migrations or start the server (no automatic reset): %w", err)
+	}
+	if result, err := runMigrations(shutdownCtx, app); err != nil {
+		cd.Stop()
+		return 1, fmt.Errorf("safe mode: schema migration batch failed; refusing to start the server (no automatic reset): %w", err)
+	} else if result != nil && len(result.Applied) > 0 {
+		app.Logger.Info().Int("applied", len(result.Applied)).Msg("schema migration batch applied")
+	}
 
 	// Acquire the runtime-exclusivity advisory lock before any listener is
 	// opened: a second runtime on the same database is rejected. The lock
@@ -319,6 +336,28 @@ var acquireRuntimeLock = func(ctx context.Context, app *App) (func(context.Conte
 		return nil, err
 	}
 	return lock.Release, nil
+}
+
+// validateBackup is the validated-backup precondition gate that must pass
+// before any DDL migration batch runs (design §8: migrations run at
+// bootstrap after validated backup and before the runtime lock). It is a
+// package-level variable so bootstrap tests can assert safe-mode refusal
+// with a failing verifier. The production implementation is a pass-through
+// until the backup verifier is wired; from then on any validation failure
+// fails the gate closed into safe mode with no automatic reset.
+var validateBackup = func(context.Context, *App) error { return nil }
+
+// runMigrations executes the DDL-role migration batch: a dedicated
+// connection is opened with the DDL role, pending up migrations are applied
+// on it, and the connection is closed. The runtime pool is never used for
+// DDL. It is a package-level variable so bootstrap tests can assert the
+// batch position in the serve-mode ordering contract.
+var runMigrations = func(ctx context.Context, app *App) (*migrations.Result, error) {
+	cfg, err := migrations.FromRuntimeDSN(app.Config.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("derive DDL-role connection config: %w", err)
+	}
+	return migrations.RunMigrations(ctx, cfg)
 }
 
 // backgroundWorker is the subset of the job worker used by serve mode. It is
