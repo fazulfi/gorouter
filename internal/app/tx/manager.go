@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/domain/backup"
 	"gorouter/internal/domain/combo"
 	"gorouter/internal/domain/console"
 	"gorouter/internal/domain/jobs"
@@ -80,6 +81,7 @@ type TxScope struct {
 	usage          usage.UsageRepository
 	console        console.ConsoleLogRepository
 	passwordResets passwordreset.PasswordResetRepository
+	backups        backup.BackupRepository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -93,7 +95,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	combos combo.Repository, oauth oauth.Repository,
 	pools provider.PoolRepository, nodes enginerouting.NodeStore,
 	usage usage.UsageRepository, console console.ConsoleLogRepository,
-	passwordResets passwordreset.PasswordResetRepository) *TxScope {
+	passwordResets passwordreset.PasswordResetRepository,
+	backups backup.BackupRepository) *TxScope {
 	return &TxScope{
 		tx:             tx,
 		users:          users,
@@ -114,6 +117,7 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		usage:          usage,
 		console:        console,
 		passwordResets: passwordResets,
+		backups:        backups,
 	}
 }
 
@@ -180,6 +184,9 @@ func (s *TxScope) ConsoleLogs() console.ConsoleLogRepository { return s.console 
 
 // PasswordResets returns the scoped PasswordResetRepository.
 func (s *TxScope) PasswordResets() passwordreset.PasswordResetRepository { return s.passwordResets }
+
+// Backups returns the scoped BackupRepository.
+func (s *TxScope) Backups() backup.BackupRepository { return s.backups }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle

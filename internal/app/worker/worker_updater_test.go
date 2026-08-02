@@ -103,7 +103,7 @@ func TestTransactionalJobUpdater_CommitsSingleScope(t *testing.T) {
 	repo := &recordingJobRepo{}
 	fakeTx := &recordingTx{}
 	beginner := &beginRecorder{
-		scope: tx.NewTxScope(fakeTx, nil, nil, nil, nil, nil, repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
+		scope: tx.NewTxScope(fakeTx, nil, nil, nil, nil, nil, repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
 	}
 	updater := NewTransactionalJobUpdater(beginner)
 
@@ -147,7 +147,7 @@ func TestTransactionalJobUpdater_RollsBackOnScopedUpdateError(t *testing.T) {
 	repo := &recordingJobRepo{updateErr: errors.New("update failed")}
 	fakeTx := &recordingTx{}
 	beginner := &beginRecorder{
-		scope: tx.NewTxScope(fakeTx, nil, nil, nil, nil, nil, repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
+		scope: tx.NewTxScope(fakeTx, nil, nil, nil, nil, nil, repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
 	}
 	updater := NewTransactionalJobUpdater(beginner)
 
