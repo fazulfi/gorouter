@@ -183,3 +183,45 @@ func TestDomainDoesNotImportTransport(t *testing.T) {
 			strings.Join(violations, "\n"))
 	}
 }
+
+// phase4DomainPackages lists the domain packages added by the phase-4
+// product surfaces. Each must obey the same domain purity rule as the
+// existing domain packages.
+var phase4DomainPackages = []string{
+	"internal/domain/usage",
+	"internal/domain/quota",
+	"internal/domain/settings",
+	"internal/domain/pricing",
+	"internal/domain/actor",
+}
+
+// TestPhase4DomainPackagesRemainPure verifies the phase-4 domain packages do
+// not import transport, database or OS concerns. A package whose directory
+// does not exist yet is skipped via os.Stat so the guard stays green while
+// the packages are still absent; once a directory appears the guard starts
+// checking that package automatically.
+func TestPhase4DomainPackagesRemainPure(t *testing.T) {
+	forbidden := []string{
+		modulePrefix + "/internal/persistence",
+		modulePrefix + "/internal/transport",
+		"github.com/jackc/pgx",
+		"github.com/go-chi",
+		"net/http",
+		"database/sql",
+		"os",
+	}
+	root := projectRoot()
+	for _, pkg := range phase4DomainPackages {
+		if _, err := os.Stat(filepath.Join(root, pkg)); os.IsNotExist(err) {
+			t.Logf("SKIP: %s does not exist yet; purity guard becomes active when it lands", pkg)
+			continue
+		}
+		violations := findImports(pkg, forbidden, true)
+		if len(violations) > 0 {
+			t.Errorf("%s must not import transport/database/OS concerns:\n%s",
+				pkg, strings.Join(violations, "\n"))
+		} else {
+			t.Logf("OK: %s has no forbidden imports", pkg)
+		}
+	}
+}
