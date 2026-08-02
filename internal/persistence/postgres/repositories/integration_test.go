@@ -3,30 +3,88 @@ package repositories
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"gorouter/internal/domain/provider"
 	enginerouting "gorouter/internal/engine/routing"
+	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// repoTestDBPrefix is the dedicated test database used by the repositories
+// integration tests. A dedicated DB keeps the migrations package test
+// binary's shared public schema fully isolated from the repositories
+// binary's schema lifecycle, eliminating the deterministic cross-binary
+// race that a same-DB / same-schema setup inevitably incurs.
+const repoTestDBPrefix = "gorouter_repo_iso_"
+
+func setupRepoTestDB(t *testing.T, ctx context.Context) string {
+	t.Helper()
+	adminDSN := os.Getenv("DATABASE_URL")
+	if adminDSN == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+	conn, err := pgx.Connect(ctx, adminDSN)
+	if err != nil {
+		t.Fatalf("admin connect: %v", err)
+	}
+	defer conn.Close(ctx)
+	dbName := repoTestDBPrefix + uuid.NewString()[:8]
+	if _, err := conn.Exec(ctx, "CREATE DATABASE "+dbName); err != nil {
+		t.Fatalf("create test db %s: %v", dbName, err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		cleanupConn, err := pgx.Connect(cleanupCtx, adminDSN)
+		if err != nil {
+			return
+		}
+		_, _ = cleanupConn.Exec(cleanupCtx,
+			"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+			dbName)
+		_, _ = cleanupConn.Exec(cleanupCtx, "DROP DATABASE IF EXISTS "+dbName)
+		cleanupConn.Close(cleanupCtx)
+	})
+	return dbName
+}
+
+func isolatedTestDSN(t *testing.T, dbName string) string {
+	t.Helper()
+	base := os.Getenv("DATABASE_URL")
+	slash := strings.LastIndex(base, "/")
+	if slash == -1 {
+		t.Fatalf("DATABASE_URL missing /dbname: %q", base)
+	}
+	return base[:slash+1] + dbName + "?sslmode=disable"
+}
 
 func getTestPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
+	if os.Getenv("DATABASE_URL") == "" {
 		t.Skip("DATABASE_URL not set")
 	}
-	pool, err := pgxpool.New(context.Background(), dsn)
+
+	ctx := context.Background()
+	dbName := setupRepoTestDB(t, ctx)
+	dsn := isolatedTestDSN(t, dbName)
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		t.Fatalf("pgxpool.New: %v", err)
 	}
 	t.Cleanup(pool.Close)
+
+	if _, err := migrations.Migrate(ctx, pool, migrations.DirectionUp); err != nil {
+		t.Fatalf("migrate up in test DB: %v", err)
+	}
 	return pool
 }
 
@@ -469,7 +527,7 @@ func TestNodeStore_IdentitySpoofPrevention_Integration(t *testing.T) {
 			Name:       "spoof-uuid",
 			IsActive:   true,
 			Metadata: map[string]string{
-				"source":           "attacker",
+				"source":          "attacker",
 				nodeExternalIDKey: "spoofed-other-node-id",
 			},
 		}
@@ -506,7 +564,7 @@ func TestNodeStore_IdentitySpoofPrevention_Integration(t *testing.T) {
 			Name:       "collision-node",
 			IsActive:   true,
 			Metadata: map[string]string{
-				"source":           "attacker",
+				"source":          "attacker",
 				nodeExternalIDKey: "fake-identity",
 			},
 		}
