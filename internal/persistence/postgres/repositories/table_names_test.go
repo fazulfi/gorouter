@@ -8,6 +8,7 @@ import (
 
 	txpkg "gorouter/internal/app/tx"
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/domain/console"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/provider"
@@ -506,5 +507,36 @@ func TestModelRepo_SQL_UsesGorouterProviderModels(t *testing.T) {
 		repo := &ModelRepository{tx: tx}
 		_, _ = repo.ListByCapability(context.Background(), "chat")
 		assertTableInSQL(t, tx, "gorouter_provider_models")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConsoleLogRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestConsoleLogRepo_SQL_UsesGorouterConsoleLogs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Append", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_ = repo.Append(context.Background(), &console.ConsoleLog{
+			Seq: 1, RedactedMessage: "redacted",
+		})
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("ListAfter", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.ListAfter(context.Background(), 0, 50)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("DeleteBefore", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.DeleteBefore(context.Background(), 10)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
 	})
 }
