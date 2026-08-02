@@ -11,6 +11,7 @@ import (
 	"gorouter/internal/domain/console"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
+	"gorouter/internal/domain/passwordreset"
 	"gorouter/internal/domain/provider"
 
 	"github.com/google/uuid"
@@ -538,5 +539,36 @@ func TestConsoleLogRepo_SQL_UsesGorouterConsoleLogs(t *testing.T) {
 		repo := &consoleLogRepo{tx: tx}
 		_, _ = repo.DeleteBefore(context.Background(), 10)
 		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// PasswordResetRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestPasswordResetRepo_SQL_UsesGorouterPasswordResets(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Create(context.Background(), &passwordreset.PasswordReset{
+			ID: uuid.New(), UserID: uuid.New(), TokenHash: "opaque-hash",
+		})
+		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+
+	t.Run("Complete", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Complete(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+
+	t.Run("Revoke", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Revoke(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_password_resets")
 	})
 }
