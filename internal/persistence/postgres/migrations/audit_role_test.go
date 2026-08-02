@@ -323,6 +323,20 @@ func TestAuditRoleImmutability(t *testing.T) {
 	}
 	defer pool.Close()
 
+	// The runtime role must never be the audit log owner: ownership is the
+	// DDL role's, so the 000009 REVOKE binds and no implicit owner
+	// privileges (UPDATE/DELETE/TRUNCATE/DDL) exist.
+	var ownedByDDL bool
+	if err := pool.QueryRow(ctx,
+		`SELECT (c.relowner = r.oid) FROM pg_class c
+		 JOIN pg_roles r ON r.rolname = $1
+		 WHERE c.relname = 'gorouter_audit_log' AND c.relkind = 'r'`, DDLRoleUser).Scan(&ownedByDDL); err != nil {
+		t.Fatalf("audit log ownership: %v", err)
+	}
+	if !ownedByDDL {
+		t.Fatalf("audit log must be owned by DDL role %q, not the runtime role", DDLRoleUser)
+	}
+
 	// Seed one row through the granted INSERT path so the mutation probes
 	// target existing data. The seed uses only baseline columns so it is
 	// valid on both the pre-000009 (RED) and post-000009 (GREEN) schemas.

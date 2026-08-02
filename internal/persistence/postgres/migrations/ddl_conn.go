@@ -99,9 +99,60 @@ func (p *ddlPool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows,
 func (p *ddlPool) Begin(ctx context.Context) (pgx.Tx, error) { return p.conn.Begin(ctx) }
 func (p *ddlPool) Close()                                    { _ = p.conn.Close(context.Background()) }
 
-// RunMigrations opens a dedicated connection with the DDL role, applies all
-// pending up migrations on it, and closes it.  The runtime pool is never
-// used for DDL; role selection is explicit in cfg.User.
+// ensureAuditLogOwnership enforces the audit-immutability ownership
+// precondition before a migration batch runs. The audit log must be owned by
+// the DDL role: a runtime-role-owned audit log makes migration 000009's
+// REVOKE UPDATE, DELETE a silent no-op (the owner's implicit privileges
+// cannot be stripped), so immutability would not hold after the upgrade.
+// When the audit log exists and is owned by another role, the batch attempts
+// the automatic ownership transfer first; that succeeds when the DDL role is
+// a superuser or a member of the current owner role (the production DDL role
+// is provisioned superuser-by-construction). If the transfer is refused, the
+// batch fails closed with an actionable, secret-free transfer instruction
+// instead of continuing with false immutability. A missing audit log (fresh
+// install) needs no action.
+func ensureAuditLogOwnership(ctx context.Context, conn ddlConn, ddlRole string) error {
+	rows, err := conn.Query(ctx,
+		`SELECT r.rolname FROM pg_class c
+		 JOIN pg_roles r ON r.oid = c.relowner
+		 WHERE c.relname = 'gorouter_audit_log' AND c.relkind = 'r'`)
+	if err != nil {
+		return fmt.Errorf("audit immutability precondition: inspect gorouter_audit_log ownership: %w", err)
+	}
+	hasOwner := rows.Next()
+	var owner string
+	if hasOwner {
+		if err := rows.Scan(&owner); err != nil {
+			rows.Close()
+			return fmt.Errorf("audit immutability precondition: scan gorouter_audit_log owner: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("audit immutability precondition: inspect gorouter_audit_log ownership: %w", err)
+	}
+	rows.Close()
+
+	if !hasOwner || owner == ddlRole {
+		return nil
+	}
+
+	if _, err := conn.Exec(ctx,
+		"ALTER TABLE gorouter_audit_log OWNER TO "+pgx.Identifier{ddlRole}.Sanitize()); err != nil {
+		return fmt.Errorf(
+			"audit immutability precondition: table gorouter_audit_log is owned by role %q, not the DDL role %q, "+
+				"and the automatic ownership transfer was refused (insufficient privilege). Transfer ownership before "+
+				"migrating, then re-run: ALTER TABLE gorouter_audit_log OWNER TO %s; (run as a superuser or as a member "+
+				"of the current owner role; the DDL role must have CREATE on the table schema): %w",
+			owner, ddlRole, ddlRole, err)
+	}
+	return nil
+}
+
+// RunMigrations opens a dedicated connection with the DDL role, enforces the
+// audit-immutability ownership precondition, applies all pending up
+// migrations on it, and closes it.  The runtime pool is never used for DDL;
+// role selection is explicit in cfg.User.
 func RunMigrations(ctx context.Context, cfg DDLConfig) (*Result, error) {
 	if cfg.User == "" {
 		return nil, fmt.Errorf("DDL-role migration batch: no DDL role configured")
@@ -113,6 +164,10 @@ func RunMigrations(ctx context.Context, cfg DDLConfig) (*Result, error) {
 	defer func() {
 		_ = conn.Close(context.Background())
 	}()
+
+	if err := ensureAuditLogOwnership(ctx, conn, cfg.User); err != nil {
+		return nil, err
+	}
 
 	result, err := NewRunner(&ddlPool{conn: conn}).Migrate(ctx, DirectionUp)
 	if err != nil {

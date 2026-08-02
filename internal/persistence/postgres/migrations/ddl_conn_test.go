@@ -74,6 +74,10 @@ func TestRunMigrations_UsesDedicatedDDLConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Audit log absent on a fresh database: the ownership precondition
+	// passes without a transfer and the batch proceeds.
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}))
 	mock.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
 		WillReturnResult(pgxmock.NewResult("CREATE", 0))
 	mock.ExpectQuery("SELECT version, name FROM gorouter_migrations ORDER BY version").
@@ -168,6 +172,8 @@ func TestRunMigrations_BatchFailureClosesConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}))
 	mock.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
 		WillReturnResult(pgxmock.NewResult("CREATE", 0))
 	mock.ExpectQuery("SELECT version, name FROM gorouter_migrations ORDER BY version").
@@ -192,5 +198,127 @@ func TestRunMigrations_BatchFailureClosesConnection(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations (dedicated connection not closed): %v", err)
+	}
+}
+
+// TestEnsureAuditLogOwnership_TableAbsent proves a fresh database (no audit
+// log yet) passes the ownership precondition without any transfer.
+func TestEnsureAuditLogOwnership_TableAbsent(t *testing.T) {
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}))
+
+	if err := ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser); err != nil {
+		t.Fatalf("ensureAuditLogOwnership on absent table: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+// TestEnsureAuditLogOwnership_AlreadyOwnedByDDLRole proves a DDL-role-owned
+// audit log passes the precondition without a transfer.
+func TestEnsureAuditLogOwnership_AlreadyOwnedByDDLRole(t *testing.T) {
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow(DDLRoleUser))
+
+	if err := ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser); err != nil {
+		t.Fatalf("ensureAuditLogOwnership on DDL-owned table: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations (no transfer should run): %v", err)
+	}
+}
+
+// TestEnsureAuditLogOwnership_TransfersOwner proves the automatic ownership
+// transfer runs when the audit log is owned by another role and the DDL role
+// has the required membership or superuser standing.
+func TestEnsureAuditLogOwnership_TransfersOwner(t *testing.T) {
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("gorouter"))
+	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+		WillReturnResult(pgxmock.NewResult("ALTER TABLE", 0))
+
+	if err := ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser); err != nil {
+		t.Fatalf("ensureAuditLogOwnership transfer: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+// TestEnsureAuditLogOwnership_TransferRefusedFailsClosed proves a refused
+// ownership transfer fails the precondition closed with an actionable
+// instruction naming both roles and the transfer statement.
+func TestEnsureAuditLogOwnership_TransferRefusedFailsClosed(t *testing.T) {
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("postgres"))
+	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+		WillReturnError(errors.New("must be owner of table gorouter_audit_log"))
+
+	err = ensureAuditLogOwnership(context.Background(), mock, DDLRoleUser)
+	if err == nil {
+		t.Fatal("ensureAuditLogOwnership on refused transfer: expected error, got nil")
+	}
+	for _, want := range []string{
+		"audit immutability precondition",
+		"gorouter_audit_log",
+		"ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl",
+		`owned by role "postgres"`,
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not contain %q", err.Error(), want)
+		}
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+// TestRunMigrations_OwnershipPreconditionFailsClosed proves a refused
+// ownership transfer aborts the whole batch before any migration runs and
+// still closes the dedicated connection.
+func TestRunMigrations_OwnershipPreconditionFailsClosed(t *testing.T) {
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mock.ExpectQuery("SELECT r\\.rolname FROM pg_class").
+		WillReturnRows(mock.NewRows([]string{"rolname"}).AddRow("postgres"))
+	mock.ExpectExec("ALTER TABLE gorouter_audit_log OWNER TO gorouter_ddl").
+		WillReturnError(errors.New("must be owner of table gorouter_audit_log"))
+	mock.ExpectClose()
+
+	origOpenDDL := openDDL
+	openDDL = func(_ context.Context, _ DDLConfig) (ddlConn, error) {
+		return mock, nil
+	}
+	t.Cleanup(func() { openDDL = origOpenDDL })
+
+	_, err = RunMigrations(context.Background(), DDLConfig{User: DDLRoleUser})
+	if err == nil {
+		t.Fatal("RunMigrations: expected ownership precondition error, got nil")
+	}
+	if !strings.Contains(err.Error(), "audit immutability precondition") {
+		t.Errorf("error = %q, want ownership precondition failure", err.Error())
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations (batch must not run): %v", err)
 	}
 }
