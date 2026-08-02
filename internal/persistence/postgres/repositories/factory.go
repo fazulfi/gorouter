@@ -37,6 +37,7 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		&nodeStore{tx: pgTx},
 		NewUsageRepo(pgTx),
 		NewConsoleLogRepo(pgTx),
+		NewPasswordResetRepo(pgTx),
 	)
 }
 

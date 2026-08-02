@@ -14,6 +14,7 @@ import (
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/oauth"
+	"gorouter/internal/domain/passwordreset"
 	"gorouter/internal/domain/provider"
 	"gorouter/internal/domain/usage"
 	enginerouting "gorouter/internal/engine/routing"
@@ -60,24 +61,25 @@ type ModelRepository interface {
 // TxScope scopes all domain repository access within a single database transaction.
 // Obtain one via TransactionManager.Begin, then call Commit or Rollback when done.
 type TxScope struct {
-	tx        pgx.Tx
-	users     auth.UserRepository
-	sessions  auth.SessionRepository
-	apiKeys   keys.APIKeyRepository
-	pats      keys.PATRepository
-	providers provider.ProviderRepository
-	jobs      jobs.JobRepository
-	auditLog  AuditLogRepository
-	accounts  provider.AccountRepository
-	proxies   provider.ProxyRepository
-	models    ModelRepository
-	aliases   enginerouting.AliasRepository
-	combos    combo.Repository
-	oauth     oauth.Repository
-	pools     provider.PoolRepository
-	nodes     enginerouting.NodeStore
-	usage     usage.UsageRepository
-	console   console.ConsoleLogRepository
+	tx             pgx.Tx
+	users          auth.UserRepository
+	sessions       auth.SessionRepository
+	apiKeys        keys.APIKeyRepository
+	pats           keys.PATRepository
+	providers      provider.ProviderRepository
+	jobs           jobs.JobRepository
+	auditLog       AuditLogRepository
+	accounts       provider.AccountRepository
+	proxies        provider.ProxyRepository
+	models         ModelRepository
+	aliases        enginerouting.AliasRepository
+	combos         combo.Repository
+	oauth          oauth.Repository
+	pools          provider.PoolRepository
+	nodes          enginerouting.NodeStore
+	usage          usage.UsageRepository
+	console        console.ConsoleLogRepository
+	passwordResets passwordreset.PasswordResetRepository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -90,26 +92,28 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	models ModelRepository, aliases enginerouting.AliasRepository,
 	combos combo.Repository, oauth oauth.Repository,
 	pools provider.PoolRepository, nodes enginerouting.NodeStore,
-	usage usage.UsageRepository, console console.ConsoleLogRepository) *TxScope {
+	usage usage.UsageRepository, console console.ConsoleLogRepository,
+	passwordResets passwordreset.PasswordResetRepository) *TxScope {
 	return &TxScope{
-		tx:        tx,
-		users:     users,
-		sessions:  sessions,
-		apiKeys:   apiKeys,
-		pats:      pats,
-		providers: providers,
-		jobs:      jrs,
-		auditLog:  auditLog,
-		accounts:  accounts,
-		proxies:   proxies,
-		models:    models,
-		aliases:   aliases,
-		combos:    combos,
-		oauth:     oauth,
-		pools:     pools,
-		nodes:     nodes,
-		usage:     usage,
-		console:   console,
+		tx:             tx,
+		users:          users,
+		sessions:       sessions,
+		apiKeys:        apiKeys,
+		pats:           pats,
+		providers:      providers,
+		jobs:           jrs,
+		auditLog:       auditLog,
+		accounts:       accounts,
+		proxies:        proxies,
+		models:         models,
+		aliases:        aliases,
+		combos:         combos,
+		oauth:          oauth,
+		pools:          pools,
+		nodes:          nodes,
+		usage:          usage,
+		console:        console,
+		passwordResets: passwordResets,
 	}
 }
 
@@ -173,6 +177,9 @@ func (s *TxScope) Usage() usage.UsageRepository { return s.usage }
 
 // ConsoleLogs returns the scoped ConsoleLogRepository.
 func (s *TxScope) ConsoleLogs() console.ConsoleLogRepository { return s.console }
+
+// PasswordResets returns the scoped PasswordResetRepository.
+func (s *TxScope) PasswordResets() passwordreset.PasswordResetRepository { return s.passwordResets }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle

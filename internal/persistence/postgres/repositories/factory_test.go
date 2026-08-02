@@ -80,6 +80,9 @@ func TestNewTxScope(t *testing.T) {
 		if scope.ConsoleLogs() == nil {
 			t.Error("ConsoleLogs() returned nil")
 		}
+		if scope.PasswordResets() == nil {
+			t.Error("PasswordResets() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -108,6 +111,7 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Nodes()
 		_ = scope.Usage()
 		_ = scope.ConsoleLogs()
+		_ = scope.PasswordResets()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -170,6 +174,9 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.ConsoleLogs().(*consoleLogRepo); !ok {
 			t.Error("ConsoleLogs() is not *consoleLogRepo")
+		}
+		if _, ok := scope.PasswordResets().(*passwordResetRepo); !ok {
+			t.Error("PasswordResets() is not *passwordResetRepo")
 		}
 	})
 }
