@@ -8,6 +8,7 @@ import (
 
 	txpkg "gorouter/internal/app/tx"
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/domain/backup"
 	"gorouter/internal/domain/console"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
@@ -570,5 +571,43 @@ func TestPasswordResetRepo_SQL_UsesGorouterPasswordResets(t *testing.T) {
 		repo := &passwordResetRepo{tx: tx}
 		_ = repo.Revoke(context.Background(), uuid.New(), testNow)
 		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// BackupRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestBackupRepo_SQL_UsesGorouterBackups(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_ = repo.Create(context.Background(), &backup.Backup{
+			ID: uuid.New(), Path: "/p", SHA256: "h", Bytes: 1,
+		})
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_, _ = repo.List(context.Background())
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("FindByID", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_, _ = repo.FindByID(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("UpdateVerification", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_ = repo.UpdateVerification(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_backups")
 	})
 }
