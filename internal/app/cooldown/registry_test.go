@@ -275,6 +275,42 @@ func TestZeroConfigUsesDefaults(t *testing.T) {
 	}
 }
 
+// TestWithClockDrivesCooldownTiming proves the injected clock is the sole
+// source of cooldown timing (BE-13 extension): expiry and eager cleanup both
+// follow the injected clock, and the default clock is unchanged for existing
+// callers.
+func TestWithClockDrivesCooldownTiming(t *testing.T) {
+	base := time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC)
+	r := New(Config{
+		DefaultCooldown:  time.Minute,
+		MaxCooldown:      time.Minute,
+		FailureThreshold: 1,
+		EscalationFactor: 1.0,
+		CleanupInterval:  time.Hour,
+	})
+	r.WithClock(func() time.Time { return base })
+	ctx := context.Background()
+	acctID := uuid.New()
+
+	r.RecordFailure(ctx, acctID, errors.New("boom"))
+	st := r.Status(ctx, acctID)
+	if st == nil || !st.ExpiresAt.Equal(base.Add(time.Minute)) {
+		t.Fatalf("cooldown must expire at injected clock + duration, got %+v", st)
+	}
+	if !r.IsOnCooldown(ctx, acctID) {
+		t.Fatal("account must be on cooldown at injected clock")
+	}
+
+	advance := base.Add(2 * time.Minute)
+	r.WithClock(func() time.Time { return advance })
+	if r.IsOnCooldown(ctx, acctID) {
+		t.Fatal("account must be off cooldown after injected clock passes expiry")
+	}
+	if st := r.Status(ctx, acctID); st != nil {
+		t.Fatalf("expired entry must be eagerly purged on read, got %+v", st)
+	}
+}
+
 func TestThreadSafety(t *testing.T) {
 	r := New(Config{
 		DefaultCooldown:  time.Minute,

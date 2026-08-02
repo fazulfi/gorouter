@@ -64,6 +64,7 @@ type Registry struct {
 	mu       sync.RWMutex
 	entries  map[uuid.UUID]*entry
 	defaults Config
+	now      func() time.Time
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -78,8 +79,15 @@ func New(config Config) *Registry {
 	return &Registry{
 		entries:  make(map[uuid.UUID]*entry),
 		defaults: config,
+		now:      time.Now,
 		stopCh:   make(chan struct{}),
 	}
+}
+
+// WithClock replaces the internal clock used for cooldown timing (tests
+// only; the default is time.Now). Call before concurrent use.
+func (r *Registry) WithClock(now func() time.Time) {
+	r.now = now
 }
 
 // IsOnCooldown checks whether the specified account is currently cooled down.
@@ -93,7 +101,7 @@ func (r *Registry) IsOnCooldown(_ context.Context, accountID uuid.UUID) bool {
 		r.mu.RUnlock()
 		return false
 	}
-	if time.Now().Before(e.cooldownUntil) {
+	if r.now().Before(e.cooldownUntil) {
 		r.mu.RUnlock()
 		return true
 	}
@@ -102,7 +110,7 @@ func (r *Registry) IsOnCooldown(_ context.Context, accountID uuid.UUID) bool {
 	// Cooldown expired — eagerly clean up under write lock.
 	r.mu.Lock()
 	e2, ok2 := r.entries[accountID]
-	if ok2 && !e2.cooldownUntil.IsZero() && !time.Now().Before(e2.cooldownUntil) {
+	if ok2 && !e2.cooldownUntil.IsZero() && !r.now().Before(e2.cooldownUntil) {
 		delete(r.entries, accountID)
 	}
 	r.mu.Unlock()
@@ -117,7 +125,7 @@ func (r *Registry) RecordFailure(_ context.Context, accountID uuid.UUID, err err
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	now := time.Now()
+	now := r.now()
 	e, ok := r.entries[accountID]
 	if !ok {
 		e = &entry{
@@ -161,7 +169,7 @@ func (r *Registry) RecordSuccess(_ context.Context, accountID uuid.UUID) {
 	e.lastErr = ""
 	e.cooldownUntil = time.Time{}
 	e.status = provider.AccountStatusActive
-	e.updatedAt = time.Now()
+	e.updatedAt = r.now()
 }
 
 // Status returns the current cooldown state for the specified account, or nil
@@ -309,7 +317,7 @@ func (r *Registry) purgeExpired() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	now := time.Now()
+	now := r.now()
 	for id, e := range r.entries {
 		if !e.cooldownUntil.IsZero() && !now.Before(e.cooldownUntil) {
 			delete(r.entries, id)
