@@ -86,6 +86,7 @@ func TestRunMigrations_UsesDedicatedDDLConnection(t *testing.T) {
 		{"000003", "000003_rename_api_key_column.up.sql", "(?i)ALTER TABLE"},
 		{"000004", "000004_engine_matrix.up.sql", "(?i)CREATE TABLE IF NOT EXISTS gorouter_oauth_sessions"},
 		{"000005", "000005_proxy_pools.up.sql", "(?i)CREATE TABLE"},
+		{"000006", "000006_usage.up.sql", "(?i)CREATE TABLE"},
 	} {
 		mock.ExpectBegin()
 		mock.ExpectExec(m.content).WillReturnResult(pgxmock.NewResult("CREATE", 0))
@@ -107,8 +108,8 @@ func TestRunMigrations_UsesDedicatedDDLConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunMigrations: %v", err)
 	}
-	if len(result.Applied) != 5 {
-		t.Errorf("applied = %d, want 5", len(result.Applied))
+	if len(result.Applied) != 6 {
+		t.Errorf("applied = %d, want 6", len(result.Applied))
 	}
 	if len(result.Skipped) != 0 {
 		t.Errorf("skipped = %d, want 0", len(result.Skipped))
