@@ -68,6 +68,12 @@ func TestNewTxScope(t *testing.T) {
 		if scope.OAuth() == nil {
 			t.Error("OAuth() returned nil")
 		}
+		if scope.Pools() == nil {
+			t.Error("Pools() returned nil")
+		}
+		if scope.Nodes() == nil {
+			t.Error("Nodes() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -92,6 +98,8 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Aliases()
 		_ = scope.Combos()
 		_ = scope.OAuth()
+		_ = scope.Pools()
+		_ = scope.Nodes()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -142,6 +150,12 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.OAuth().(*oauthRepo); !ok {
 			t.Error("OAuth() is not *oauthRepo")
+		}
+		if _, ok := scope.Pools().(*proxyPoolRepo); !ok {
+			t.Error("Pools() is not *proxyPoolRepo")
+		}
+		if _, ok := scope.Nodes().(*nodeStore); !ok {
+			t.Error("Nodes() is not *nodeStore")
 		}
 	})
 }

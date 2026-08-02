@@ -72,6 +72,8 @@ type TxScope struct {
 	aliases   enginerouting.AliasRepository
 	combos    combo.Repository
 	oauth     oauth.Repository
+	pools     provider.PoolRepository
+	nodes     enginerouting.NodeStore
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -82,7 +84,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	auditLog AuditLogRepository,
 	accounts provider.AccountRepository, proxies provider.ProxyRepository,
 	models ModelRepository, aliases enginerouting.AliasRepository,
-	combos combo.Repository, oauth oauth.Repository) *TxScope {
+	combos combo.Repository, oauth oauth.Repository,
+	pools provider.PoolRepository, nodes enginerouting.NodeStore) *TxScope {
 	return &TxScope{
 		tx:        tx,
 		users:     users,
@@ -98,6 +101,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		aliases:   aliases,
 		combos:    combos,
 		oauth:     oauth,
+		pools:     pools,
+		nodes:     nodes,
 	}
 }
 
@@ -149,6 +154,12 @@ func (s *TxScope) Combos() combo.Repository { return s.combos }
 
 // OAuth returns the scoped oauth.Repository.
 func (s *TxScope) OAuth() oauth.Repository { return s.oauth }
+
+// Pools returns the scoped PoolRepository.
+func (s *TxScope) Pools() provider.PoolRepository { return s.pools }
+
+// Nodes returns the scoped routing NodeStore.
+func (s *TxScope) Nodes() enginerouting.NodeStore { return s.nodes }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle
