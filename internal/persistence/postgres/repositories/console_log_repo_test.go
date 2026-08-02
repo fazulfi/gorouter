@@ -230,6 +230,39 @@ func TestConsoleLogRepo_MaxSeq(t *testing.T) {
 	})
 }
 
+func TestConsoleLogRepo_NextSeq(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the allocated sequence", func(t *testing.T) {
+		tx := &mockTx{
+			queryRowFn: func(_ context.Context, _ string, _ ...interface{}) pgx.Row {
+				return &mockRow{vals: []interface{}{int64(42)}}
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		seq, err := repo.NextSeq(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if seq != 42 {
+			t.Errorf("seq = %d, want 42", seq)
+		}
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		tx := &mockTx{
+			queryRowFn: func(_ context.Context, _ string, _ ...interface{}) pgx.Row {
+				return &mockRow{err: errors.New("query failed")}
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		_, err := repo.NextSeq(context.Background())
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+}
+
 func TestConsoleLogRepo_PurgeBefore(t *testing.T) {
 	t.Parallel()
 

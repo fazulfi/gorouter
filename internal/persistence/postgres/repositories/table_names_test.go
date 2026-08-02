@@ -549,6 +549,16 @@ func TestConsoleLogRepo_SQL_UsesGorouterConsoleLogs(t *testing.T) {
 		assertTableInSQL(t, tx, "gorouter_console_logs")
 	})
 
+	t.Run("NextSeq", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.NextSeq(context.Background())
+		// The sequence watermark lives in the approved runtime-state KV
+		// table; the seeding read covers the purged console table.
+		assertTableInSQL(t, tx, "gorouter_runtime_state")
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
 	t.Run("PurgeBefore", func(t *testing.T) {
 		tx := captureLastSQL()
 		repo := &consoleLogRepo{tx: tx}

@@ -2,10 +2,16 @@ package repositories
 
 import (
 	"context"
+	"os"
+	"sort"
+	"sync"
 	"testing"
 	"time"
 
 	"gorouter/internal/domain/console"
+	"gorouter/internal/persistence/postgres/migrations"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ─────────────────────────────────────────────────────────────
@@ -429,4 +435,265 @@ func seqsOf(entries []console.ConsoleLog) []int64 {
 		seqs[i] = e.Seq
 	}
 	return seqs
+}
+
+func TestConsoleLogRepo_NextSeq_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	t.Run("fresh database allocates strictly increasing seqs from 1", func(t *testing.T) {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin: %v", err)
+		}
+		defer tx.Rollback(ctx)
+		repo := &consoleLogRepo{tx: tx}
+		for i, want := range []int64{1, 2, 3} {
+			seq, err := repo.NextSeq(ctx)
+			if err != nil {
+				t.Fatalf("NextSeq %d: %v", i, err)
+			}
+			if seq != want {
+				t.Errorf("NextSeq = %d, want %d", seq, want)
+			}
+			if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "line"}); err != nil {
+				t.Fatalf("Append seq %d: %v", seq, err)
+			}
+		}
+		// The live-row max is informational and consistent with allocation.
+		max, err := repo.MaxSeq(ctx)
+		if err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		}
+		if max != 3 {
+			t.Errorf("MaxSeq = %d, want 3", max)
+		}
+	})
+
+	t.Run("seeds above pre-existing rows on first use after upgrade", func(t *testing.T) {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin: %v", err)
+		}
+		defer tx.Rollback(ctx)
+		repo := &consoleLogRepo{tx: tx}
+		// Legacy rows written before the watermark existed (raw inserts).
+		for _, seq := range []int64{6001, 6002, 6003} {
+			if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "legacy"}); err != nil {
+				t.Fatalf("legacy Append seq %d: %v", seq, err)
+			}
+		}
+		// Simulate an upgraded installation that has rows but no watermark:
+		// the first allocation must seed above every historical seq.
+		if _, err := tx.Exec(ctx, `DELETE FROM gorouter_runtime_state WHERE key = $1`, consoleWatermarkKey); err != nil {
+			t.Fatalf("delete watermark: %v", err)
+		}
+		seq, err := repo.NextSeq(ctx)
+		if err != nil {
+			t.Fatalf("NextSeq: %v", err)
+		}
+		if seq <= 6003 {
+			t.Errorf("NextSeq = %d, want > 6003 (seed above historical max)", seq)
+		}
+	})
+
+	t.Run("full purge never regresses the watermark and replay stays visible", func(t *testing.T) {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin: %v", err)
+		}
+		defer tx.Rollback(ctx)
+		repo := &consoleLogRepo{tx: tx}
+		var last int64
+		for i := int64(0); i < 3; i++ {
+			seq, err := repo.NextSeq(ctx)
+			if err != nil {
+				t.Fatalf("NextSeq %d: %v", i, err)
+			}
+			last = seq
+			if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "line"}); err != nil {
+				t.Fatalf("Append seq %d: %v", seq, err)
+			}
+		}
+		// A full sweep empties the table (the retention job's worst case).
+		if _, err := repo.DeleteBefore(ctx, 99999); err != nil {
+			t.Fatalf("DeleteBefore: %v", err)
+		}
+		if max, err := repo.MaxSeq(ctx); err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		} else if max != 0 {
+			t.Errorf("MaxSeq = %d, want 0 (table empty)", max)
+		}
+		// The next allocation must still be greater than every historical
+		// seq, never a reuse of 1.
+		seq, err := repo.NextSeq(ctx)
+		if err != nil {
+			t.Fatalf("NextSeq after purge: %v", err)
+		}
+		if seq <= last {
+			t.Errorf("NextSeq after full purge = %d, want > %d (no reuse)", seq, last)
+		}
+		// An old SSE cursor at the pre-purge max must still see the new row.
+		if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "post-purge"}); err != nil {
+			t.Fatalf("Append seq %d: %v", seq, err)
+		}
+		got, err := repo.ListAfter(ctx, last, 50)
+		if err != nil {
+			t.Fatalf("ListAfter(%d): %v", last, err)
+		}
+		if len(got) != 1 || got[0].Seq != seq {
+			t.Errorf("ListAfter(%d) = seqs %v, want [%d] (new rows visible to old cursor)", last, seqsOf(got), seq)
+		}
+	})
+
+	t.Run("fresh connection continues from the durable watermark", func(t *testing.T) {
+		// Commit a fully-wired allocation so the watermark is durable.
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin: %v", err)
+		}
+		repo := &consoleLogRepo{tx: tx}
+		seq, err := repo.NextSeq(ctx)
+		if err != nil {
+			t.Fatalf("NextSeq: %v", err)
+		}
+		if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "line"}); err != nil {
+			t.Fatalf("Append: %v", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		// A brand-new connection (process-restart equivalent) continues
+		// strictly above the committed watermark.
+		tx2, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin #2: %v", err)
+		}
+		defer tx2.Rollback(ctx)
+		repo2 := &consoleLogRepo{tx: tx2}
+		seq2, err := repo2.NextSeq(ctx)
+		if err != nil {
+			t.Fatalf("NextSeq #2: %v", err)
+		}
+		if seq2 <= seq {
+			t.Errorf("NextSeq after restart = %d, want > %d", seq2, seq)
+		}
+	})
+}
+
+// TestConsoleLogRepo_NextSeq_ConcurrentAppends_Integration proves the
+// allocation is atomic: concurrent transactions cannot receive duplicate
+// sequence numbers, and replay from a pre-allocation cursor sees every row.
+func TestConsoleLogRepo_NextSeq_ConcurrentAppends_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	if os.Getenv("DATABASE_URL") == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	dbName := setupRepoTestDB(t, ctx)
+	cfg, err := pgxpool.ParseConfig(isolatedTestDSN(t, dbName))
+	if err != nil {
+		t.Fatalf("parse config: %v", err)
+	}
+	// Enough connections for every writer to run truly concurrently.
+	cfg.MaxConns = 16
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatalf("pool: %v", err)
+	}
+	defer pool.Close()
+	if _, err := migrations.Migrate(ctx, pool, migrations.DirectionUp); err != nil {
+		t.Fatalf("migrate up: %v", err)
+	}
+
+	const writers = 12
+	const rounds = 2
+	allocs := writers * rounds
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	seqs := make([]int64, allocs)
+	errs := make([]error, allocs)
+	for i := 0; i < allocs; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			<-start
+			tx, err := pool.Begin(ctx)
+			if err != nil {
+				errs[idx] = err
+				return
+			}
+			defer tx.Rollback(ctx)
+			repo := &consoleLogRepo{tx: tx}
+			seq, err := repo.NextSeq(ctx)
+			if err != nil {
+				errs[idx] = err
+				return
+			}
+			if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "line"}); err != nil {
+				errs[idx] = err
+				return
+			}
+			if err := tx.Commit(ctx); err != nil {
+				errs[idx] = err
+				return
+			}
+			seqs[idx] = seq
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	for i, e := range errs {
+		if e != nil {
+			t.Fatalf("concurrent writer %d: %v", i, e)
+		}
+	}
+
+	seen := make(map[int64]bool, allocs)
+	for _, s := range seqs {
+		if seen[s] {
+			t.Errorf("duplicate seq %d allocated concurrently", s)
+		}
+		seen[s] = true
+	}
+	sort.Slice(seqs, func(i, j int) bool { return seqs[i] < seqs[j] })
+	if seqs[0] != 1 || seqs[len(seqs)-1] != int64(allocs) {
+		t.Errorf("allocated seqs = %v, want exactly 1..%d (no gaps, no reuse)", seqs, allocs)
+	}
+	for i := 1; i < len(seqs); i++ {
+		if seqs[i] <= seqs[i-1] {
+			t.Errorf("seqs not strictly increasing: %v", seqs)
+		}
+	}
+
+	// Replay completeness: a cursor before the first allocation must see
+	// every committed row, in order — no row is ever skipped.
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+	repo := &consoleLogRepo{tx: tx}
+	got, err := repo.ListAfter(ctx, 0, 500)
+	if err != nil {
+		t.Fatalf("ListAfter: %v", err)
+	}
+	if len(got) != allocs {
+		t.Fatalf("replay returned %d rows, want %d (skipped rows)", len(got), allocs)
+	}
+	for i, e := range got {
+		if e.Seq != seqs[i] {
+			t.Errorf("replay row %d seq = %d, want %d", i, e.Seq, seqs[i])
+		}
+	}
+	// Allocation continues strictly above the concurrent maximum.
+	seq, err := repo.NextSeq(ctx)
+	if err != nil {
+		t.Fatalf("NextSeq: %v", err)
+	}
+	if seq <= int64(allocs) {
+		t.Errorf("NextSeq after concurrency = %d, want > %d", seq, allocs)
+	}
 }

@@ -54,6 +54,12 @@ func (r *consoleLogRepo) ListAfter(ctx context.Context, seq int64, limit int) ([
 	return out, rows.Err()
 }
 
+// consoleWatermarkKey is the gorouter_runtime_state key backing the
+// console-log sequence watermark. Retention purges only touch
+// gorouter_console_logs, never this row, so a full sweep can never regress
+// the sequence namespace.
+const consoleWatermarkKey = "console:seq:watermark"
+
 func (r *consoleLogRepo) MaxSeq(ctx context.Context) (int64, error) {
 	var max int64
 	if err := r.tx.QueryRow(ctx,
@@ -61,6 +67,30 @@ func (r *consoleLogRepo) MaxSeq(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return max, nil
+}
+
+// NextSeq atomically allocates the next sequence number from the durable
+// runtime-state watermark. The single upsert is serialized by the row lock
+// on the watermark key: concurrent transactions block on the conflict and
+// re-evaluate the increment against the newest committed value, so no two
+// transactions can receive the same Seq. On first use (no watermark row)
+// the value seeds from the highest live row, so an upgraded installation
+// continues above every historical Seq even after the table was emptied.
+func (r *consoleLogRepo) NextSeq(ctx context.Context) (int64, error) {
+	var seq int64
+	err := r.tx.QueryRow(ctx, `
+		INSERT INTO gorouter_runtime_state (key, value, ttl, created_at, updated_at)
+		SELECT $1, jsonb_build_object('seq', COALESCE(MAX(seq), 0) + 1), NULL, NOW(), NOW()
+		FROM gorouter_console_logs
+		ON CONFLICT (key) DO UPDATE SET
+			value = jsonb_build_object('seq', (COALESCE((gorouter_runtime_state.value ->> 'seq')::bigint, 0) + 1)),
+			ttl = NULL,
+			updated_at = NOW()
+		RETURNING (value ->> 'seq')::bigint`, consoleWatermarkKey).Scan(&seq)
+	if err != nil {
+		return 0, err
+	}
+	return seq, nil
 }
 
 func (r *consoleLogRepo) DeleteBefore(ctx context.Context, seq int64) (int64, error) {
