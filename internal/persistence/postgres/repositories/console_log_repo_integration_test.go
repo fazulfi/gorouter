@@ -295,6 +295,134 @@ func TestConsoleLogRepo_DeleteBefore_Integration(t *testing.T) {
 	})
 }
 
+func TestConsoleLogRepo_MaxSeq_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	repo := &consoleLogRepo{tx: tx}
+
+	t.Run("empty table returns zero", func(t *testing.T) {
+		max, err := repo.MaxSeq(ctx)
+		if err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		}
+		if max != 0 {
+			t.Errorf("max = %d, want 0", max)
+		}
+	})
+
+	for _, seq := range []int64{3001, 3005, 3003} {
+		if err := repo.Append(ctx, &console.ConsoleLog{Seq: seq, RedactedMessage: "line"}); err != nil {
+			t.Fatalf("Append seq %d: %v", seq, err)
+		}
+	}
+
+	t.Run("returns the highest persisted seq", func(t *testing.T) {
+		max, err := repo.MaxSeq(ctx)
+		if err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		}
+		if max != 3005 {
+			t.Errorf("max = %d, want 3005", max)
+		}
+	})
+
+	t.Run("partial purge preserves the highest seq", func(t *testing.T) {
+		if _, err := repo.DeleteBefore(ctx, 3004); err != nil {
+			t.Fatalf("DeleteBefore: %v", err)
+		}
+		max, err := repo.MaxSeq(ctx)
+		if err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		}
+		if max != 3005 {
+			t.Errorf("max = %d, want 3005 (newest row survives purge)", max)
+		}
+	})
+
+	t.Run("full sweep resets max to zero", func(t *testing.T) {
+		if _, err := repo.DeleteBefore(ctx, 99999); err != nil {
+			t.Fatalf("DeleteBefore: %v", err)
+		}
+		max, err := repo.MaxSeq(ctx)
+		if err != nil {
+			t.Fatalf("MaxSeq: %v", err)
+		}
+		if max != 0 {
+			t.Errorf("max = %d, want 0 (COALESCE over empty table)", max)
+		}
+	})
+}
+
+func TestConsoleLogRepo_PurgeBefore_Integration(t *testing.T) {
+	pool := getTestPool(t)
+	ctx := context.Background()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	repo := &consoleLogRepo{tx: tx}
+	base := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+	cutoff := base.Add(90 * 24 * time.Hour)
+	for _, e := range []*console.ConsoleLog{
+		{Seq: 4001, RedactedMessage: "expired", RetentionUntil: timePtr(base.Add(80 * 24 * time.Hour))},
+		{Seq: 4002, RedactedMessage: "expiring", RetentionUntil: timePtr(base.Add(89 * 24 * time.Hour))},
+		{Seq: 4003, RedactedMessage: "at-cutoff", RetentionUntil: timePtr(cutoff)},
+		{Seq: 4004, RedactedMessage: "retained", RetentionUntil: timePtr(base.Add(120 * 24 * time.Hour))},
+		{Seq: 4005, RedactedMessage: "null-retention"},
+	} {
+		if err := repo.Append(ctx, e); err != nil {
+			t.Fatalf("Append seq %d: %v", e.Seq, err)
+		}
+	}
+
+	t.Run("deletes strictly-before cutoff and reports count", func(t *testing.T) {
+		deleted, err := repo.PurgeBefore(ctx, cutoff)
+		if err != nil {
+			t.Fatalf("PurgeBefore: %v", err)
+		}
+		if deleted != 2 {
+			t.Errorf("deleted = %d, want 2 (seqs 4001-4002)", deleted)
+		}
+		got, err := repo.ListAfter(ctx, 0, 50)
+		if err != nil {
+			t.Fatalf("ListAfter: %v", err)
+		}
+		if seqs := seqsOf(got); len(seqs) != 3 || seqs[0] != 4003 || seqs[1] != 4004 || seqs[2] != 4005 {
+			t.Fatalf("remaining seqs = %v, want [4003 4004 4005]", seqs)
+		}
+	})
+
+	t.Run("boundary row at cutoff survives", func(t *testing.T) {
+		deleted, err := repo.PurgeBefore(ctx, cutoff.Add(-1*time.Nanosecond))
+		if err != nil {
+			t.Fatalf("PurgeBefore: %v", err)
+		}
+		if deleted != 0 {
+			t.Errorf("deleted = %d, want 0 (nothing strictly before cutoff-1ns)", deleted)
+		}
+	})
+
+	t.Run("idempotent second run removes nothing", func(t *testing.T) {
+		deleted, err := repo.PurgeBefore(ctx, cutoff)
+		if err != nil {
+			t.Fatalf("PurgeBefore #2: %v", err)
+		}
+		if deleted != 0 {
+			t.Errorf("deleted = %d, want 0 (idempotent)", deleted)
+		}
+	})
+}
+
 func seqsOf(entries []console.ConsoleLog) []int64 {
 	seqs := make([]int64, len(entries))
 	for i, e := range entries {

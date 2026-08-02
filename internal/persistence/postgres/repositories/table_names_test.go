@@ -541,6 +541,20 @@ func TestConsoleLogRepo_SQL_UsesGorouterConsoleLogs(t *testing.T) {
 		_, _ = repo.DeleteBefore(context.Background(), 10)
 		assertTableInSQL(t, tx, "gorouter_console_logs")
 	})
+
+	t.Run("MaxSeq", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.MaxSeq(context.Background())
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("PurgeBefore", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.PurgeBefore(context.Background(), testNow)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
 }
 
 // ---------------------------------------------------------------------------

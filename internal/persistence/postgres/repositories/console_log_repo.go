@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"gorouter/internal/domain/console"
 
@@ -53,9 +54,27 @@ func (r *consoleLogRepo) ListAfter(ctx context.Context, seq int64, limit int) ([
 	return out, rows.Err()
 }
 
+func (r *consoleLogRepo) MaxSeq(ctx context.Context) (int64, error) {
+	var max int64
+	if err := r.tx.QueryRow(ctx,
+		`SELECT COALESCE(MAX(seq), 0) FROM gorouter_console_logs`).Scan(&max); err != nil {
+		return 0, err
+	}
+	return max, nil
+}
+
 func (r *consoleLogRepo) DeleteBefore(ctx context.Context, seq int64) (int64, error) {
 	tag, err := r.tx.Exec(ctx,
 		`DELETE FROM gorouter_console_logs WHERE seq < $1`, seq)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
+func (r *consoleLogRepo) PurgeBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	tag, err := r.tx.Exec(ctx,
+		`DELETE FROM gorouter_console_logs WHERE retention_until < $1`, cutoff)
 	if err != nil {
 		return 0, err
 	}

@@ -181,6 +181,97 @@ func TestConsoleLogRepo_ListAfter(t *testing.T) {
 	})
 }
 
+func TestConsoleLogRepo_MaxSeq(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns persisted max", func(t *testing.T) {
+		tx := &mockTx{
+			queryRowFn: func(_ context.Context, _ string, _ ...interface{}) pgx.Row {
+				return &mockRow{vals: []interface{}{int64(42)}}
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		max, err := repo.MaxSeq(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if max != 42 {
+			t.Errorf("max = %d, want 42", max)
+		}
+	})
+
+	t.Run("empty table returns zero", func(t *testing.T) {
+		tx := &mockTx{
+			queryRowFn: func(_ context.Context, _ string, _ ...interface{}) pgx.Row {
+				return &mockRow{vals: []interface{}{int64(0)}}
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		max, err := repo.MaxSeq(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if max != 0 {
+			t.Errorf("max = %d, want 0", max)
+		}
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		tx := &mockTx{
+			queryRowFn: func(_ context.Context, _ string, _ ...interface{}) pgx.Row {
+				return &mockRow{err: errors.New("query failed")}
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		_, err := repo.MaxSeq(context.Background())
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+}
+
+func TestConsoleLogRepo_PurgeBefore(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns rows affected and passes cutoff", func(t *testing.T) {
+		var gotArgs []interface{}
+		tx := &mockTx{
+			execFn: func(_ context.Context, _ string, args ...interface{}) (pgconn.CommandTag, error) {
+				gotArgs = args
+				return pgconn.NewCommandTag("DELETE 3"), nil
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		cutoff := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+		deleted, err := repo.PurgeBefore(context.Background(), cutoff)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if deleted != 3 {
+			t.Errorf("deleted = %d, want 3", deleted)
+		}
+		if len(gotArgs) != 1 {
+			t.Fatalf("expected 1 arg, got %d", len(gotArgs))
+		}
+		if !gotArgs[0].(time.Time).Equal(cutoff) {
+			t.Errorf("arg[0] cutoff = %v, want %v", gotArgs[0], cutoff)
+		}
+	})
+
+	t.Run("exec error", func(t *testing.T) {
+		tx := &mockTx{
+			execFn: func(_ context.Context, _ string, _ ...interface{}) (pgconn.CommandTag, error) {
+				return pgconn.CommandTag{}, errors.New("delete failed")
+			},
+		}
+		repo := &consoleLogRepo{tx: tx}
+		_, err := repo.PurgeBefore(context.Background(), time.Now().UTC())
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+}
+
 func TestConsoleLogRepo_DeleteBefore(t *testing.T) {
 	t.Parallel()
 
