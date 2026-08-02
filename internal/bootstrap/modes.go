@@ -126,6 +126,9 @@ func dispatchServer(app *App) (int, error) {
 	// is retained until the drain path completes and released on return.
 	releaseLock, err := acquireRuntimeLock(shutdownCtx, app)
 	if err != nil {
+		// The drain path below is unreachable on this refusal, so stop the
+		// cooldown cleanup goroutine before returning.
+		cd.Stop()
 		return 1, fmt.Errorf("acquire runtime lock: %w (another runtime may already be running on this database)", err)
 	}
 	defer func() {
