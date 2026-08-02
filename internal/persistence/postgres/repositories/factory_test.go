@@ -86,6 +86,9 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Backups() == nil {
 			t.Error("Backups() returned nil")
 		}
+		if scope.Pricing() == nil {
+			t.Error("Pricing() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -116,6 +119,7 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.ConsoleLogs()
 		_ = scope.PasswordResets()
 		_ = scope.Backups()
+		_ = scope.Pricing()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -184,6 +188,9 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Backups().(*backupRepo); !ok {
 			t.Error("Backups() is not *backupRepo")
+		}
+		if _, ok := scope.Pricing().(*pricingRepo); !ok {
+			t.Error("Pricing() is not *pricingRepo")
 		}
 	})
 }

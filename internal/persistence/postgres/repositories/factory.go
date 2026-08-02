@@ -39,6 +39,7 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		NewConsoleLogRepo(pgTx),
 		NewPasswordResetRepo(pgTx),
 		NewBackupRepo(pgTx),
+		NewPricingRepo(pgTx),
 	)
 }
 

@@ -75,7 +75,7 @@ func TestNewTxScope(t *testing.T) {
 		nil, nil,
 		nil,
 		nil, nil, nil,
-		nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil,
 	)
 	if scope.tx == nil {
 		t.Error("expected non-nil tx")
