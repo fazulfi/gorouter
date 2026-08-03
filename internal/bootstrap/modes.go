@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"gorouter/internal/app/backup"
 	"gorouter/internal/app/cooldown"
 	"gorouter/internal/app/orchestrator"
 	"gorouter/internal/app/retry"
@@ -342,10 +343,16 @@ var acquireRuntimeLock = func(ctx context.Context, app *App) (func(context.Conte
 // before any DDL migration batch runs (design §8: migrations run at
 // bootstrap after validated backup and before the runtime lock). It is a
 // package-level variable so bootstrap tests can assert safe-mode refusal
-// with a failing verifier. The production implementation is a pass-through
-// until the backup verifier is wired; from then on any validation failure
-// fails the gate closed into safe mode with no automatic reset.
-var validateBackup = func(context.Context, *App) error { return nil }
+// with a failing verifier. The production implementation fails closed when
+// the database holds pending schema migrations but no validated backup is
+// available; fresh or fully-migrated databases (the development state) pass
+// without any backup, so development never depends on production resources.
+var validateBackup = func(ctx context.Context, app *App) error {
+	if app.DB == nil {
+		return nil
+	}
+	return backup.ValidateBootstrapBackup(ctx, app.DB)
+}
 
 // runMigrations executes the DDL-role migration batch: a dedicated
 // connection is opened with the DDL role, pending up migrations are applied
