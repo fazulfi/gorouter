@@ -188,22 +188,58 @@ func TestRedact(t *testing.T) {
 			input:   "sk-ant-api03-AbCdEf123456GhIj",
 			secrets: []string{"sk-ant-api03-AbCdEf123456GhIj"},
 		},
-		// Comma- and semicolon-joined fragments are masked whole, not
-		// truncated at the delimiter (no partial secret survives).
+		// Delimiter-joined fragments inside unquoted labeled values are
+		// masked whole, including the tail fragment, so no partial secret
+		// survives after the delimiter.
 		{
 			name:    "comma-joined password tail",
 			input:   "password=a,b rejected",
-			secrets: []string{"a,b"},
+			secrets: []string{"a,b", "b"},
 		},
 		{
-			name:    "semicolon-joined password tail",
+			name:    "semicolon-joined password tail leaves both fragments",
 			input:   "password=a;b rejected",
-			secrets: []string{"a;b"},
+			secrets: []string{"a;b", "b", "a"},
 		},
 		{
 			name:    "comma-joined token tail",
 			input:   "token=abc123,def456 rejected",
-			secrets: []string{"abc123,def456"},
+			secrets: []string{"abc123,def456", "def456"},
+		},
+		// Escaped characters inside quoted labeled values must not
+		// truncate the mask at the escaped quote.
+		{
+			name:    "json password escaped double quote",
+			input:   `{"password":"hunter \"2\" secret"}`,
+			secrets: []string{`2\`, `secret`},
+		},
+		{
+			name:    "single-quoted password escaped quote",
+			input:   `passwd='Tr0ub\'4dor&3' rejected`,
+			secrets: []string{`4dor&3`},
+		},
+		// Authorization headers in canonical unquoted form: the whole
+		// scheme-plus-credential is masked, so the raw JWT or base64
+		// credential never survives after its Bearer/Basic scheme.
+		{
+			name:    "authorization bearer jwt",
+			input:   "proxy error: authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "authorization basic base64",
+			input:   "auth failed: authorization: Basic dXNlcjpwYXNzd29yZA==",
+			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
+		},
+		{
+			name:    "authorization lowercase bearer jwt",
+			input:   "authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "capitalized authorization header basic",
+			input:   "Authorization: Basic dXNlcjpwYXNzd29yZA==",
+			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
 		},
 	}
 

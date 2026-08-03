@@ -11,19 +11,27 @@ import "regexp"
 const Mask = "[REDACTED]"
 
 // labeledValue matches the value of a labeled assignment: a double-quoted
-// string (JSON objects and %q-style logging), a single-quoted string, or an
-// unquoted run of non-whitespace, non-semicolon characters. The quoted
-// alternatives come first so quoted values that contain spaces or JSON
-// punctuation are masked as one segment; the unquoted run includes commas,
-// so comma-joined fragments (password=a,b) cannot leave a tail of the
-// secret behind, while semicolons keep HTTP cookie attributes (Path=/,
-// HttpOnly) out of the mask and preserve non-secret text.
-const labeledValue = `(?:"[^"]*"|'[^']*'|[^\s;]+)`
+// string (JSON objects and %q-style logging) with escaped-quote support, a
+// single-quoted string with escaped-quote support, or an unquoted run of
+// non-whitespace characters. The quoted alternatives come first so quoted
+// values that contain spaces, JSON punctuation or escaped quotes are
+// masked as one segment; the unquoted run includes semicolons, so
+// delimiter-joined fragments (password=a;b) cannot leave a tail of the
+// secret behind after the delimiter.
+const labeledValue = `(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s]+)`
 
-// redactions is the ordered set of credential-shape matchers. Labeled
-// assignments (key=value with a credential-ish name) are matched before
-// bare prefixed tokens so a labeled value is masked as one segment.
+// redactions is the ordered set of credential-shape matchers. The
+// Authorization header with an unquoted Bearer/Basic scheme is matched
+// before the labeled set so the raw credential is never left after its
+// scheme. Labeled assignments (key=value with a credential-ish name) are
+// matched next, before bare prefixed tokens, so a labeled value is masked
+// as one segment.
 var redactions = []*regexp.Regexp{
+	// Authorization headers in canonical unquoted form:
+	// authorization: Bearer <jwt> / Basic <base64>. The scheme plus the
+	// full credential is masked as one segment so the JWT or base64
+	// credential cannot survive after its Bearer/Basic scheme.
+	regexp.MustCompile(`(?i)\bauthorization\s*[:=]\s*(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}`),
 	// API key values: labeled assignments and Authorization headers. The
 	// optional quote between the label and the separator covers JSON
 	// object keys ("api_key_value":"sk-...").
