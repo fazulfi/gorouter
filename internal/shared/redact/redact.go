@@ -20,13 +20,25 @@ const Mask = "[REDACTED]"
 // secret behind after the delimiter.
 const labeledValue = `(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s]+)`
 
-// redactions is the ordered set of credential-shape matchers. The
-// Authorization header with an unquoted Bearer/Basic scheme is matched
-// before the labeled set so the raw credential is never left after its
-// scheme. Labeled assignments (key=value with a credential-ish name) are
-// matched next, before bare prefixed tokens, so a labeled value is masked
-// as one segment.
+// redactions is the ordered set of credential-shape matchers. Bare
+// Bearer/Basic scheme credentials run first, ahead of the entire labeled
+// set, so a labeled assignment whose unquoted value begins with a scheme
+// word (token: Bearer <jwt>, x-api-key: Basic <base64>, ...) is never
+// truncated to just its scheme word, leaving the credential behind. The
+// Authorization header with an unquoted Bearer/Basic scheme is then
+// matched before the labeled set for canonical header dumps. Labeled
+// assignments (key=value with a credential-ish name) are matched next,
+// before bare prefixed tokens, so a labeled value is masked as one
+// segment.
 var redactions = []*regexp.Regexp{
+	// Bare Bearer and Basic scheme credentials: <scheme> <token>. The
+	// token class is the RFC 6750 b64token class (base64url/base64 plus
+	// '=' padding), so a conformant JWT or base64 credential is masked
+	// whole, before any labeled matcher can consume only the scheme word.
+	// Conservative by design: a bare scheme word followed by an 8+ char
+	// run is always masked, even in benign prose.
+	regexp.MustCompile(`(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{8,}`),
+	regexp.MustCompile(`(?i)\bbasic\s+[A-Za-z0-9._~+/=-]{8,}`),
 	// Authorization headers in canonical unquoted form:
 	// authorization: Bearer <jwt> / Basic <base64>. The scheme plus the
 	// full credential is masked as one segment so the JWT or base64
@@ -46,10 +58,9 @@ var redactions = []*regexp.Regexp{
 	// sess_ prefixed opaque values (mixed-case).
 	regexp.MustCompile(`(?i)\b(?:session[_-]?hash|session[_-]?id|sessionid|sid)\s*["']?\s*[:=]\s*` + labeledValue),
 	regexp.MustCompile(`\bsess_[A-Za-z0-9]{8,}`),
-	// OAuth tokens: labeled assignments, Bearer headers and Google
-	// ya29.-style tokens (mixed-case).
+	// OAuth tokens: labeled assignments and Google ya29.-style tokens
+	// (mixed-case).
 	regexp.MustCompile(`(?i)\b(?:access[_-]?token|refresh[_-]?token|oauth[_-]?token|id[_-]?token|token)\s*["']?\s*[:=]\s*` + labeledValue),
-	regexp.MustCompile(`(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{8,}`),
 	regexp.MustCompile(`\bya29\.[A-Za-z0-9._-]+`),
 	// Cookies: Cookie/Set-Cookie headers and labeled assignments.
 	regexp.MustCompile(`(?i)\b(?:cookie|set-cookie|cookie[_-]?header)\s*["']?\s*[:=]\s*` + labeledValue),

@@ -241,6 +241,80 @@ func TestRedact(t *testing.T) {
 			input:   "Authorization: Basic dXNlcjpwYXNzd29yZA==",
 			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
 		},
+		// Bare Bearer/Basic scheme credentials under any other credential
+		// label: the scheme matcher runs before the labeled set, so the
+		// full credential is masked even when the label would otherwise
+		// consume only the scheme word.
+		{
+			name:    "token labeled bearer jwt",
+			input:   "oauth failed: token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "access token labeled bearer jwt",
+			input:   "upstream 401 access_token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "refresh token labeled bearer jwt",
+			input:   "refresh_token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "oauth token labeled bearer jwt",
+			input:   "oauth_token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "id token labeled bearer jwt",
+			input:   "id_token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "api key labeled basic base64",
+			input:   "api_key: Basic dXNlcjpwYXNzd29yZA==",
+			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
+		},
+		{
+			name:    "x-api-key labeled basic base64",
+			input:   "upstream 403 x-api-key: Basic dXNlcjpwYXNzd29yZA==",
+			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
+		},
+		{
+			name:    "apikey labeled bearer jwt",
+			input:   "apikey: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "sid labeled bearer jwt",
+			input:   "session expired sid: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "session id labeled bearer jwt",
+			input:   "session_id: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "sessionid labeled basic base64",
+			input:   "sessionid: Basic dXNlcjpwYXNzd29yZA==",
+			secrets: []string{"dXNlcjpwYXNzd29yZA=="},
+		},
+		{
+			name:    "session hash labeled bearer jwt",
+			input:   "session_hash: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "token labeled lowercase bearer jwt",
+			input:   "token: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
+		{
+			name:    "mixed-case token label bearer jwt",
+			input:   "TOKEN: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			secrets: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
+		},
 	}
 
 	for _, tc := range cases {
