@@ -51,6 +51,24 @@
       "task": "P1-T07",
       "type": "behavioral-contract",
       "sanitized": true
+    },
+    {
+      "id": "config-transfer-export",
+      "upstreamFile": "src/lib/db/index.js",
+      "description": "Exact pinned-upstream settings/database export payload (exportDb): ten domains; usage/logs/sessions/audit always excluded; credential fields placeholder-sanitized. Provenance: config-transfer.provenance.json.",
+      "phase": 4,
+      "task": "P4-T15",
+      "type": "contract",
+      "sanitized": true
+    },
+    {
+      "id": "config-transfer-import",
+      "upstreamFile": "src/lib/db/index.js",
+      "description": "Partial config-transfer import payload frozen from the pinned upstream importDb contract: absent domains are still wiped (missing-key replacement), applied transactionally after typed confirmation. Provenance: config-transfer.provenance.json.",
+      "phase": 4,
+      "task": "P4-T15",
+      "type": "contract",
+      "sanitized": true
     }
   ]
 }
