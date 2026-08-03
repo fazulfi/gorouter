@@ -40,6 +40,8 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		NewPasswordResetRepo(pgTx),
 		NewBackupRepo(pgTx),
 		NewPricingRepo(pgTx),
+		NewSettingsRepo(pgTx),
+		NewAuditQueryRepo(pgTx),
 	)
 }
 

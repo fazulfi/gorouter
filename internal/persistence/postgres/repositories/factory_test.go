@@ -89,6 +89,12 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Pricing() == nil {
 			t.Error("Pricing() returned nil")
 		}
+		if scope.Settings() == nil {
+			t.Error("Settings() returned nil")
+		}
+		if scope.AuditQuery() == nil {
+			t.Error("AuditQuery() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -120,6 +126,8 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.PasswordResets()
 		_ = scope.Backups()
 		_ = scope.Pricing()
+		_ = scope.Settings()
+		_ = scope.AuditQuery()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -191,6 +199,12 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Pricing().(*pricingRepo); !ok {
 			t.Error("Pricing() is not *pricingRepo")
+		}
+		if _, ok := scope.Settings().(*settingsRepo); !ok {
+			t.Error("Settings() is not *settingsRepo")
+		}
+		if _, ok := scope.AuditQuery().(*auditQueryRepo); !ok {
+			t.Error("AuditQuery() is not *auditQueryRepo")
 		}
 	})
 }

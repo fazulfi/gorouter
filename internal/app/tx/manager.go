@@ -18,6 +18,7 @@ import (
 	"gorouter/internal/domain/passwordreset"
 	"gorouter/internal/domain/pricing"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/domain/settings"
 	"gorouter/internal/domain/usage"
 	enginerouting "gorouter/internal/engine/routing"
 
@@ -41,6 +42,77 @@ type AuditLogEntry struct {
 // AuditLogRepository defines persistence operations for the audit log.
 type AuditLogRepository interface {
 	Create(ctx context.Context, entry *AuditLogEntry) error
+}
+
+// AuditEntry is one full audit log record as returned by the read surface.
+// Audit rows are append-only forever; the query surface deliberately exposes
+// no update or delete path (migration 000009 revokes them at the role level).
+type AuditEntry struct {
+	ID           uuid.UUID
+	ActorID      *uuid.UUID
+	Action       string
+	ResourceType string
+	ResourceID   *uuid.UUID
+	Details      json.RawMessage
+	IPAddress    net.IP
+	JobID        *uuid.UUID
+	ActorKind    string
+	OccurredAt   time.Time
+}
+
+// AuditFilters narrows an audit query. Nil fields are not filtered.
+type AuditFilters struct {
+	ActorID      *uuid.UUID
+	ResourceType *string
+	ResourceID   *uuid.UUID
+	Action       *string
+	ActorKind    *string
+	JobID        *uuid.UUID
+	Since        *time.Time
+	Until        *time.Time
+}
+
+// AuditPage is deterministic offset pagination for audit listing. Zero values
+// mean page 1 of 50; the page size is capped at MaxAuditPageSize.
+type AuditPage struct {
+	Number int
+	Size   int
+}
+
+// Audit pagination bounds.
+const (
+	DefaultAuditPageNumber = 1
+	DefaultAuditPageSize   = 50
+	MaxAuditPageSize       = 200
+)
+
+// Normalized returns the offset and limit for the page, applying the
+// defaults and the size cap.
+func (p AuditPage) Normalized() (offset, limit int) {
+	limit = p.Size
+	if limit <= 0 {
+		limit = DefaultAuditPageSize
+	}
+	if limit > MaxAuditPageSize {
+		limit = MaxAuditPageSize
+	}
+	offset = (p.Number - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
+	return offset, limit
+}
+
+// AuditLogQueryRepository is the SELECT-only read surface of the append-only
+// audit log. It exposes no mutation methods by construction; the runtime role
+// holds only INSERT and SELECT on gorouter_audit_log.
+type AuditLogQueryRepository interface {
+	// List returns the page of matching entries, newest first, with the id
+	// as the deterministic tiebreaker.
+	List(ctx context.Context, filters AuditFilters, page AuditPage) ([]AuditEntry, error)
+	// Export returns every matching entry, newest first, with the id as the
+	// deterministic tiebreaker. The caller is responsible for redaction.
+	Export(ctx context.Context, filters AuditFilters) ([]AuditEntry, error)
 }
 
 // ProviderModel represents a model entry in the provider_models catalog.
@@ -84,6 +156,8 @@ type TxScope struct {
 	passwordResets passwordreset.PasswordResetRepository
 	backups        backup.BackupRepository
 	pricing        pricing.PricingRepository
+	settings       settings.SettingsRepository
+	auditQuery     AuditLogQueryRepository
 }
 
 // NewTxScope creates a TxScope with the given transaction and repositories.
@@ -99,7 +173,9 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 	usage usage.UsageRepository, console console.ConsoleLogRepository,
 	passwordResets passwordreset.PasswordResetRepository,
 	backups backup.BackupRepository,
-	pricing pricing.PricingRepository) *TxScope {
+	pricing pricing.PricingRepository,
+	settings settings.SettingsRepository,
+	auditQuery AuditLogQueryRepository) *TxScope {
 	return &TxScope{
 		tx:             tx,
 		users:          users,
@@ -122,6 +198,8 @@ func NewTxScope(tx pgx.Tx, users auth.UserRepository, sessions auth.SessionRepos
 		passwordResets: passwordResets,
 		backups:        backups,
 		pricing:        pricing,
+		settings:       settings,
+		auditQuery:     auditQuery,
 	}
 }
 
@@ -194,6 +272,12 @@ func (s *TxScope) Backups() backup.BackupRepository { return s.backups }
 
 // Pricing returns the scoped pricing.PricingRepository.
 func (s *TxScope) Pricing() pricing.PricingRepository { return s.pricing }
+
+// Settings returns the scoped settings.SettingsRepository.
+func (s *TxScope) Settings() settings.SettingsRepository { return s.settings }
+
+// AuditQuery returns the scoped SELECT-only audit log query surface.
+func (s *TxScope) AuditQuery() AuditLogQueryRepository { return s.auditQuery }
 
 // TxScopeFactory is a function type that creates a fully-wired TxScope from a
 // pgx transaction. It is injected at bootstrap time to break the import cycle

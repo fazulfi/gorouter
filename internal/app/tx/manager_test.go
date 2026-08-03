@@ -76,6 +76,7 @@ func TestNewTxScope(t *testing.T) {
 		nil,
 		nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, nil,
+		nil, nil,
 	)
 	if scope.tx == nil {
 		t.Error("expected non-nil tx")
@@ -112,11 +113,41 @@ func TestTxScopeAccessors(t *testing.T) {
 		{"ConsoleLogs", func() interface{} { return scope.ConsoleLogs() }},
 		{"PasswordResets", func() interface{} { return scope.PasswordResets() }},
 		{"Backups", func() interface{} { return scope.Backups() }},
+		{"Pricing", func() interface{} { return scope.Pricing() }},
+		{"Settings", func() interface{} { return scope.Settings() }},
+		{"AuditQuery", func() interface{} { return scope.AuditQuery() }},
 	}
 	for _, a := range accessors {
 		t.Run(a.name, func(t *testing.T) {
 			if a.fn() != nil {
 				t.Logf("%s is non-nil", a.name)
+			}
+		})
+	}
+}
+
+// TestAuditPageNormalized pins the deterministic pagination contract: zero
+// values mean page 1 of 50, the size is capped at MaxAuditPageSize, and
+// out-of-range page numbers clamp to offset 0.
+func TestAuditPageNormalized(t *testing.T) {
+	cases := []struct {
+		name       string
+		page       AuditPage
+		wantOffset int
+		wantLimit  int
+	}{
+		{name: "zero value defaults to page 1 of 50", page: AuditPage{}, wantOffset: 0, wantLimit: 50},
+		{name: "explicit page", page: AuditPage{Number: 2, Size: 25}, wantOffset: 25, wantLimit: 25},
+		{name: "size over cap is clamped", page: AuditPage{Number: 1, Size: 10000}, wantOffset: 0, wantLimit: 200},
+		{name: "negative size falls back to default", page: AuditPage{Number: 1, Size: -5}, wantOffset: 0, wantLimit: 50},
+		{name: "page zero clamps to offset 0", page: AuditPage{Number: 0, Size: 10}, wantOffset: 0, wantLimit: 10},
+		{name: "negative page clamps to offset 0", page: AuditPage{Number: -3, Size: 10}, wantOffset: 0, wantLimit: 10},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			offset, limit := c.page.Normalized()
+			if offset != c.wantOffset || limit != c.wantLimit {
+				t.Errorf("Normalized() = (%d, %d), want (%d, %d)", offset, limit, c.wantOffset, c.wantLimit)
 			}
 		})
 	}

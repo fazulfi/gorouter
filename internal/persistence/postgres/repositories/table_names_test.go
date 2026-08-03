@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/passwordreset"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/domain/settings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -633,5 +635,81 @@ func TestBackupRepo_SQL_UsesGorouterBackups(t *testing.T) {
 		repo := &backupRepo{tx: tx}
 		_ = repo.UpdateVerification(context.Background(), uuid.New(), testNow)
 		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SettingsRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestSettingsRepo_SQL_UsesGorouterSettings(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Get", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_, _ = repo.Get(context.Background(), "rtkEnabled")
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("Set", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_ = repo.Set(context.Background(), &settings.Setting{Key: "rtkEnabled", Value: json.RawMessage(`true`)})
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_, _ = repo.List(context.Background())
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("Wipe", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_ = repo.Wipe(context.Background())
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// AuditQueryRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestAuditQueryRepo_SQL_SelectOnlyOverGorouterAuditLog(t *testing.T) {
+	t.Parallel()
+
+	t.Run("List is SELECT-only", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &auditQueryRepo{tx: tx}
+		_, _ = repo.List(context.Background(), txpkg.AuditFilters{}, txpkg.AuditPage{})
+		assertTableInSQL(t, tx, "gorouter_audit_log")
+		upper := strings.ToUpper(tx.lastSQL)
+		if !strings.HasPrefix(strings.TrimSpace(upper), "SELECT") {
+			t.Errorf("List SQL must start with SELECT:\n%s", tx.lastSQL)
+		}
+		for _, banned := range []string{"UPDATE", "DELETE", "INSERT ", "TRUNCATE"} {
+			if strings.Contains(upper, banned) {
+				t.Errorf("List SQL must be SELECT-only, found %s", banned)
+			}
+		}
+	})
+
+	t.Run("Export is SELECT-only", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &auditQueryRepo{tx: tx}
+		_, _ = repo.Export(context.Background(), txpkg.AuditFilters{})
+		assertTableInSQL(t, tx, "gorouter_audit_log")
+		upper := strings.ToUpper(tx.lastSQL)
+		if !strings.HasPrefix(strings.TrimSpace(upper), "SELECT") {
+			t.Errorf("Export SQL must start with SELECT:\n%s", tx.lastSQL)
+		}
+		for _, banned := range []string{"UPDATE", "DELETE", "INSERT ", "TRUNCATE"} {
+			if strings.Contains(upper, banned) {
+				t.Errorf("Export SQL must be SELECT-only, found %s", banned)
+			}
+		}
 	})
 }
