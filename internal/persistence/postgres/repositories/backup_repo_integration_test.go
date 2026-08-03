@@ -133,6 +133,47 @@ func TestBackupRepo_CRUD_Integration(t *testing.T) {
 		}
 	})
 
+	t.Run("update restore verification preserves all other fields", func(t *testing.T) {
+		generatedBy := "scheduler"
+		createdAt := generatedTime()
+		b := &backup.Backup{
+			ID: uuid.New(), Path: "/var/lib/gorouter/backups/shadow-verify-me.sql",
+			SHA256: "cccc", Bytes: 77, GeneratedBy: &generatedBy, CreatedAt: &createdAt,
+		}
+		if err := repo.Create(ctx, b); err != nil {
+			t.Fatalf("create: %v", err)
+		}
+
+		restoreVerifiedAt := time.Now().UTC().Truncate(time.Microsecond)
+		if err := repo.UpdateRestoreVerification(ctx, b.ID, restoreVerifiedAt); err != nil {
+			t.Fatalf("update restore verification: %v", err)
+		}
+
+		got, err := repo.FindByID(ctx, b.ID)
+		if err != nil {
+			t.Fatalf("find: %v", err)
+		}
+		if got.RestoreVerifiedAt == nil || !got.RestoreVerifiedAt.Equal(restoreVerifiedAt) {
+			t.Errorf("restore_verified_at = %v, want %v", got.RestoreVerifiedAt, restoreVerifiedAt)
+		}
+		if got.Path != b.Path || got.SHA256 != b.SHA256 || got.Bytes != b.Bytes {
+			t.Error("update restore verification mutated identity fields")
+		}
+		if got.VerifiedAt != nil {
+			t.Error("update restore verification must not touch verified_at")
+		}
+		if got.GeneratedBy == nil || *got.GeneratedBy != generatedBy {
+			t.Error("update restore verification mutated generated_by")
+		}
+	})
+
+	t.Run("missing UpdateRestoreVerification returns ErrBackupNotFound", func(t *testing.T) {
+		err := repo.UpdateRestoreVerification(ctx, uuid.New(), time.Now().UTC())
+		if !errors.Is(err, backup.ErrBackupNotFound) {
+			t.Fatalf("expected ErrBackupNotFound, got %v", err)
+		}
+	})
+
 	t.Run("create does not mutate caller input", func(t *testing.T) {
 		before := backup.Backup{ID: uuid.New(), Path: "/p", SHA256: "h", Bytes: 1}
 		b := before

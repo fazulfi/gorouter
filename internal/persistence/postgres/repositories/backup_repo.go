@@ -82,3 +82,18 @@ func (r *backupRepo) UpdateVerification(ctx context.Context, id uuid.UUID, verif
 	}
 	return nil
 }
+
+// UpdateRestoreVerification records the shadow-restore verification marker,
+// touching only restore_verified_at. Missing backups map to
+// ErrBackupNotFound; identity fields are never modified.
+func (r *backupRepo) UpdateRestoreVerification(ctx context.Context, id uuid.UUID, restoreVerifiedAt time.Time) error {
+	tag, err := r.tx.Exec(ctx,
+		`UPDATE gorouter_backups SET restore_verified_at = $2 WHERE id = $1`, id, restoreVerifiedAt)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return backup.ErrBackupNotFound
+	}
+	return nil
+}

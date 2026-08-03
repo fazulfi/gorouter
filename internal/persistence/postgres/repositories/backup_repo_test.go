@@ -251,3 +251,62 @@ func TestBackupRepo_UpdateVerification(t *testing.T) {
 		}
 	})
 }
+
+func TestBackupRepo_UpdateRestoreVerification(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success updates restore_verified_at when backup exists", func(t *testing.T) {
+		var gotSQL string
+		var gotArgs []interface{}
+		tx := &mockTx{
+			execFn: func(_ context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
+				gotSQL = sql
+				gotArgs = args
+				return pgconn.NewCommandTag("UPDATE 1"), nil
+			},
+		}
+		repo := &backupRepo{tx: tx}
+		id := uuid.New()
+		restoreVerifiedAt := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+		if err := repo.UpdateRestoreVerification(context.Background(), id, restoreVerifiedAt); err != nil {
+			t.Fatal(err)
+		}
+		if len(gotArgs) != 2 || gotArgs[0] != id || gotArgs[1] != restoreVerifiedAt {
+			t.Error("id/restore_verified_at args mismatch")
+		}
+		if !strings.Contains(gotSQL, "gorouter_backups") || !strings.Contains(gotSQL, "restore_verified_at = $2") {
+			t.Errorf("UpdateRestoreVerification SQL must set gorouter_backups.restore_verified_at:\n%s", gotSQL)
+		}
+		if strings.Contains(gotSQL, "SET verified_at") {
+			t.Errorf("UpdateRestoreVerification SQL must leave verified_at untouched:\n%s", gotSQL)
+		}
+		if strings.Contains(gotSQL, "path") || strings.Contains(gotSQL, "sha256") || strings.Contains(gotSQL, "bytes") {
+			t.Errorf("UpdateRestoreVerification must not touch immutable identity fields:\n%s", gotSQL)
+		}
+	})
+
+	t.Run("missing backup returns ErrBackupNotFound", func(t *testing.T) {
+		tx := &mockTx{
+			execFn: func(_ context.Context, _ string, _ ...interface{}) (pgconn.CommandTag, error) {
+				return pgconn.NewCommandTag("UPDATE 0"), nil
+			},
+		}
+		repo := &backupRepo{tx: tx}
+		err := repo.UpdateRestoreVerification(context.Background(), uuid.New(), time.Now().UTC())
+		if !errors.Is(err, backup.ErrBackupNotFound) {
+			t.Fatalf("expected ErrBackupNotFound, got %v", err)
+		}
+	})
+
+	t.Run("exec error propagates", func(t *testing.T) {
+		tx := &mockTx{
+			execFn: func(_ context.Context, _ string, _ ...interface{}) (pgconn.CommandTag, error) {
+				return pgconn.CommandTag{}, errors.New("update failed")
+			},
+		}
+		repo := &backupRepo{tx: tx}
+		if err := repo.UpdateRestoreVerification(context.Background(), uuid.New(), time.Now().UTC()); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}

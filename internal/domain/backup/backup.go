@@ -33,9 +33,10 @@ type Backup struct {
 // BackupRepository defines persistence operations for the backup registry.
 // Create stores the entry exactly as given; List returns the registry
 // newest-first; FindByID returns ErrBackupNotFound when no backup exists;
-// UpdateVerification records the validation timestamp on an existing backup
-// and fails with ErrBackupNotFound when the backup is missing. There is no
-// update path for the identity fields and no delete path at all.
+// UpdateVerification records the dump-validation timestamp and
+// UpdateRestoreVerification the shadow-restore timestamp on an existing
+// backup, both failing with ErrBackupNotFound when the backup is missing.
+// There is no update path for the identity fields and no delete path at all.
 type BackupRepository interface {
 	// Create persists a backup registry entry exactly as given.
 	Create(ctx context.Context, b *Backup) error
@@ -48,4 +49,8 @@ type BackupRepository interface {
 	// id, leaving every other field untouched. Fails with
 	// ErrBackupNotFound when no such entry exists.
 	UpdateVerification(ctx context.Context, id uuid.UUID, verifiedAt time.Time) error
+	// UpdateRestoreVerification records restoreVerifiedAt on the entry with
+	// the given id, leaving every other field untouched. Fails with
+	// ErrBackupNotFound when no such entry exists.
+	UpdateRestoreVerification(ctx context.Context, id uuid.UUID, restoreVerifiedAt time.Time) error
 }
