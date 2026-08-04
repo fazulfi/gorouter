@@ -133,6 +133,8 @@ func (s *Service) ValidateSession(ctx context.Context, rawToken string) (*domain
 		SessionID: session.ID,
 		IsAdmin:   user.IsAdmin,
 		Scopes:    []string{},
+		Kind:      domain.ActorKindSession,
+		Origin:    domain.ActorOriginRemote,
 	}
 
 	return actor, nil
