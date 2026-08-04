@@ -176,13 +176,13 @@ func generateTS(doc openapiDoc) ([]byte, error) {
 	var buf bytes.Buffer
 
 	fmt.Fprint(&buf, headerComment)
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 
 	schemas := doc.Components.Schemas
 	schemaNames := sortedSchemaKeys(schemas)
 
 	fmt.Fprintln(&buf, "// Type definitions")
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 	for _, name := range schemaNames {
 		schema := schemas[name]
 		tsType, err := schemaToTS(name, schema, schemas)
@@ -192,11 +192,11 @@ func generateTS(doc openapiDoc) ([]byte, error) {
 		fmt.Fprintln(&buf, tsType)
 	}
 
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 	fmt.Fprintln(&buf, "// Client")
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 	fmt.Fprintln(&buf, "const BASE = \"/api/admin/v1\";")
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 	fmt.Fprintln(&buf, "async function request<T>(path: string, init?: RequestInit): Promise<T> {")
 	fmt.Fprintln(&buf, "\tconst res = await fetch(BASE + path, {")
 	fmt.Fprintln(&buf, "\t\theaders: {")
@@ -211,7 +211,7 @@ func generateTS(doc openapiDoc) ([]byte, error) {
 	fmt.Fprintln(&buf, "\t}")
 	fmt.Fprintln(&buf, "\treturn res.json();")
 	fmt.Fprintln(&buf, "}")
-	fmt.Fprintln(w)
+	fmt.Fprintln(&buf)
 
 	paths := sortedPathItems(doc.Paths)
 	for _, pi := range paths {
@@ -252,7 +252,7 @@ func generateTS(doc openapiDoc) ([]byte, error) {
 		initObj := buildInitObj(method, bodySchema, pi.path, params)
 		fmt.Fprintf(&buf, "\treturn request<%s>(%s, %s);\n", retType, pathLit(pi.path, params), initObj)
 		fmt.Fprintln(&buf, "}")
-		fmt.Fprintln(w)
+		fmt.Fprintln(&buf)
 	}
 
 	return append(bytes.TrimRight(buf.Bytes(), "\n"), '\n'), nil
