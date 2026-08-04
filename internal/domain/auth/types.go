@@ -53,12 +53,50 @@ type Session struct {
 	CreatedAt time.Time
 }
 
-// Actor represents the authenticated principal making a request.
+// ActorKind identifies the credential kind of an authenticated principal
+// (design §6 P2-15, DECISIONS #357): a dashboard session, a personal access
+// token, the local CLI, a scheduler job, or a generic user principal. The
+// zero value ("") is not a valid kind and must never satisfy a kind check.
+type ActorKind string
+
+const (
+	// ActorKindUser is a generic user-derived principal (for example a model
+	// API key lookup that yields a user identity without a session).
+	ActorKindUser ActorKind = "user"
+	// ActorKindSession is a dashboard session-cookie principal.
+	ActorKindSession ActorKind = "session"
+	// ActorKindPAT is a personal access token principal.
+	ActorKindPAT ActorKind = "pat"
+	// ActorKindCLI is the host-local command-line principal.
+	ActorKindCLI ActorKind = "cli"
+	// ActorKindJob is an internal scheduler job principal.
+	ActorKindJob ActorKind = "job"
+)
+
+// ActorOrigin identifies where a principal's identity was established. The
+// zero value ("") is not a valid origin and must never satisfy an origin
+// check.
+type ActorOrigin string
+
+const (
+	// ActorOriginLocal is a host-local origin (the CLI on the server host).
+	ActorOriginLocal ActorOrigin = "local"
+	// ActorOriginRemote is any network origin (dashboard session, PAT, API
+	// key).
+	ActorOriginRemote ActorOrigin = "remote"
+)
+
+// Actor represents the authenticated principal making a request. The
+// additive Kind/Origin contract (design §6 P2-15) identifies the credential
+// kind and establishment origin; the legacy UserID/SessionID/IsAdmin/Scopes
+// fields are retained for compatibility until every consumer is migrated.
 type Actor struct {
 	UserID    uuid.UUID
 	SessionID uuid.UUID
 	IsAdmin   bool
 	Scopes    []string
+	Kind      ActorKind
+	Origin    ActorOrigin
 }
 
 // UserRepository defines persistence operations for users.
