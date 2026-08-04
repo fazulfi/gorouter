@@ -51,6 +51,15 @@ type Handler struct {
 	store LockoutStore
 	cfg   Config
 	now   func() time.Time
+
+	// OIDC surface (security P1-8). A zero-valued oidcCfg means OIDC is not
+	// configured: Start/Callback/Test fail with 400 instead of leaking or
+	// redirecting. WithOIDC wires the surface.
+	oidcCfg  OIDCConfig
+	oidcSvc  OIDCService
+	oidcSt   OIDCStateStore
+	oidcHTTP oidcHTTPClient
+	oidcKeys *oidcJWKSCache
 }
 
 // New creates the auth handler. store defaults to an in-process lockout store
@@ -86,6 +95,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Post("/auth/logout", h.Logout)
 	r.Get("/auth/me", h.Me)
 	r.Get("/auth/status", h.Status)
+	h.OIDCRoutes(r)
 }
 
 type loginRequest struct {

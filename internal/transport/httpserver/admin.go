@@ -22,10 +22,20 @@ type AuthEndpoints interface {
 	SessionCookieName() string
 }
 
+// OIDCEndpoints is the OIDC auth surface the admin router mounts. start and
+// callback are public (no session exists pre-sign-in); test sits behind the
+// session-cookie group (openapi: SessionCookie/PAT, scope config read).
+type OIDCEndpoints interface {
+	OIDCStart(w http.ResponseWriter, r *http.Request)
+	OIDCCallback(w http.ResponseWriter, r *http.Request)
+	OIDCTest(w http.ResponseWriter, r *http.Request)
+}
+
 // AdminConfig wires the admin mount group: the auth endpoints, the cookie
 // policy, and the trusted-proxy CIDRs for real-IP normalization.
 type AdminConfig struct {
 	Auth           AuthEndpoints
+	OIDC           OIDCEndpoints
 	CookieSecure   bool
 	TrustedProxies []string
 }
@@ -68,6 +78,13 @@ func NewAdminRouter(cfg AdminConfig) http.Handler {
 
 		admin.Post("/auth/login", cfg.Auth.Login)
 
+		// OIDC start and callback are public (no session cookie exists before
+		// sign-in; the callback issues one on success).
+		if cfg.OIDC != nil {
+			admin.Get("/auth/oidc/start", cfg.OIDC.OIDCStart)
+			admin.Get("/auth/oidc/callback", cfg.OIDC.OIDCCallback)
+		}
+
 		admin.Group(func(s chi.Router) {
 			s.Use(
 				middleware.CSRF(middleware.CSRFConfig{Secure: cfg.CookieSecure}),
@@ -76,6 +93,9 @@ func NewAdminRouter(cfg AdminConfig) http.Handler {
 			s.Get("/auth/me", cfg.Auth.Me)
 			s.Get("/auth/status", cfg.Auth.Status)
 			s.Post("/auth/logout", cfg.Auth.Logout)
+			if cfg.OIDC != nil {
+				s.Post("/auth/oidc/test", cfg.OIDC.OIDCTest)
+			}
 		})
 	})
 	return r

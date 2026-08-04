@@ -195,6 +195,53 @@ func TestPATBypassesCSRF(t *testing.T) {
 	}
 }
 
+// adminOIDCFake implements authhandlers.OIDCService for the mount test.
+type adminOIDCFake struct{}
+
+func (adminOIDCFake) LoginWithOIDC(context.Context, string) (*domauth.Session, string, error) {
+	return &domauth.Session{ID: uuid.New(), UserID: uuid.New()}, "raw-token", nil
+}
+
+// TestAdminOIDCMount proves the admin router exposes the three OIDC routes
+// with the correct auth boundary: start/callback are public (pre-session),
+// test is registered behind the session-cookie group (session/PAT, config read).
+func TestAdminOIDCMount(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	svc := &adminFakeService{
+		loginSession: &domauth.Session{ID: uuid.New(), UserID: uuid.New()},
+		me:           &domauth.User{ID: uuid.New(), Email: "a@example.com", IsActive: true},
+	}
+	base := authhandlers.New(svc, authhandlers.NewMemoryLockoutStore(), authhandlers.Config{}, func() time.Time { return now })
+	oidc := base.WithOIDC(authhandlers.OIDCConfig{
+		Issuer: "http://insecure.test", ClientID: "c", RedirectURI: "https://app.test/cb",
+	}, adminOIDCFake{}, nil, nil)
+	r := NewAdminRouter(AdminConfig{Auth: base, OIDC: oidc, TrustedProxies: nil})
+
+	start := httptest.NewRequest(http.MethodGet, "/api/admin/v1/auth/oidc/start", nil)
+	startRr := httptest.NewRecorder()
+	r.ServeHTTP(startRr, start)
+	if startRr.Code != http.StatusBadRequest {
+		t.Fatalf("GET /auth/oidc/start (registered, insecure issuer) = %d, want 400", startRr.Code)
+	}
+
+	cb := httptest.NewRequest(http.MethodGet, "/api/admin/v1/auth/oidc/callback", nil)
+	cbRr := httptest.NewRecorder()
+	r.ServeHTTP(cbRr, cb)
+	if cbRr.Code != http.StatusBadRequest {
+		t.Fatalf("GET /auth/oidc/callback (registered) = %d, want 400", cbRr.Code)
+	}
+
+	// test is mounted in the CSRF -> SessionAuth group: a cookie-less POST is
+	// fail-closed 403 at CSRF (never 404), proving the route sits behind the
+	// session boundary.
+	testReq := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/oidc/test", nil)
+	testRr := httptest.NewRecorder()
+	r.ServeHTTP(testRr, testReq)
+	if testRr.Code != http.StatusForbidden {
+		t.Fatalf("POST /auth/oidc/test without CSRF = %d, want 403 (session+CSRF group)", testRr.Code)
+	}
+}
+
 func doAdminLogin(t *testing.T, h http.Handler) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/login", strings.NewReader(`{"email":"a@example.com","password":"right"}`))
