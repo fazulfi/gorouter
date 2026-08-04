@@ -1,0 +1,26 @@
+name: Contract Check
+
+on:
+  push:
+    paths:
+      - 'api/admin-v1.openapi.yaml'
+      - 'tools/contractgen/**'
+      - 'frontend/src/generated/admin-v1.ts'
+  pull_request:
+    paths:
+      - 'api/admin-v1.openapi.yaml'
+      - 'tools/contractgen/**'
+      - 'frontend/src/generated/admin-v1.ts'
+
+jobs:
+  contract-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Verify contract client matches spec
+        run: go run ./tools/contractgen --check
+      - name: Run contract gate tests
+        run: go test -count=1 ./tools/contractgen/ -v
