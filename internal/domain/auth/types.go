@@ -91,12 +91,15 @@ const (
 // kind and establishment origin; the legacy UserID/SessionID/IsAdmin/Scopes
 // fields are retained for compatibility until every consumer is migrated.
 type Actor struct {
-	UserID    uuid.UUID
-	SessionID uuid.UUID
-	IsAdmin   bool
-	Scopes    []string
-	Kind      ActorKind
-	Origin    ActorOrigin
+	UserID       uuid.UUID
+	SessionID    uuid.UUID
+	IsAdmin      bool
+	Scopes       []string
+	Kind         ActorKind
+	Origin       ActorOrigin
+	IP           net.IP
+	UserAgent    string
+	Capabilities []string
 }
 
 // UserRepository defines persistence operations for users.
