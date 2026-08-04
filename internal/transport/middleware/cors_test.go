@@ -311,3 +311,22 @@ func TestModelCORS_OptionsWithoutOrigin(t *testing.T) {
 		t.Log("OPTIONS without origin returns 204 (acceptable)")
 	}
 }
+
+func TestAdminCORS_DefaultAdminHeadersIncludeCSRFToken(t *testing.T) {
+	handler := AdminCORS(CORSConfig{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodOptions, "/admin", nil)
+	req.Header.Set("Origin", "http://localhost:9000")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	allow := rr.Header().Get("Access-Control-Allow-Headers")
+	for _, want := range []string{"Content-Type", "Authorization", "X-Request-ID", "X-CSRF-Token"} {
+		if !strings.Contains(allow, want) {
+			t.Errorf("default admin Allow-Headers %q missing %s", allow, want)
+		}
+	}
+}

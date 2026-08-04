@@ -54,6 +54,7 @@ var defaultAdminHeaders = []string{
 	"Content-Type",
 	"Authorization",
 	"X-Request-ID",
+	"X-CSRF-Token",
 }
 
 func isLocalhostOrigin(origin string) bool {
