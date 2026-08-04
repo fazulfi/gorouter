@@ -138,7 +138,7 @@ func seedBackupUser(t *testing.T, ctx context.Context, pool *pgxpool.Pool) *auth
 		userID, "backup-e2e-"+uuid.NewString()[:8]+"@gorouter.local", "test-hash"); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
-	return &auth.Actor{UserID: userID, IsAdmin: true}
+	return &auth.Actor{UserID: userID, IsAdmin: true, Kind: auth.ActorKindSession, Origin: auth.ActorOriginRemote}
 }
 
 // TestBackupServiceEndToEnd_Integration drives the full backup lifecycle
@@ -249,11 +249,20 @@ func TestBackupServiceEndToEnd_Integration(t *testing.T) {
 		t.Errorf("verify audit sequence = %v", audits)
 	}
 
-	// Restore confirmation decline: audited, nothing changes.
-	if err := svc.Restore(ctx, actor, b.ID, backupapp.RestoreConfirmation{
+	// Restore confirmation decline: audited, nothing changes. Only the
+	// host-local CLI actor may attempt a restore (DECISIONS #202).
+	cliActor := &auth.Actor{UserID: actor.UserID, IsAdmin: true, Kind: auth.ActorKindCLI, Origin: auth.ActorOriginLocal}
+	if err := svc.Restore(ctx, cliActor, b.ID, backupapp.RestoreConfirmation{
 		SHA256Prefix: "wrongprefix", AcknowledgeDestructive: true,
 	}); !errors.Is(err, backupapp.ErrRestoreDeclined) {
 		t.Fatalf("err = %v, want ErrRestoreDeclined", err)
+	}
+	// A dashboard-session admin actor must never pass the local-CLI-only
+	// restore gate.
+	if err := svc.Restore(ctx, actor, b.ID, backupapp.RestoreConfirmation{
+		SHA256Prefix: "wrongprefix", AcknowledgeDestructive: true,
+	}); !errors.Is(err, backupapp.ErrRestoreLocalCLIOnly) {
+		t.Fatalf("session actor err = %v, want ErrRestoreLocalCLIOnly", err)
 	}
 	declines, err := pool.Query(ctx, `SELECT count(*) FROM gorouter_audit_log WHERE action = 'backup.restore.decline'`)
 	if err != nil {
@@ -288,6 +297,24 @@ func TestBackupServiceEndToEnd_Integration(t *testing.T) {
 		uuid.New(), oldPath, oldSHA, int64(len("old")), oldGenerated, oldCreated); err != nil {
 		t.Fatal(err)
 	}
+	// A malicious registry row pointing outside the storage root must never
+	// make prune delete the external file (C1/K2 containment): prune skips
+	// the candidate and records a bounded skip audit.
+	outsideDir := t.TempDir()
+	sentinel := filepath.Join(outsideDir, "sentinel.env")
+	if err := os.WriteFile(sentinel, []byte("external secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sentinelSHA, err := backupapp.HashFileSHA256(sentinel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO gorouter_backups (id, path, sha256, bytes, generated_by, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		uuid.New(), sentinel, sentinelSHA, int64(len("external secret")), oldGenerated, oldCreated.Add(2*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx,
 		`UPDATE gorouter_backups SET created_at = now() - interval '24 hours' WHERE id = $1`, b.ID); err != nil {
 		t.Fatal(err)
@@ -314,6 +341,21 @@ func TestBackupServiceEndToEnd_Integration(t *testing.T) {
 	}
 	if _, err := os.Stat(b2.Path); err != nil {
 		t.Errorf("newest backup file missing: %v", err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Errorf("external sentinel was deleted by prune: %v", err)
+	}
+	skipRows, err := pool.Query(ctx, `SELECT count(*) FROM gorouter_audit_log WHERE action = 'backup.prune.skip'`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var skipCount int
+	if skipRows.Next() {
+		_ = skipRows.Scan(&skipCount)
+	}
+	skipRows.Close()
+	if skipCount != 1 {
+		t.Errorf("prune skip audits = %d, want 1", skipCount)
 	}
 }
 

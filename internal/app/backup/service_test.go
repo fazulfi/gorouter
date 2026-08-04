@@ -209,6 +209,18 @@ func actor() *auth.Actor { return &auth.Actor{UserID: uuid.New(), IsAdmin: true}
 
 func nonAdminActor() *auth.Actor { return &auth.Actor{UserID: uuid.New(), IsAdmin: false} }
 
+// cliActor is the only actor the destructive restore accepts: the host-local
+// CLI identity (DECISIONS #202, design §6 P2-15).
+func cliActor() *auth.Actor {
+	return &auth.Actor{UserID: uuid.New(), IsAdmin: true, Kind: auth.ActorKindCLI, Origin: auth.ActorOriginLocal}
+}
+
+// remoteActor builds a network-origin admin principal that must never pass
+// the local-CLI-only restore gate.
+func remoteActor(kind auth.ActorKind) *auth.Actor {
+	return &auth.Actor{UserID: uuid.New(), IsAdmin: true, Kind: kind, Origin: auth.ActorOriginRemote}
+}
+
 // writeDummyBackup creates a real file and a registry entry for it.
 func writeDummyBackup(t *testing.T, dir string, scope *fakeBackupScope) (*backup.Backup, string) {
 	t.Helper()
@@ -415,6 +427,189 @@ func TestBackupService_Generate(t *testing.T) {
 		entries, _ := scope.backing.List(context.Background())
 		if len(entries) != 5 {
 			t.Errorf("registry entries = %d, want 5 (append-only registry)", len(entries))
+		}
+	})
+
+	t.Run("retention requires BOTH markers; a one-marker row never counts toward the keep window", func(t *testing.T) {
+		dir := t.TempDir()
+		scope := newFakeBackupScope()
+		now := time.Now().UTC()
+		oldest, _ := writeDummyBackupAt(t, dir, scope, now.Add(-96*time.Hour), true)
+		oneMarker, _ := writeDummyBackupAt(t, dir, scope, now.Add(-72*time.Hour), false)
+		_ = scope.backing.UpdateVerification(context.Background(), oneMarker.ID, now.Add(-71*time.Hour))
+		newest, _ := writeDummyBackupAt(t, dir, scope, now.Add(-48*time.Hour), true)
+		svc, _ := newTestService(t, Config{Dir: dir, Keep: 2, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, &recordingRunner{body: []byte("new")}, nil)
+		b, err := svc.Generate(context.Background(), actor())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(newest.Path); err != nil {
+			t.Errorf("newest validated backup must be retained: %v", err)
+		}
+		if _, err := os.Stat(oldest.Path); err != nil {
+			t.Errorf("second validated backup must be retained: %v", err)
+		}
+		if _, err := os.Stat(oneMarker.Path); err == nil {
+			t.Error("one-marker backup must not count toward the keep window and must be pruned")
+		}
+		if _, err := os.Stat(b.Path); err != nil {
+			t.Errorf("current artifact must be retained: %v", err)
+		}
+	})
+
+	t.Run("prune never deletes a registry path outside the storage root and records the skip", func(t *testing.T) {
+		dir := t.TempDir()
+		outside := t.TempDir()
+		sentinel := filepath.Join(outside, "sentinel.env")
+		if err := os.WriteFile(sentinel, []byte("external secret"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		scope := newFakeBackupScope()
+		now := time.Now().UTC()
+		writeDummyBackupAt(t, dir, scope, now.Add(-96*time.Hour), true)
+		generatedBy := "x"
+		createdAt := now.Add(-70 * time.Hour)
+		malicious := &backup.Backup{
+			ID: uuid.New(), Path: sentinel, SHA256: "aa", Bytes: int64(len("external secret")),
+			GeneratedBy: &generatedBy, CreatedAt: &createdAt,
+		}
+		_ = scope.backing.Create(context.Background(), malicious)
+		svc, _ := newTestService(t, Config{Dir: dir, Keep: 1, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, &recordingRunner{body: []byte("new")}, nil)
+		if _, err := svc.Generate(context.Background(), actor()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(sentinel); err != nil {
+			t.Fatalf("external sentinel was deleted by prune: %v", err)
+		}
+		skipAudits := 0
+		for _, e := range scope.audit.entries {
+			if e.Action == "backup.prune.skip" {
+				skipAudits++
+				if len(string(e.Details)) > 600 {
+					t.Error("prune skip audit reason must be bounded")
+				}
+			}
+		}
+		if skipAudits != 1 {
+			t.Errorf("prune skip audits = %d, want 1", skipAudits)
+		}
+	})
+
+	t.Run("prune skips traversal and symlink candidates and never deletes them", func(t *testing.T) {
+		dir := t.TempDir()
+		outside := t.TempDir()
+		traversalPath := filepath.Join(dir, "..", "esc.dump")
+		if err := os.WriteFile(traversalPath, []byte("escaped"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		target := filepath.Join(outside, "real.dump")
+		if err := os.WriteFile(target, []byte("symlinked"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		linkPath := filepath.Join(dir, "link.dump")
+		if err := os.Symlink(target, linkPath); err != nil {
+			t.Skipf("symlinks unavailable: %v", err)
+		}
+		scope := newFakeBackupScope()
+		now := time.Now().UTC()
+		writeDummyBackupAt(t, dir, scope, now.Add(-96*time.Hour), true)
+		generatedBy := "x"
+		for i, path := range []string{traversalPath, linkPath} {
+			createdAt := now.Add(-70*time.Hour + time.Duration(i)*time.Hour)
+			_ = scope.backing.Create(context.Background(), &backup.Backup{
+				ID: uuid.New(), Path: path, SHA256: "bb", Bytes: 9,
+				GeneratedBy: &generatedBy, CreatedAt: &createdAt,
+			})
+		}
+		svc, _ := newTestService(t, Config{Dir: dir, Keep: 1, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, &recordingRunner{body: []byte("new")}, nil)
+		if _, err := svc.Generate(context.Background(), actor()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(traversalPath); err != nil {
+			t.Errorf("traversal candidate was deleted: %v", err)
+		}
+		if _, err := os.Stat(target); err != nil {
+			t.Errorf("symlink target was deleted: %v", err)
+		}
+		skips := 0
+		for _, e := range scope.audit.entries {
+			if e.Action == "backup.prune.skip" {
+				skips++
+			}
+		}
+		if skips != 1 {
+			t.Errorf("prune skip audits = %d, want 1 batched entry for the skipped candidates", skips)
+		}
+	})
+
+	t.Run("prune skips a wrong-mode candidate instead of deleting it", func(t *testing.T) {
+		dir := t.TempDir()
+		scope := newFakeBackupScope()
+		now := time.Now().UTC()
+		writeDummyBackupAt(t, dir, scope, now.Add(-96*time.Hour), true)
+		wrongMode, _ := writeDummyBackupAt(t, dir, scope, now.Add(-70*time.Hour), false)
+		if err := os.Chmod(wrongMode.Path, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		svc, _ := newTestService(t, Config{Dir: dir, Keep: 1, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, &recordingRunner{body: []byte("new")}, nil)
+		if _, err := svc.Generate(context.Background(), actor()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(wrongMode.Path); err != nil {
+			t.Errorf("wrong-mode candidate was deleted: %v", err)
+		}
+		skips := 0
+		for _, e := range scope.audit.entries {
+			if e.Action == "backup.prune.skip" {
+				skips++
+			}
+		}
+		if skips != 1 {
+			t.Errorf("prune skip audits = %d, want 1", skips)
+		}
+	})
+
+	t.Run("concurrent Generate is serialized so the current artifact is never pruned", func(t *testing.T) {
+		for i := 0; i < 8; i++ {
+			dir := t.TempDir()
+			scope := newFakeBackupScope()
+			runner := &recordingRunner{body: []byte("x")}
+			svc, _ := newTestService(t, Config{Dir: dir, Keep: 1, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
+			const workers = 4
+			results := make([]error, workers)
+			var wg sync.WaitGroup
+			for j := 0; j < workers; j++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					_, results[j] = svc.Generate(context.Background(), actor())
+				}()
+			}
+			wg.Wait()
+			successes, limits := 0, 0
+			for _, err := range results {
+				switch {
+				case err == nil:
+					successes++
+				case errors.Is(err, ErrBackupDailyLimit):
+					limits++
+				default:
+					t.Fatalf("iteration %d: unexpected Generate error: %v", i, err)
+				}
+			}
+			if successes != 1 || limits != workers-1 {
+				t.Fatalf("iteration %d: successes = %d, daily-limit = %d, want 1 and %d", i, successes, limits, workers-1)
+			}
+			entries, err := scope.backing.List(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entries) != 1 {
+				t.Fatalf("iteration %d: registry entries = %d, want 1", i, len(entries))
+			}
+			if _, err := os.Stat(entries[0].Path); err != nil {
+				t.Fatalf("iteration %d: current artifact pruned by a concurrent Generate: %v", i, err)
+			}
 		}
 	})
 }
@@ -632,13 +827,42 @@ func TestBackupService_Restore(t *testing.T) {
 		}
 	})
 
+	t.Run("session, pat, user, job, zero and CLI-but-remote actors are refused before any destructive work", func(t *testing.T) {
+		dir := t.TempDir()
+		scope := newFakeBackupScope()
+		b, sha := writeDummyBackup(t, dir, scope)
+		runner := &recordingRunner{}
+		svc, _ := newTestService(t, Config{Dir: dir, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
+		confirmation := RestoreConfirmation{SHA256Prefix: sha[:8], AcknowledgeDestructive: true}
+		refused := []*auth.Actor{
+			remoteActor(auth.ActorKindSession),
+			remoteActor(auth.ActorKindPAT),
+			remoteActor(auth.ActorKindUser),
+			remoteActor(auth.ActorKindJob),
+			{UserID: uuid.New(), IsAdmin: true}, // zero Kind/Origin
+			{UserID: uuid.New(), IsAdmin: true, Kind: auth.ActorKindCLI, Origin: auth.ActorOriginRemote},
+			{UserID: uuid.New(), IsAdmin: true, Kind: auth.ActorKindSession, Origin: auth.ActorOriginLocal},
+		}
+		for i, act := range refused {
+			if err := svc.Restore(context.Background(), act, b.ID, confirmation); !errors.Is(err, ErrRestoreLocalCLIOnly) {
+				t.Errorf("actor %d (%+v): err = %v, want ErrRestoreLocalCLIOnly", i, act.Kind, err)
+			}
+		}
+		if runner.callCount() != 0 {
+			t.Errorf("restore ran %d times for refused actors", runner.callCount())
+		}
+		if len(scope.audit.entries) != 0 {
+			t.Error("refused restore must not be audited as accept or decline")
+		}
+	})
+
 	t.Run("declined confirmation audits decline and never runs restore", func(t *testing.T) {
 		dir := t.TempDir()
 		scope := newFakeBackupScope()
 		b, sha := writeDummyBackup(t, dir, scope)
 		runner := &recordingRunner{}
 		svc, _ := newTestService(t, Config{Dir: dir, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
-		act := actor()
+		act := cliActor()
 		for name, confirmation := range map[string]RestoreConfirmation{
 			"wrong prefix": {SHA256Prefix: "deadbeef", AcknowledgeDestructive: true},
 			"no flag":      {SHA256Prefix: sha[:8], AcknowledgeDestructive: false},
@@ -668,7 +892,7 @@ func TestBackupService_Restore(t *testing.T) {
 		b, sha := writeDummyBackup(t, dir, scope)
 		runner := &recordingRunner{}
 		svc, _ := newTestService(t, Config{Dir: dir, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
-		act := actor()
+		act := cliActor()
 		err := svc.Restore(context.Background(), act, b.ID, RestoreConfirmation{
 			SHA256Prefix: sha[:8], AcknowledgeDestructive: true,
 		})
@@ -702,7 +926,7 @@ func TestBackupService_Restore(t *testing.T) {
 		}
 		runner := &recordingRunner{}
 		svc, _ := newTestService(t, Config{Dir: dir, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
-		act := actor()
+		act := cliActor()
 		if err := svc.Restore(context.Background(), act, b.ID, RestoreConfirmation{
 			SHA256Prefix: strings.ToUpper(sha[:8]), AcknowledgeDestructive: true,
 		}); err != nil {
@@ -731,7 +955,7 @@ func TestBackupService_Restore(t *testing.T) {
 		}
 	})
 
-	t.Run("restore command failure returns an error", func(t *testing.T) {
+	t.Run("restore command failure returns an error and audits the failure after the accept", func(t *testing.T) {
 		dir := t.TempDir()
 		scope := newFakeBackupScope()
 		b, sha := writeDummyBackup(t, dir, scope)
@@ -740,11 +964,23 @@ func TestBackupService_Restore(t *testing.T) {
 		_ = scope.backing.UpdateRestoreVerification(context.Background(), b.ID, now)
 		runner := &recordingRunner{err: errors.New("pg_restore failed"), stderr: "syntax error"}
 		svc, _ := newTestService(t, Config{Dir: dir, DatabaseURL: "postgres://g:p@127.0.0.1:5432/db"}, scope, runner, nil)
-		err := svc.Restore(context.Background(), actor(), b.ID, RestoreConfirmation{
+		err := svc.Restore(context.Background(), cliActor(), b.ID, RestoreConfirmation{
 			SHA256Prefix: sha[:8], AcknowledgeDestructive: true,
 		})
 		if err == nil || !strings.Contains(err.Error(), "restore failed") {
 			t.Errorf("err = %v, want restore failure", err)
+		}
+		accepts, fails := 0, 0
+		for _, e := range scope.audit.entries {
+			switch e.Action {
+			case "backup.restore.accept":
+				accepts++
+			case "backup.restore.failed":
+				fails++
+			}
+		}
+		if accepts != 1 || fails != 1 {
+			t.Errorf("audits = %d accepts, %d failed; want 1 accept then 1 failed", accepts, fails)
 		}
 	})
 }

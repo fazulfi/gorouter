@@ -36,13 +36,25 @@ func (realExecRunner) Run(ctx context.Context, name string, argv []string, env [
 	return []byte(stdout.String()), []byte(stderr.String()), err
 }
 
+// parsePGConfig parses a database DSN without ever surfacing the raw parse
+// error: pgconn parse failures can embed the full connection string,
+// including the password, which must never reach logs or the immutable
+// audit log (security K5).
+func parsePGConfig(dsn string) (*pgconn.Config, error) {
+	cfg, err := pgconn.ParseConfig(dsn)
+	if err != nil {
+		return nil, ErrBackupConfigInvalid
+	}
+	return cfg, nil
+}
+
 // pgEnv derives the minimal libpq environment from the runtime DSN. The
 // password travels in the environment (never in argv, which is visible in
 // process listings) and never in logs.
 func pgEnv(dsn string) ([]string, error) {
-	cfg, err := pgconn.ParseConfig(dsn)
+	cfg, err := parsePGConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("backup: parse database config: %w", err)
+		return nil, err
 	}
 	if err := loopbackOnly(cfg); err != nil {
 		return nil, err
@@ -98,7 +110,7 @@ func setPGDatabase(env []string, db string) []string {
 func connectLoopbackDB(ctx context.Context, dsn, dbName string) (*pgx.Conn, error) {
 	cfg, err := pgx.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("backup: parse database config: %w", err)
+		return nil, ErrBackupConfigInvalid
 	}
 	if err := loopbackOnly(&cfg.Config); err != nil {
 		return nil, err
@@ -116,9 +128,9 @@ func connectLoopbackDB(ctx context.Context, dsn, dbName string) (*pgx.Conn, erro
 // pgDatabaseName returns the database name of a runtime DSN for the
 // pg_restore -d target (PostgreSQL 15+ requires an explicit -d or -f).
 func pgDatabaseName(dsn string) (string, error) {
-	cfg, err := pgconn.ParseConfig(dsn)
+	cfg, err := parsePGConfig(dsn)
 	if err != nil {
-		return "", fmt.Errorf("backup: parse database config: %w", err)
+		return "", err
 	}
 	return cfg.Database, nil
 }

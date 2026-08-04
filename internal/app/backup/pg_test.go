@@ -55,6 +55,28 @@ func TestPGEnv(t *testing.T) {
 	})
 }
 
+func TestPGConfigParseErrorsAreRedacted(t *testing.T) {
+	t.Parallel()
+	bad := "postgres://user:secret-password@127.0.0.1:notaport/db?sslmode=disable"
+	if _, err := pgEnv(bad); !errors.Is(err, ErrBackupConfigInvalid) {
+		t.Errorf("pgEnv err = %v, want ErrBackupConfigInvalid", err)
+	}
+	if _, err := pgDatabaseName(bad); !errors.Is(err, ErrBackupConfigInvalid) {
+		t.Errorf("pgDatabaseName err = %v, want ErrBackupConfigInvalid", err)
+	}
+	if _, err := connectLoopbackDB(context.Background(), bad, ""); !errors.Is(err, ErrBackupConfigInvalid) {
+		t.Errorf("connectLoopbackDB err = %v, want ErrBackupConfigInvalid", err)
+	}
+	_, err := pgEnv(bad)
+	if err == nil {
+		t.Fatal("expected a parse failure")
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "secret-password") || strings.Contains(msg, "notaport") || strings.Contains(msg, "postgres://") {
+		t.Errorf("parse errors must never embed the DSN or its password: %q", msg)
+	}
+}
+
 func TestLoopbackOnly(t *testing.T) {
 	t.Parallel()
 

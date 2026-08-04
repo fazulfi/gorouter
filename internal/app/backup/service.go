@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"gorouter/internal/app/tx"
@@ -56,6 +57,10 @@ var (
 	// ErrBackupPathEscape reports a registry path that escapes the storage
 	// root or traverses a symlink.
 	ErrBackupPathEscape = errors.New("backup: registry path escapes the storage root")
+	// ErrBackupConfigInvalid reports a database DSN that could not be parsed.
+	// The underlying parse error is never surfaced: it can embed the DSN
+	// including its password (security K5).
+	ErrBackupConfigInvalid = errors.New("backup: invalid database configuration")
 )
 
 // Config configures the backup service. Dir is the storage root (directories
@@ -142,6 +147,11 @@ type Service struct {
 	beginner BackupScopeBeginner
 	runner   CommandRunner
 	shadows  ShadowDBManager
+	// genMu serializes Generate within the process (single-instance model,
+	// DECISIONS #79): a concurrent Generate must never publish an artifact
+	// that the other's prune removes before it can be verified (C4). No
+	// cross-process lock is invented; the scheduler is single-flight.
+	genMu sync.Mutex
 }
 
 // NewService creates a backup Service. The shadow-database manager defaults
@@ -163,6 +173,8 @@ func NewService(cfg Config, beginner BackupScopeBeginner, runner CommandRunner, 
 // a scheduler job actor (job provenance lands with the scheduler lane; the
 // service audits the actor it is handed).
 func (s *Service) Generate(ctx context.Context, actor *auth.Actor) (*backup.Backup, error) {
+	s.genMu.Lock()
+	defer s.genMu.Unlock()
 	if actor == nil {
 		return nil, ErrBackupActorRequired
 	}
@@ -213,7 +225,7 @@ func (s *Service) Generate(ctx context.Context, actor *auth.Actor) (*backup.Back
 		_ = os.Remove(finalPath)
 		return nil, err
 	}
-	if err := s.prune(ctx, b.ID); err != nil {
+	if err := s.prune(ctx, actor, b.ID); err != nil {
 		return nil, fmt.Errorf("backup: retention failed: %w", err)
 	}
 	return b, nil
@@ -339,7 +351,7 @@ func (s *Service) Verify(ctx context.Context, actor *auth.Actor, id uuid.UUID) e
 func (s *Service) auditFailure(ctx context.Context, actor *auth.Actor, id uuid.UUID, cause error) {
 	_ = s.audit(ctx, actor, id, "backup.verify.restore", map[string]any{
 		"result": "failed", "reason": sanitizeReason(cause),
-	}, nil)
+	})
 }
 
 // find reads one registry entry.
@@ -353,7 +365,7 @@ func (s *Service) find(ctx context.Context, id uuid.UUID) (*backup.Backup, error
 }
 
 // audit appends one immutable audit entry and commits.
-func (s *Service) audit(ctx context.Context, actor *auth.Actor, id uuid.UUID, action string, details map[string]any, _ *time.Time) error {
+func (s *Service) audit(ctx context.Context, actor *auth.Actor, id uuid.UUID, action string, details map[string]any) error {
 	scope, err := s.beginner.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -441,19 +453,16 @@ func (s *Service) Download(ctx context.Context, actor *auth.Actor, ip net.IP, id
 
 // Restore is the destructive local-CLI-only restore. The typed confirmation
 // must retype sha256[:8] of the backup and acknowledge destructiveness
-// (security P1-7, DECISIONS #202); accept and decline are both audited.
-// Restore never has an HTTP surface (asserted by TestNoHTTPRestoreSurface).
+// (security P1-7, DECISIONS #202); accept and decline are both audited, and a
+// failed pg_restore is audited as a failure, never reported as success. The
+// actor identity must be the host-local CLI kind (design §6 P2-15):
+// session/PAT/user/job actors and actors with unset (zero) Kind/Origin are
+// refused before any lookup, audit, or destructive work.
 func (s *Service) Restore(ctx context.Context, actor *auth.Actor, id uuid.UUID, confirmation RestoreConfirmation) error {
 	if actor == nil {
 		return ErrBackupActorRequired
 	}
-	// Local CLI only (DECISIONS #202): the actor model does not yet carry an
-	// origin/kind field, so the narrowest enforceable contract with current
-	// fields is an admin actor; TestNoHTTPRestoreSurface additionally proves
-	// no HTTP entrypoint can reach Restore. When the actor model gains a
-	// Kind/Origin (actor lane), Restore MUST require the local-CLI kind and
-	// never allow remote actors — this gate must be tightened, not loosened.
-	if !actor.IsAdmin {
+	if actor.Kind != auth.ActorKindCLI || actor.Origin != auth.ActorOriginLocal || !actor.IsAdmin {
 		return ErrRestoreLocalCLIOnly
 	}
 	b, err := s.find(ctx, id)
@@ -464,7 +473,7 @@ func (s *Service) Restore(ctx context.Context, actor *auth.Actor, id uuid.UUID, 
 		!strings.EqualFold(strings.TrimSpace(confirmation.SHA256Prefix), b.SHA256[:8]) {
 		if err := s.audit(ctx, actor, id, "backup.restore.decline", map[string]any{
 			"result": "declined", "reason": "typed confirmation did not match",
-		}, nil); err != nil {
+		}); err != nil {
 			return err
 		}
 		return ErrRestoreDeclined
@@ -475,12 +484,12 @@ func (s *Service) Restore(ctx context.Context, actor *auth.Actor, id uuid.UUID, 
 	if err := s.verifyRestoreReadiness(b); err != nil {
 		_ = s.audit(ctx, actor, id, "backup.restore.decline", map[string]any{
 			"result": "declined", "reason": "pre-restore verification failed",
-		}, nil)
+		})
 		return err
 	}
 	if err := s.audit(ctx, actor, id, "backup.restore.accept", map[string]any{
 		"result": "accepted", "sha256_prefix": b.SHA256[:8],
-	}, nil); err != nil {
+	}); err != nil {
 		return err
 	}
 	if s.cfg.DatabaseURL == "" {
@@ -498,6 +507,12 @@ func (s *Service) Restore(ctx context.Context, actor *auth.Actor, id uuid.UUID, 
 	defer cancel()
 	argv := []string{"--clean", "--if-exists", "--no-owner", "--no-privileges", "--exit-on-error", "-d", dbName, b.Path}
 	if _, stderr, err := s.runner.Run(restoreCtx, "pg_restore", argv, env); err != nil {
+		// The destructive run failed after the accept audit: record the
+		// failure (sanitized and bounded) so the immutable audit trail
+		// never misreports the outcome as success (C5).
+		_ = s.audit(ctx, actor, id, "backup.restore.failed", map[string]any{
+			"result": "failed", "reason": sanitizeReason(fmt.Errorf("%w: %s", err, tail(stderr))),
+		})
 		return fmt.Errorf("backup: restore failed: %w: %s", err, tail(stderr))
 	}
 	return nil
@@ -519,8 +534,13 @@ func (s *Service) verifyRestoreReadiness(b *backup.Backup) error {
 // prune removes the files of backups beyond the newest Keep validated
 // entries. The just-generated artifact is never pruned, and the registry
 // stays append-only: pruned rows remain as history and never surface
-// through List.
-func (s *Service) prune(ctx context.Context, current uuid.UUID) error {
+// through List. Retention qualification requires BOTH verification markers
+// (C3): a one-marker backup has not passed shadow verification and never
+// counts toward the validated keep window. Every deletion candidate is
+// re-canonicalized inside the storage root (C1/K2): out-of-root, symlink,
+// non-regular or wrong-mode candidates are never deleted; they are skipped
+// and recorded as a bounded, sanitized audit entry.
+func (s *Service) prune(ctx context.Context, actor *auth.Actor, current uuid.UUID) error {
 	scope, err := s.beginner.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -536,7 +556,7 @@ func (s *Service) prune(ctx context.Context, current uuid.UUID) error {
 	keep[current] = true // the current artifact must never be pruned
 	validated := 0
 	for _, b := range list {
-		if b.VerifiedAt == nil && b.RestoreVerifiedAt == nil {
+		if b.VerifiedAt == nil || b.RestoreVerifiedAt == nil {
 			continue
 		}
 		if validated >= s.cfg.Keep {
@@ -545,15 +565,44 @@ func (s *Service) prune(ctx context.Context, current uuid.UUID) error {
 		validated++
 		keep[b.ID] = true
 	}
+	var skipped []string
 	for _, b := range list {
 		if keep[b.ID] {
 			continue
 		}
-		if err := removeFile(b.Path); err != nil {
-			return err
+		if err := s.removeContained(&b); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue // already gone; nothing to delete
+			}
+			skipped = append(skipped, sanitizeReason(err))
+			continue
 		}
 	}
+	if len(skipped) > 0 {
+		reason := strings.Join(skipped, "; ")
+		if len(reason) > 500 {
+			reason = reason[len(reason)-500:]
+		}
+		_ = s.audit(ctx, actor, current, "backup.prune.skip", map[string]any{
+			"result": "skipped", "reason": reason,
+		})
+	}
 	return nil
+}
+
+// removeContained deletes one prune candidate only after re-validating it,
+// so a registry path can never delete anything outside the storage root
+// (C1/K2): the path must stay inside the root (no traversal, no absolute
+// escape, no symlink) and the file must still be a regular 0600 file whose
+// size and sha256 match the registry row.
+func (s *Service) removeContained(b *backup.Backup) error {
+	if err := securePathInDir(s.cfg.Dir, b.Path); err != nil {
+		return err
+	}
+	if err := s.verifyRegistryFile(b); err != nil {
+		return err
+	}
+	return removeFile(b.Path)
 }
 
 func removeFile(path string) error {
