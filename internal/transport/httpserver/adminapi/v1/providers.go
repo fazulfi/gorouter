@@ -33,13 +33,13 @@ type providersGroup struct{ svc ProvidersService }
 // pattern): the plaintext API key value is never exposed; a has_credentials
 // boolean reports whether a key is configured.
 type providerView struct {
-	ID              uuid.UUID `json:"id"`
-	Name            string    `json:"name"`
-	Type            string    `json:"type"`
-	BaseURL         string    `json:"base_url,omitempty"`
-	Config          any       `json:"config,omitempty"`
-	IsEnabled       bool      `json:"is_enabled"`
-	HasCredentials  bool      `json:"has_credentials"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	Type           string    `json:"type"`
+	BaseURL        string    `json:"base_url,omitempty"`
+	Config         any       `json:"config,omitempty"`
+	IsEnabled      bool      `json:"is_enabled"`
+	HasCredentials bool      `json:"has_credentials"`
 }
 
 func projectProvider(p *provider.Provider) providerView {

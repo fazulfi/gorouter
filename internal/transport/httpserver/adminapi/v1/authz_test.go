@@ -135,13 +135,13 @@ func loadContractRoutes(t *testing.T) []struct {
 // matrix walk.
 type authFake struct{}
 
-func (authFake) Login(w http.ResponseWriter, r *http.Request)          {}
-func (authFake) Logout(w http.ResponseWriter, r *http.Request)         {}
-func (authFake) Me(w http.ResponseWriter, r *http.Request)             {}
-func (authFake) Status(w http.ResponseWriter, r *http.Request)         {}
-func (authFake) OIDCStart(w http.ResponseWriter, r *http.Request)      {}
-func (authFake) OIDCCallback(w http.ResponseWriter, r *http.Request)   {}
-func (authFake) OIDCTest(w http.ResponseWriter, r *http.Request)       {}
+func (authFake) Login(w http.ResponseWriter, r *http.Request)        {}
+func (authFake) Logout(w http.ResponseWriter, r *http.Request)       {}
+func (authFake) Me(w http.ResponseWriter, r *http.Request)           {}
+func (authFake) Status(w http.ResponseWriter, r *http.Request)       {}
+func (authFake) OIDCStart(w http.ResponseWriter, r *http.Request)    {}
+func (authFake) OIDCCallback(w http.ResponseWriter, r *http.Request) {}
+func (authFake) OIDCTest(w http.ResponseWriter, r *http.Request)     {}
 func (authFake) ValidateSession(ctx context.Context, raw string) (*auth.Actor, error) {
 	return &auth.Actor{Kind: auth.ActorKindSession, Origin: auth.ActorOriginRemote}, nil
 }

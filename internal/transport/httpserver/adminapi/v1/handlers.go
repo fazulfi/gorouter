@@ -81,10 +81,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 // errorBody is the contract error shape (Error schema).
 type errorBody struct {
-	Code       string `json:"code"`
-	Message    string `json:"message"`
-	Details    any    `json:"details,omitempty"`
-	RequestID  string `json:"request_id,omitempty"`
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Details   any    `json:"details,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 }
 
 // statusFor maps a service error to an HTTP status. Unknown errors are
@@ -114,10 +114,10 @@ func statusFor(err error) int {
 // local sentinel errors used by the mapping handlers themselves (the services
 // may return their own; those are mapped through the domain packages above).
 var (
-	errNotFound    = errors.New("not found")
-	errInvalid     = errors.New("invalid request")
-	errConflict    = errors.New("conflict")
-	errForbidden   = errors.New("forbidden")
+	errNotFound     = errors.New("not found")
+	errInvalid      = errors.New("invalid request")
+	errConflict     = errors.New("conflict")
+	errForbidden    = errors.New("forbidden")
 	errUnauthorized = errors.New("unauthorized")
 )
 

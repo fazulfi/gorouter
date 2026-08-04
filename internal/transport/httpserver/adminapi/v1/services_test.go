@@ -44,14 +44,22 @@ func (fakeProviders) List(ctx context.Context) ([]provider.Provider, error) {
 func (fakeProviders) Get(ctx context.Context, id uuid.UUID) (*provider.Provider, error) {
 	return &provider.Provider{ID: id, Name: "p", Type: provider.ProviderOpenAI, IsEnabled: true}, nil
 }
-func (fakeProviders) Create(ctx context.Context, in *provider.Provider) (*provider.Provider, error) { return in, nil }
-func (fakeProviders) Update(ctx context.Context, in *provider.Provider) (*provider.Provider, error) { return in, nil }
-func (fakeProviders) Delete(ctx context.Context, id uuid.UUID) error                              { return nil }
+func (fakeProviders) Create(ctx context.Context, in *provider.Provider) (*provider.Provider, error) {
+	return in, nil
+}
+func (fakeProviders) Update(ctx context.Context, in *provider.Provider) (*provider.Provider, error) {
+	return in, nil
+}
+func (fakeProviders) Delete(ctx context.Context, id uuid.UUID) error { return nil }
 func (fakeProviders) Client(ctx context.Context) ([]provider.Provider, error) {
 	return []provider.Provider{{ID: uuid.New(), Name: "p", Type: provider.ProviderOpenAI, IsEnabled: true}}, nil
 }
-func (fakeProviders) KiloFreeModels(ctx context.Context) ([]string, error)  { return []string{"k1"}, nil }
-func (fakeProviders) SuggestedModels(ctx context.Context) ([]string, error) { return []string{"s1"}, nil }
+func (fakeProviders) KiloFreeModels(ctx context.Context) ([]string, error) {
+	return []string{"k1"}, nil
+}
+func (fakeProviders) SuggestedModels(ctx context.Context) ([]string, error) {
+	return []string{"s1"}, nil
+}
 func (fakeProviders) TestBatch(ctx context.Context, ids []uuid.UUID, concurrencyLimit int) (appproviders.TestBatchResult, error) {
 	return appproviders.TestBatchResult{Results: []appproviders.ProviderTestResult{{ProviderID: uuid.New(), Name: "p", OK: true}}}, nil
 }
@@ -76,10 +84,12 @@ func (fakeNodes) List(ctx context.Context) ([]enginerouting.ProviderNode, error)
 func (fakeNodes) Get(ctx context.Context, id string) (*enginerouting.ProviderNode, error) {
 	return &enginerouting.ProviderNode{ID: id, Name: "n", IsActive: true}, nil
 }
-func (fakeNodes) Save(ctx context.Context, actor *auth.Actor, node enginerouting.ProviderNode) error { return nil }
-func (fakeNodes) Update(ctx context.Context, node enginerouting.ProviderNode) error                  { return nil }
-func (fakeNodes) Delete(ctx context.Context, id string) error                                       { return nil }
-func (fakeNodes) Validate(ctx context.Context, id string) error                                     { return nil }
+func (fakeNodes) Save(ctx context.Context, actor *auth.Actor, node enginerouting.ProviderNode) error {
+	return nil
+}
+func (fakeNodes) Update(ctx context.Context, node enginerouting.ProviderNode) error { return nil }
+func (fakeNodes) Delete(ctx context.Context, id string) error                       { return nil }
+func (fakeNodes) Validate(ctx context.Context, id string) error                     { return nil }
 
 type fakePools struct{}
 
@@ -112,8 +122,10 @@ func (fakeCombos) Get(ctx context.Context, id uuid.UUID) (*combo.Definition, err
 func (fakeCombos) Create(ctx context.Context, actor *auth.Actor, name string, strategy combo.Strategy, config json.RawMessage, members []combo.Member) (*combo.Definition, error) {
 	return &combo.Definition{ID: uuid.New(), Name: name, Strategy: strategy, IsActive: true}, nil
 }
-func (fakeCombos) Update(ctx context.Context, actor *auth.Actor, def *combo.Definition) error { return nil }
-func (fakeCombos) Delete(ctx context.Context, actor *auth.Actor, id uuid.UUID) error          { return nil }
+func (fakeCombos) Update(ctx context.Context, actor *auth.Actor, def *combo.Definition) error {
+	return nil
+}
+func (fakeCombos) Delete(ctx context.Context, actor *auth.Actor, id uuid.UUID) error { return nil }
 
 type fakeAliases struct{}
 
@@ -123,7 +135,7 @@ func (fakeAliases) List(ctx context.Context) ([]enginerouting.Alias, error) {
 	return []enginerouting.Alias{{ID: uuid.New(), Alias: "a", Target: "gpt-4", IsActive: true}}, nil
 }
 func (fakeAliases) Set(ctx context.Context, alias *enginerouting.Alias) error { return nil }
-func (fakeAliases) Delete(ctx context.Context, id uuid.UUID) error           { return nil }
+func (fakeAliases) Delete(ctx context.Context, id uuid.UUID) error            { return nil }
 
 type fakeModels struct{}
 
@@ -156,13 +168,13 @@ type fakeUsage struct{}
 
 var _ UsageService = &fakeUsage{}
 
-func (fakeUsage) Stats(ctx context.Context) (any, error)                   { return okMap(), nil }
-func (fakeUsage) History(ctx context.Context) (any, error)                 { return okList(), nil }
-func (fakeUsage) Chart(ctx context.Context) (any, error)                   { return okList(), nil }
-func (fakeUsage) Providers(ctx context.Context) (any, error)               { return okList(), nil }
-func (fakeUsage) RequestDetails(ctx context.Context) (any, error)          { return okList(), nil }
-func (fakeUsage) RequestLogs(ctx context.Context) (any, error)             { return okList(), nil }
-func (fakeUsage) Logs(ctx context.Context) (any, error)                    { return okList(), nil }
+func (fakeUsage) Stats(ctx context.Context) (any, error)          { return okMap(), nil }
+func (fakeUsage) History(ctx context.Context) (any, error)        { return okList(), nil }
+func (fakeUsage) Chart(ctx context.Context) (any, error)          { return okList(), nil }
+func (fakeUsage) Providers(ctx context.Context) (any, error)      { return okList(), nil }
+func (fakeUsage) RequestDetails(ctx context.Context) (any, error) { return okList(), nil }
+func (fakeUsage) RequestLogs(ctx context.Context) (any, error)    { return okList(), nil }
+func (fakeUsage) Logs(ctx context.Context) (any, error)           { return okList(), nil }
 func (fakeUsage) Connection(ctx context.Context, connectionID string) (any, error) {
 	return map[string]any{"connectionId": connectionID}, nil
 }
@@ -174,22 +186,26 @@ var _ QuotaService = &fakeQuota{}
 func (fakeQuota) Status(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) (*quota.QuotaStatus, error) {
 	return &quota.QuotaStatus{ProviderID: providerID, WindowStart: time.Now()}, nil
 }
-func (fakeQuota) Unlock(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error { return nil }
-func (fakeQuota) Reset(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error  { return nil }
+func (fakeQuota) Unlock(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error {
+	return nil
+}
+func (fakeQuota) Reset(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error {
+	return nil
+}
 
 type fakeMutators struct{}
 
 var _ MutatorsService = &fakeMutators{}
 
-func (fakeMutators) List(ctx context.Context) (any, error)                        { return okList(), nil }
-func (fakeMutators) Set(ctx context.Context, name string, enabled bool) error     { return nil }
+func (fakeMutators) List(ctx context.Context) (any, error)                    { return okList(), nil }
+func (fakeMutators) Set(ctx context.Context, name string, enabled bool) error { return nil }
 
 type fakeCLITools struct{}
 
 var _ CLIToolsService = &fakeCLITools{}
 
-func (fakeCLITools) AllStatuses(ctx context.Context) (any, error)            { return okMap(), nil }
-func (fakeCLITools) ToolGet(ctx context.Context, tool string) (any, error)   { return okMap(), nil }
+func (fakeCLITools) AllStatuses(ctx context.Context) (any, error)          { return okMap(), nil }
+func (fakeCLITools) ToolGet(ctx context.Context, tool string) (any, error) { return okMap(), nil }
 func (fakeCLITools) ToolAction(ctx context.Context, tool string, in any) (any, error) {
 	return in, nil
 }
@@ -305,7 +321,9 @@ var _ HostOpsService = &fakeHostOps{}
 func (fakeHostOps) Action(ctx context.Context, feature, action string, in any) (any, error) {
 	return map[string]any{"feature": feature, "action": action}, nil
 }
-func (fakeHostOps) Version(ctx context.Context) (any, error) { return map[string]any{"version": "1.0"}, nil }
+func (fakeHostOps) Version(ctx context.Context) (any, error) {
+	return map[string]any{"version": "1.0"}, nil
+}
 
 type fakeBackups struct{}
 
@@ -524,8 +542,10 @@ type failingKeys struct {
 
 var _ KeysService = &failingKeys{}
 
-func (f *failingKeys) List(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error) { return nil, f.err }
-func (f *failingKeys) Get(ctx context.Context, id uuid.UUID) (*keys.APIKey, error)       { return nil, f.err }
+func (f *failingKeys) List(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error) {
+	return nil, f.err
+}
+func (f *failingKeys) Get(ctx context.Context, id uuid.UUID) (*keys.APIKey, error) { return nil, f.err }
 func (f *failingKeys) Create(ctx context.Context, userID uuid.UUID, name string, expiresAt *time.Time) (*keys.APIKey, string, error) {
 	return nil, "", f.err
 }

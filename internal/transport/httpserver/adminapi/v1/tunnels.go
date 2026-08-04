@@ -57,11 +57,13 @@ func (g *tunnelsGroup) run(w http.ResponseWriter, r *http.Request, action string
 	writeJSON(w, http.StatusOK, out)
 }
 
-func (g *tunnelsGroup) Get(w http.ResponseWriter, r *http.Request)            { g.run(w, r, "get") }
-func (g *tunnelsGroup) Status(w http.ResponseWriter, r *http.Request)         { g.run(w, r, "status") }
-func (g *tunnelsGroup) TailscaleCheck(w http.ResponseWriter, r *http.Request) { g.run(w, r, "tailscale-check") }
-func (g *tunnelsGroup) Enable(w http.ResponseWriter, r *http.Request)         { g.run(w, r, "enable") }
-func (g *tunnelsGroup) Disable(w http.ResponseWriter, r *http.Request)        { g.run(w, r, "disable") }
+func (g *tunnelsGroup) Get(w http.ResponseWriter, r *http.Request)    { g.run(w, r, "get") }
+func (g *tunnelsGroup) Status(w http.ResponseWriter, r *http.Request) { g.run(w, r, "status") }
+func (g *tunnelsGroup) TailscaleCheck(w http.ResponseWriter, r *http.Request) {
+	g.run(w, r, "tailscale-check")
+}
+func (g *tunnelsGroup) Enable(w http.ResponseWriter, r *http.Request)  { g.run(w, r, "enable") }
+func (g *tunnelsGroup) Disable(w http.ResponseWriter, r *http.Request) { g.run(w, r, "disable") }
 func (g *tunnelsGroup) TailscaleInstall(w http.ResponseWriter, r *http.Request) {
 	g.run(w, r, "tailscale-install")
 }

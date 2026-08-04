@@ -164,6 +164,8 @@ func (g *poolsGroup) deploy(kind string) http.HandlerFunc {
 	}
 }
 
-func (g *poolsGroup) CloudflareDeploy(w http.ResponseWriter, r *http.Request) { g.deploy("cloudflare")(w, r) }
-func (g *poolsGroup) DenoDeploy(w http.ResponseWriter, r *http.Request)       { g.deploy("deno")(w, r) }
-func (g *poolsGroup) VercelDeploy(w http.ResponseWriter, r *http.Request)     { g.deploy("vercel")(w, r) }
+func (g *poolsGroup) CloudflareDeploy(w http.ResponseWriter, r *http.Request) {
+	g.deploy("cloudflare")(w, r)
+}
+func (g *poolsGroup) DenoDeploy(w http.ResponseWriter, r *http.Request)   { g.deploy("deno")(w, r) }
+func (g *poolsGroup) VercelDeploy(w http.ResponseWriter, r *http.Request) { g.deploy("vercel")(w, r) }

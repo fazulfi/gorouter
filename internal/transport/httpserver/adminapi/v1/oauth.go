@@ -77,18 +77,42 @@ func (g *oauthGroup) importFlow(flow string) http.HandlerFunc {
 	}
 }
 
-func (g *oauthGroup) ProviderGet(w http.ResponseWriter, r *http.Request)          { g.provider()(w, r) }
-func (g *oauthGroup) ProviderConnect(w http.ResponseWriter, r *http.Request)       { g.provider()(w, r) }
-func (g *oauthGroup) ProviderDisconnect(w http.ResponseWriter, r *http.Request)    { g.provider()(w, r) }
-func (g *oauthGroup) CodexImportToken(w http.ResponseWriter, r *http.Request)      { g.importFlow("codex/import-token")(w, r) }
-func (g *oauthGroup) CodexBulkImport(w http.ResponseWriter, r *http.Request)       { g.importFlow("codex/bulk-import")(w, r) }
-func (g *oauthGroup) CursorImport(w http.ResponseWriter, r *http.Request)          { g.importFlow("cursor/import")(w, r) }
-func (g *oauthGroup) CursorAutoImport(w http.ResponseWriter, r *http.Request)      { g.importFlow("cursor/auto-import")(w, r) }
-func (g *oauthGroup) GitlabPAT(w http.ResponseWriter, r *http.Request)             { g.importFlow("gitlab/pat")(w, r) }
-func (g *oauthGroup) IflowCookie(w http.ResponseWriter, r *http.Request)           { g.importFlow("iflow/cookie")(w, r) }
-func (g *oauthGroup) KiroImport(w http.ResponseWriter, r *http.Request)            { g.importFlow("kiro/import")(w, r) }
-func (g *oauthGroup) KiroAutoImport(w http.ResponseWriter, r *http.Request)        { g.importFlow("kiro/auto-import")(w, r) }
-func (g *oauthGroup) KiroImportCLIProxy(w http.ResponseWriter, r *http.Request)    { g.importFlow("kiro/import-cli-proxy")(w, r) }
-func (g *oauthGroup) KiroAPIKey(w http.ResponseWriter, r *http.Request)            { g.importFlow("kiro/api-key")(w, r) }
-func (g *oauthGroup) KiroSocialAuthorize(w http.ResponseWriter, r *http.Request)   { g.importFlow("kiro/social-authorize")(w, r) }
-func (g *oauthGroup) KiroSocialExchange(w http.ResponseWriter, r *http.Request)    { g.importFlow("kiro/social-exchange")(w, r) }
+func (g *oauthGroup) ProviderGet(w http.ResponseWriter, r *http.Request)        { g.provider()(w, r) }
+func (g *oauthGroup) ProviderConnect(w http.ResponseWriter, r *http.Request)    { g.provider()(w, r) }
+func (g *oauthGroup) ProviderDisconnect(w http.ResponseWriter, r *http.Request) { g.provider()(w, r) }
+func (g *oauthGroup) CodexImportToken(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("codex/import-token")(w, r)
+}
+func (g *oauthGroup) CodexBulkImport(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("codex/bulk-import")(w, r)
+}
+func (g *oauthGroup) CursorImport(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("cursor/import")(w, r)
+}
+func (g *oauthGroup) CursorAutoImport(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("cursor/auto-import")(w, r)
+}
+func (g *oauthGroup) GitlabPAT(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("gitlab/pat")(w, r)
+}
+func (g *oauthGroup) IflowCookie(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("iflow/cookie")(w, r)
+}
+func (g *oauthGroup) KiroImport(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/import")(w, r)
+}
+func (g *oauthGroup) KiroAutoImport(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/auto-import")(w, r)
+}
+func (g *oauthGroup) KiroImportCLIProxy(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/import-cli-proxy")(w, r)
+}
+func (g *oauthGroup) KiroAPIKey(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/api-key")(w, r)
+}
+func (g *oauthGroup) KiroSocialAuthorize(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/social-authorize")(w, r)
+}
+func (g *oauthGroup) KiroSocialExchange(w http.ResponseWriter, r *http.Request) {
+	g.importFlow("kiro/social-exchange")(w, r)
+}

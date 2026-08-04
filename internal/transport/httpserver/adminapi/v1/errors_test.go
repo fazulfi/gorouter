@@ -33,8 +33,10 @@ type errKeys struct{}
 
 var _ KeysService = &errKeys{}
 
-func (errKeys) List(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error) { return nil, errBoom }
-func (errKeys) Get(ctx context.Context, id uuid.UUID) (*keys.APIKey, error)        { return nil, errBoom }
+func (errKeys) List(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error) {
+	return nil, errBoom
+}
+func (errKeys) Get(ctx context.Context, id uuid.UUID) (*keys.APIKey, error) { return nil, errBoom }
 func (errKeys) Create(ctx context.Context, userID uuid.UUID, name string, expiresAt *time.Time) (*keys.APIKey, string, error) {
 	return nil, "", errBoom
 }
@@ -48,7 +50,7 @@ type errPats struct{}
 var _ PATsService = &errPats{}
 
 func (errPats) List(ctx context.Context, userID uuid.UUID) ([]keys.PAT, error) { return nil, errBoom }
-func (errPats) Get(ctx context.Context, id uuid.UUID) (*keys.PAT, error)        { return nil, errBoom }
+func (errPats) Get(ctx context.Context, id uuid.UUID) (*keys.PAT, error)       { return nil, errBoom }
 func (errPats) Create(ctx context.Context, userID uuid.UUID, description *string, expiresAt *time.Time) (*keys.PAT, string, error) {
 	return nil, "", errBoom
 }
@@ -58,7 +60,7 @@ type errProviders struct{}
 
 var _ ProvidersService = &errProviders{}
 
-func (errProviders) List(ctx context.Context) ([]provider.Provider, error)          { return nil, errBoom }
+func (errProviders) List(ctx context.Context) ([]provider.Provider, error) { return nil, errBoom }
 func (errProviders) Get(ctx context.Context, id uuid.UUID) (*provider.Provider, error) {
 	return nil, errBoom
 }
@@ -178,13 +180,13 @@ type errUsage struct{}
 
 var _ UsageService = &errUsage{}
 
-func (errUsage) Stats(ctx context.Context) (any, error)                   { return nil, errBoom }
-func (errUsage) History(ctx context.Context) (any, error)                 { return nil, errBoom }
-func (errUsage) Chart(ctx context.Context) (any, error)                   { return nil, errBoom }
-func (errUsage) Providers(ctx context.Context) (any, error)               { return nil, errBoom }
-func (errUsage) RequestDetails(ctx context.Context) (any, error)          { return nil, errBoom }
-func (errUsage) RequestLogs(ctx context.Context) (any, error)             { return nil, errBoom }
-func (errUsage) Logs(ctx context.Context) (any, error)                    { return nil, errBoom }
+func (errUsage) Stats(ctx context.Context) (any, error)          { return nil, errBoom }
+func (errUsage) History(ctx context.Context) (any, error)        { return nil, errBoom }
+func (errUsage) Chart(ctx context.Context) (any, error)          { return nil, errBoom }
+func (errUsage) Providers(ctx context.Context) (any, error)      { return nil, errBoom }
+func (errUsage) RequestDetails(ctx context.Context) (any, error) { return nil, errBoom }
+func (errUsage) RequestLogs(ctx context.Context) (any, error)    { return nil, errBoom }
+func (errUsage) Logs(ctx context.Context) (any, error)           { return nil, errBoom }
 func (errUsage) Connection(ctx context.Context, connectionID string) (any, error) {
 	return nil, errBoom
 }
@@ -199,7 +201,9 @@ func (errQuota) Status(ctx context.Context, actor *auth.Actor, providerID uuid.U
 func (errQuota) Unlock(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error {
 	return errBoom
 }
-func (errQuota) Reset(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error { return errBoom }
+func (errQuota) Reset(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error {
+	return errBoom
+}
 
 type errMutators struct{}
 

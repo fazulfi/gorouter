@@ -28,8 +28,12 @@ func (g *mediaGroup) voices(kind string) http.HandlerFunc {
 	}
 }
 
-func (g *mediaGroup) TTSVoices(w http.ResponseWriter, r *http.Request)       { g.voices("tts")(w, r) }
-func (g *mediaGroup) DeepgramVoices(w http.ResponseWriter, r *http.Request)   { g.voices("deepgram")(w, r) }
-func (g *mediaGroup) ElevenlabsVoices(w http.ResponseWriter, r *http.Request) { g.voices("elevenlabs")(w, r) }
-func (g *mediaGroup) InworldVoices(w http.ResponseWriter, r *http.Request)    { g.voices("inworld")(w, r) }
-func (g *mediaGroup) MinimaxVoices(w http.ResponseWriter, r *http.Request)    { g.voices("minimax")(w, r) }
+func (g *mediaGroup) TTSVoices(w http.ResponseWriter, r *http.Request) { g.voices("tts")(w, r) }
+func (g *mediaGroup) DeepgramVoices(w http.ResponseWriter, r *http.Request) {
+	g.voices("deepgram")(w, r)
+}
+func (g *mediaGroup) ElevenlabsVoices(w http.ResponseWriter, r *http.Request) {
+	g.voices("elevenlabs")(w, r)
+}
+func (g *mediaGroup) InworldVoices(w http.ResponseWriter, r *http.Request) { g.voices("inworld")(w, r) }
+func (g *mediaGroup) MinimaxVoices(w http.ResponseWriter, r *http.Request) { g.voices("minimax")(w, r) }

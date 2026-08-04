@@ -40,8 +40,8 @@ type TranslatorService interface {
 }
 
 type settingsGroup struct {
-	svc       SettingsService
-	transfer  ConfigTransferService
+	svc        SettingsService
+	transfer   ConfigTransferService
 	translator TranslatorService
 }
 

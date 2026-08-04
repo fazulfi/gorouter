@@ -21,14 +21,14 @@ type accountsGroup struct{ svc AccountsService }
 // accountView is the credential-safe projection: the credential reference is
 // opaque (never the credential value itself).
 type accountView struct {
-	ID            uuid.UUID  `json:"id"`
-	ProviderID    uuid.UUID  `json:"provider_id"`
-	Label         string     `json:"label"`
-	AuthType      string     `json:"auth_type"`
-	Priority      int        `json:"priority"`
-	IsEnabled     bool       `json:"is_enabled"`
-	MaxConcurrent int        `json:"max_concurrent"`
-	ModelFilters  []string   `json:"model_filters,omitempty"`
+	ID            uuid.UUID `json:"id"`
+	ProviderID    uuid.UUID `json:"provider_id"`
+	Label         string    `json:"label"`
+	AuthType      string    `json:"auth_type"`
+	Priority      int       `json:"priority"`
+	IsEnabled     bool      `json:"is_enabled"`
+	MaxConcurrent int       `json:"max_concurrent"`
+	ModelFilters  []string  `json:"model_filters,omitempty"`
 }
 
 func projectAccount(a *provider.Account) accountView {

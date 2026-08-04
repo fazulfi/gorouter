@@ -27,10 +27,10 @@ type combosGroup struct{ svc CombosService }
 
 // comboView is the wire projection of a combo definition.
 type comboView struct {
-	ID        uuid.UUID        `json:"id"`
-	Name      string           `json:"name"`
-	Strategy  string           `json:"strategy"`
-	IsActive  bool             `json:"is_active"`
+	ID        uuid.UUID       `json:"id"`
+	Name      string          `json:"name"`
+	Strategy  string          `json:"strategy"`
+	IsActive  bool            `json:"is_active"`
 	Config    json.RawMessage `json:"config,omitempty"`
 	CreatedAt time.Time       `json:"created_at"`
 	UpdatedAt time.Time       `json:"updated_at"`
@@ -85,10 +85,10 @@ func (g *combosGroup) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Name     string           `json:"name"`
-		Strategy combo.Strategy   `json:"strategy"`
-		Config   json.RawMessage  `json:"config"`
-		Members  []combo.Member   `json:"members"`
+		Name     string          `json:"name"`
+		Strategy combo.Strategy  `json:"strategy"`
+		Config   json.RawMessage `json:"config"`
+		Members  []combo.Member  `json:"members"`
 	}
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
