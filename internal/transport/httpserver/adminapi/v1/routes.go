@@ -96,14 +96,26 @@ type Dependencies struct {
 	Auditor     Auditor
 }
 
+// Streams carries the realtime stream handlers for the four session-cookie
+// only surfaces (usage, console, providers, jobs). A nil entry leaves the
+// corresponding stream route resolving with backend-unavailable; the admin
+// router injects the handlers assembled by the realtime package.
+type Streams struct {
+	Usage     http.HandlerFunc
+	Console   http.HandlerFunc
+	Providers http.HandlerFunc
+	Jobs      http.HandlerFunc
+}
+
 // Config wires the admin resource router: the auth surface, the CSRF cookie
-// policy, host-operation feature flags (closed by default) and the service
-// dependencies.
+// policy, host-operation feature flags (closed by default), the stream
+// handlers and the service dependencies.
 type Config struct {
 	Auth         AuthHandlers
 	OIDC         OIDCHandlers
 	CookieSecure bool
 	HostFlags    map[string]bool
+	Streams      Streams
 	Resources    Dependencies
 }
 
@@ -165,7 +177,7 @@ func New(cfg Config) *Handlers {
 		Health:    healthGroup{},
 		Keys:      &keysGroup{svc: cfg.Resources.Keys},
 		PATs:      &patsGroup{svc: cfg.Resources.PATs},
-		Providers: &providersGroup{svc: cfg.Resources.Providers},
+		Providers: &providersGroup{svc: cfg.Resources.Providers, stream: cfg.Streams.Providers},
 		Accounts:  &accountsGroup{svc: cfg.Resources.Accounts},
 		Nodes:     &nodesGroup{svc: cfg.Resources.Nodes},
 		Pools:     &poolsGroup{svc: cfg.Resources.Pools},
@@ -173,13 +185,13 @@ func New(cfg Config) *Handlers {
 		Aliases:   &aliasesGroup{svc: cfg.Resources.Aliases},
 		Models:    &modelsGroup{svc: cfg.Resources.Models},
 		Pricing:   &pricingGroup{svc: cfg.Resources.Pricing},
-		Usage:     &usageGroup{svc: cfg.Resources.Usage},
+		Usage:     &usageGroup{svc: cfg.Resources.Usage, stream: cfg.Streams.Usage},
 		Quota:     &quotaGroup{svc: cfg.Resources.Quota},
 		Mutators:  &mutatorsGroup{svc: cfg.Resources.Mutators},
 		CLITools:  &cliToolsGroup{svc: cfg.Resources.CLITools},
 		Media:     &mediaGroup{svc: cfg.Resources.Media},
 		Skills:    &skillsGroup{svc: cfg.Resources.Skills},
-		Console:   &consoleGroup{svc: cfg.Resources.Console},
+		Console:   &consoleGroup{svc: cfg.Resources.Console, stream: cfg.Streams.Console},
 		Tunnels:   &tunnelsGroup{svc: cfg.Resources.Tunnels},
 		Settings: &settingsGroup{
 			svc:        cfg.Resources.Settings,
@@ -187,7 +199,7 @@ func New(cfg Config) *Handlers {
 			translator: cfg.Resources.Translator,
 		},
 		OAuth:   &oauthGroup{svc: cfg.Resources.OAuth},
-		Jobs:    &jobsGroup{svc: cfg.Resources.Jobs},
+		Jobs:    &jobsGroup{svc: cfg.Resources.Jobs, stream: cfg.Streams.Jobs},
 		HostOps: &hostOpsGroup{svc: cfg.Resources.HostOps, auditor: cfg.Resources.Auditor},
 		Backups: &backupsGroup{svc: cfg.Resources.Backups},
 		Audit:   &auditGroup{svc: cfg.Resources.Audit},
@@ -318,6 +330,7 @@ func RouteTable(h *Handlers) []Route {
 	sp(http.MethodGet, "/providers/suggested-models", h.Providers.SuggestedModels)
 	sp(http.MethodPost, "/providers/test-batch", h.Providers.TestBatch)
 	sp(http.MethodPost, "/providers/validate", h.Providers.Validate)
+	sess(http.MethodGet, "/providers/stream", h.Providers.Stream)
 
 	// provider-nodes.
 	sp(http.MethodGet, "/provider-nodes", h.Nodes.List)

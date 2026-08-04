@@ -27,7 +27,21 @@ type ProvidersService interface {
 	Validate(ctx context.Context, id uuid.UUID) error
 }
 
-type providersGroup struct{ svc ProvidersService }
+type providersGroup struct {
+	svc    ProvidersService
+	stream http.HandlerFunc
+}
+
+// Stream serves the session-cookie-only providers status stream (P1-5).
+// When the realtime stream handler is wired it serves the SSE stream;
+// otherwise the route resolves with backend-unavailable.
+func (g *providersGroup) Stream(w http.ResponseWriter, r *http.Request) {
+	if g.stream != nil {
+		g.stream(w, r)
+		return
+	}
+	backendUnavailable(w, r)
+}
 
 // providerView is the credential-safe projection (upstream providers/client
 // pattern): the plaintext API key value is never exposed; a has_credentials

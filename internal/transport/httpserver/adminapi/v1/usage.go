@@ -19,7 +19,10 @@ type UsageService interface {
 	Connection(ctx context.Context, connectionID string) (any, error)
 }
 
-type usageGroup struct{ svc UsageService }
+type usageGroup struct {
+	svc    UsageService
+	stream http.HandlerFunc
+}
 
 func (g *usageGroup) query(w http.ResponseWriter, r *http.Request, kind string) {
 	if g.svc == nil {
@@ -89,9 +92,13 @@ func (g *usageGroup) Connection(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// Stream is the session-cookie-only usage stream surface (P1-5). The SSE
-// transport is owned by the realtime lane; this route resolves so the
-// contract surface never 404s.
+// Stream is the session-cookie-only usage stream surface (P1-5). When the
+// realtime stream handler is wired it serves the SSE stream; otherwise the
+// route resolves with backend-unavailable.
 func (g *usageGroup) Stream(w http.ResponseWriter, r *http.Request) {
+	if g.stream != nil {
+		g.stream(w, r)
+		return
+	}
 	backendUnavailable(w, r)
 }

@@ -1998,6 +1998,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProviderValidationResult'
 
+  /providers/stream:
+    get:
+      operationId: streamProviders
+      summary: Provider status stream (SSE)
+      description: |
+        Realtime provider status stream: initial full status push then quiet
+        status and cooldown refresh events, with keepalive.
+        Session cookie only.
+        Actor: session; Scope: read (stream).
+      tags: [Providers]
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: text/event-stream of provider status events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/StreamEvent'
+
   /provider-nodes:
     get:
       operationId: listProviderNodes

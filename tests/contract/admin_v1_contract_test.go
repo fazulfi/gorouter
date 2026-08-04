@@ -119,6 +119,7 @@ var adminV1Routes = []contractRoute{
 	{id: "providers:suggested-models", method: "GET", path: "/providers/suggested-models", tier: tierSessionPAT},
 	{id: "providers:test-batch", method: "POST", path: "/providers/test-batch", tier: tierSessionPAT},
 	{id: "providers:validate", method: "POST", path: "/providers/validate", tier: tierSessionPAT},
+	{id: "providers:stream", method: "GET", path: "/providers/stream", tier: tierSession, local: true}, // design §9 quiet status/cooldown refresh
 
 	// provider-nodes — upstream §3.2.
 	{id: "provider-nodes:list", method: "GET", path: "/provider-nodes", tier: tierSessionPAT},

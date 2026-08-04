@@ -14,10 +14,18 @@ type ConsoleService interface {
 	ListAfter(ctx context.Context, seq int64, limit int) ([]console.ConsoleLog, error)
 }
 
-type consoleGroup struct{ svc ConsoleService }
+type consoleGroup struct {
+	svc    ConsoleService
+	stream http.HandlerFunc
+}
 
-// Stream resolves the /console/stream surface. The realtime lane replaces
-// this placeholder; the route never 404s.
+// Stream serves the /console/stream surface. When the realtime stream
+// handler is wired it serves the SSE stream; otherwise the route resolves
+// with backend-unavailable.
 func (g *consoleGroup) Stream(w http.ResponseWriter, r *http.Request) {
+	if g.stream != nil {
+		g.stream(w, r)
+		return
+	}
 	backendUnavailable(w, r)
 }

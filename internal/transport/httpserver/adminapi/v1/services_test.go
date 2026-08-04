@@ -405,6 +405,7 @@ func TestEveryRouteResolvesWithServices(t *testing.T) {
 
 	placeholder := map[string]bool{
 		"GET /usage/stream": true, "GET /jobs/stream": true, "GET /console/stream": true,
+		"GET /providers/stream": true,
 		"GET /mcp/{plugin}/sse": true, "GET /translator/console-logs/stream": true,
 		"POST /init": true, "GET /init": true, "POST /locale": true, "GET /locale": true,
 		"GET /tags": true,

@@ -1060,6 +1060,10 @@ export function GetProviderKiloFreeModels(): Promise<SuggestedModel[]> {
 	return request<SuggestedModel[]>("/providers/kilo/free-models", { method: "GET" });
 }
 
+export function StreamProviders(): Promise<StreamEvent> {
+	return request<StreamEvent>("/providers/stream", { method: "GET" });
+}
+
 export function GetSuggestedModels(): Promise<SuggestedModel[]> {
 	return request<SuggestedModel[]>("/providers/suggested-models", { method: "GET" });
 }

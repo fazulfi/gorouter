@@ -7,6 +7,7 @@ import (
 	domauth "gorouter/internal/domain/auth"
 	domkeys "gorouter/internal/domain/keys"
 	adminapiv1 "gorouter/internal/transport/httpserver/adminapi/v1"
+	"gorouter/internal/transport/httpserver/realtime"
 	"gorouter/internal/transport/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -45,6 +46,10 @@ type AdminConfig struct {
 	// HostFlags enables host-operation features (closed by default; design
 	// §11 P2-11 keys enable_tunnel, enable_tailscale, ...).
 	HostFlags map[string]bool
+	// Realtime wires the session-cookie-only SSE stream sources (usage,
+	// console, providers, jobs). A nil field leaves the corresponding
+	// stream route resolving with backend-unavailable.
+	Realtime *realtime.Config
 }
 
 // NewAdminChain returns the common P2-9 middleware chain applied to every
@@ -86,6 +91,21 @@ func NewAdminRouter(cfg AdminConfig) http.Handler {
 		CookieSecure: cfg.CookieSecure,
 		HostFlags:    cfg.HostFlags,
 		Resources:    resources,
+	}
+	if cfg.Realtime != nil {
+		ka := cfg.Realtime.Keepalive
+		if s := cfg.Realtime.UsageSource; s != nil {
+			vcfg.Streams.Usage = realtime.NewUsageStream(s, ka)
+		}
+		if s := cfg.Realtime.ConsoleSource; s != nil {
+			vcfg.Streams.Console = realtime.NewConsoleStream(s, ka)
+		}
+		if s := cfg.Realtime.ProvidersSource; s != nil {
+			vcfg.Streams.Providers = realtime.NewProvidersStream(s, ka)
+		}
+		if s := cfg.Realtime.JobsSource; s != nil {
+			vcfg.Streams.Jobs = realtime.NewJobsStream(s, ka)
+		}
 	}
 	h := adminapiv1.New(vcfg)
 

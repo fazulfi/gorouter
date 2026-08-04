@@ -16,7 +16,10 @@ type JobsService interface {
 	RunNow(ctx context.Context, actor *auth.Actor, jobType string) error
 }
 
-type jobsGroup struct{ svc JobsService }
+type jobsGroup struct {
+	svc    JobsService
+	stream http.HandlerFunc
+}
 
 func (g *jobsGroup) List(w http.ResponseWriter, r *http.Request) {
 	if g.svc == nil {
@@ -61,8 +64,13 @@ func (g *jobsGroup) History(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rows)
 }
 
-// Stream resolves the session-cookie-only jobs stream surface (P1-5). The
-// realtime lane owns the SSE transport and replaces this placeholder.
+// Stream serves the session-cookie-only jobs stream surface (P1-5). When
+// the realtime stream handler is wired it serves the SSE stream; otherwise
+// the route resolves with backend-unavailable.
 func (g *jobsGroup) Stream(w http.ResponseWriter, r *http.Request) {
+	if g.stream != nil {
+		g.stream(w, r)
+		return
+	}
 	backendUnavailable(w, r)
 }
