@@ -6,6 +6,7 @@ import (
 
 	domauth "gorouter/internal/domain/auth"
 	domkeys "gorouter/internal/domain/keys"
+	adminapiv1 "gorouter/internal/transport/httpserver/adminapi/v1"
 	"gorouter/internal/transport/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -32,12 +33,18 @@ type OIDCEndpoints interface {
 }
 
 // AdminConfig wires the admin mount group: the auth endpoints, the cookie
-// policy, and the trusted-proxy CIDRs for real-IP normalization.
+// policy, the trusted-proxy CIDRs for real-IP normalization, and the
+// adminapi/v1 service dependencies (nil-safe; unwired services resolve with
+// backend-unavailable).
 type AdminConfig struct {
 	Auth           AuthEndpoints
 	OIDC           OIDCEndpoints
 	CookieSecure   bool
 	TrustedProxies []string
+	Resources      *adminapiv1.Dependencies
+	// HostFlags enables host-operation features (closed by default; design
+	// §11 P2-11 keys enable_tunnel, enable_tailscale, ...).
+	HostFlags map[string]bool
 }
 
 // NewAdminChain returns the common P2-9 middleware chain applied to every
@@ -64,39 +71,41 @@ func PATAuthMiddleware(validate func(context.Context, string) (*domkeys.PAT, err
 
 // NewAdminRouter assembles the concrete admin mount group under /api/admin/v1
 // with the P2-9 middleware order and the CSRF/PAT route-grouping resolution:
-//   - /auth/login is public (no session or CSRF cookie exists yet; the handler
-//     issues both on success) and is therefore mounted outside CSRF.
-//   - session-cookie routes (/auth/me, /auth/status, /auth/logout) live behind
-//     CSRF → SessionAuth; the logout mutation is fail-closed without the CSRF
-//     double-submit echo.
-//   - PAT mutations bypass CSRF by mounting in a separate CSRF-free PAT group
-//     (see PATAuthMiddleware); none exist in the auth surface itself.
+// every route in the adminapi/v1 registry is mounted with its declared authz
+// class; host-operation routes ride the HostGate (feature flag closed by
+// default, full-access PAT identity, audit, prompt, P0-1); session-cookie
+// mutations require the double-submit CSRF echo while PAT actors bypass CSRF.
 func NewAdminRouter(cfg AdminConfig) http.Handler {
+	resources := adminapiv1.Dependencies{}
+	if cfg.Resources != nil {
+		resources = *cfg.Resources
+	}
+	vcfg := adminapiv1.Config{
+		Auth:         cfg.Auth,
+		OIDC:         cfg.OIDC,
+		CookieSecure: cfg.CookieSecure,
+		HostFlags:    cfg.HostFlags,
+		Resources:    resources,
+	}
+	h := adminapiv1.New(vcfg)
+
 	r := chi.NewRouter()
 	r.Route("/api/admin/v1", func(admin chi.Router) {
 		admin.Use(NewAdminChain(cfg)...)
-
-		admin.Post("/auth/login", cfg.Auth.Login)
-
-		// OIDC start and callback are public (no session cookie exists before
-		// sign-in; the callback issues one on success).
-		if cfg.OIDC != nil {
-			admin.Get("/auth/oidc/start", cfg.OIDC.OIDCStart)
-			admin.Get("/auth/oidc/callback", cfg.OIDC.OIDCCallback)
-		}
-
-		admin.Group(func(s chi.Router) {
-			s.Use(
-				middleware.CSRF(middleware.CSRFConfig{Secure: cfg.CookieSecure}),
-				middleware.SessionAuth(cfg.Auth.ValidateSession, cfg.Auth.SessionCookieName()),
-			)
-			s.Get("/auth/me", cfg.Auth.Me)
-			s.Get("/auth/status", cfg.Auth.Status)
-			s.Post("/auth/logout", cfg.Auth.Logout)
-			if cfg.OIDC != nil {
-				s.Post("/auth/oidc/test", cfg.OIDC.OIDCTest)
+		for _, rt := range adminapiv1.RouteTable(h) {
+			handler := rt.H
+			if rt.HostFeature != "" {
+				handler = adminapiv1.HostGate(vcfg, rt.HostFeature, handler)
 			}
-		})
+			switch rt.Mode {
+			case adminapiv1.AuthPublic:
+				admin.Method(rt.Method, rt.Path, handler)
+			case adminapiv1.AuthSession:
+				admin.Method(rt.Method, rt.Path, adminapiv1.WrapSession(vcfg, handler))
+			case adminapiv1.AuthSessionPAT:
+				admin.Method(rt.Method, rt.Path, adminapiv1.WrapSessionPAT(vcfg, handler))
+			}
+		}
 	})
 	return r
 }
