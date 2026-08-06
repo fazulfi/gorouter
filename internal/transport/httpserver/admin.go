@@ -7,6 +7,7 @@ import (
 	domauth "gorouter/internal/domain/auth"
 	domkeys "gorouter/internal/domain/keys"
 	adminapiv1 "gorouter/internal/transport/httpserver/adminapi/v1"
+	"gorouter/internal/transport/httpserver/compatibility"
 	"gorouter/internal/transport/httpserver/realtime"
 	"gorouter/internal/transport/middleware"
 
@@ -124,6 +125,28 @@ func NewAdminRouter(cfg AdminConfig) http.Handler {
 				admin.Method(rt.Method, rt.Path, adminapiv1.WrapSession(vcfg, handler))
 			case adminapiv1.AuthSessionPAT:
 				admin.Method(rt.Method, rt.Path, adminapiv1.WrapSessionPAT(vcfg, handler))
+			}
+		}
+	})
+
+	// Compatibility surface: thin adapters preserve the historical management
+	// routes under /api/compat/*, delegating to the same application use cases
+	// and authz classes as their Administration API v1 twins. Mounted after the
+	// admin group so admin routes are never shadowed.
+	r.Group(func(compat chi.Router) {
+		compat.Use(NewAdminChain(cfg)...)
+		for _, rt := range compatibility.RouteTable(h) {
+			handler := rt.H
+			if rt.HostFeature != "" {
+				handler = adminapiv1.HostGate(vcfg, rt.HostFeature, handler)
+			}
+			switch rt.Mode {
+			case adminapiv1.AuthPublic:
+				compat.Method(rt.Method, rt.Path, handler)
+			case adminapiv1.AuthSession:
+				compat.Method(rt.Method, rt.Path, adminapiv1.WrapSession(vcfg, handler))
+			case adminapiv1.AuthSessionPAT:
+				compat.Method(rt.Method, rt.Path, adminapiv1.WrapSessionPAT(vcfg, handler))
 			}
 		}
 	})
