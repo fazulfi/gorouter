@@ -140,8 +140,7 @@ export interface DeployResult {
 	target?: string;
 	url?: string;
 }
-export interface DetailedHealth {
-	extends Health;
+export interface DetailedHealth extends Health {
 }
 export interface DisabledModel {
 	id?: string;

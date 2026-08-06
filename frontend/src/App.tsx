@@ -1,5 +1,8 @@
-import Shell from '@/components/layout/Shell';
+import { RouterProvider } from 'react-router-dom';
+import { createAppRouter } from '@/app/router';
+
+const router = createAppRouter();
 
 export default function App() {
-  return <Shell />;
+  return <RouterProvider router={router} />;
 }
