@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "title": "Dasbor",
+    "welcome": "Selamat datang kembali"
+  },
+  "auth": {
+    "login": "Masuk",
+    "logout": "Keluar",
+    "me": "Profil Saya"
+  }
+}
