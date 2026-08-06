@@ -172,6 +172,8 @@ func modelKeyAuth(validator ModelKeyValidator) func(http.Handler) http.Handler {
 				UserID:  userID,
 				Scopes:  []string{},
 				IsAdmin: false,
+				Kind:    auth.ActorKindUser,
+				Origin:  auth.ActorOriginRemote,
 			}
 			ctx := auth.ContextWithActor(r.Context(), actor)
 			next.ServeHTTP(w, r.WithContext(ctx))

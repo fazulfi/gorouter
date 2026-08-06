@@ -1,0 +1,153 @@
+version: 1
+pin_commit: 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+rows:
+- id: CMP-XCL-01
+  upstream_path: /providers/[id]/models
+  method: GET
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; contract fixture must grow before adoption
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers; pinned src/app/api/providers/[id]/models/route.js\
+    \ (GET)"
+  nearest_admin_surface: ''
+  reason: not registered; contract fixture must grow before adoption
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-02
+  upstream_path: /providers/[id]/test
+  method: POST
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; use test-batch
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers; pinned src/app/api/providers/[id]/test/route.js\
+    \ (POST)"
+  nearest_admin_surface: ''
+  reason: not registered; use test-batch
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-03
+  upstream_path: /providers/[id]/test-models
+  method: POST
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; contract fixture must grow before adoption
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers; pinned src/app/api/providers/[id]/test-models/route.js\
+    \ (POST)"
+  nearest_admin_surface: ''
+  reason: not registered; contract fixture must grow before adoption
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-04
+  upstream_path: /proxy-pools/[id]/test
+  method: POST
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; contract fixture must grow before adoption
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools; pinned src/app/api/proxy-pools/[id]/test/route.js\
+    \ (POST)"
+  nearest_admin_surface: ''
+  reason: not registered; contract fixture must grow before adoption
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-05
+  upstream_path: /usage/[connectionId]/codex-reset-credits
+  method: GET
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; no global cooldown reset
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage [connectionId]; pinned src/app/api/usage/[connectionId]/codex-reset-credits/route.js\
+    \ (GET)"
+  nearest_admin_surface: ''
+  reason: not registered; no global cooldown reset
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-06
+  upstream_path: /usage/[connectionId]/codex-reset-credits
+  method: POST
+  external_auth: session+pat
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: not registered; no global cooldown reset
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage [connectionId]; pinned src/app/api/usage/[connectionId]/codex-reset-credits/route.js\
+    \ (POST)"
+  nearest_admin_surface: ''
+  reason: not registered; no global cooldown reset
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-07
+  upstream_path: /auth/reset-password
+  method: POST
+  external_auth: local-only
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: prohibited HTTP surface; reset is local CLI only
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; audit/01 \xA76.7 L199; pinned src/app/api/auth/reset-password/"
+  nearest_admin_surface: ''
+  reason: prohibited HTTP surface; reset is local CLI only
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+- id: CMP-XCL-08
+  upstream_path: /backups/restore
+  method: POST
+  external_auth: n/a
+  disposition: EXCLUDE
+  request_shape: n/a
+  response_envelope: n/a
+  status_errors: prohibited HTTP surface; restore is local CLI only
+  cors: n/a
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: design backup; restore local CLI only (no upstream route)
+  nearest_admin_surface: ''
+  reason: prohibited HTTP surface; restore is local CLI only
+  target: admin
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false

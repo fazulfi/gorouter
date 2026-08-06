@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "fixtureGroup": "config-transfer",
+  "pinnedUpstream": {
+    "repository": "decolua/9router",
+    "commit": "79918c7830695bbca4a45c9fea4a42c3e9fd73d1",
+    "version": "0.5.40"
+  },
+  "sourceAnchors": [
+    "src/app/api/settings/database/route.js (GET exportDb / POST importDb, password or CLI-token auth)",
+    "src/lib/db/index.js exportDb() / importDb() (payload shape, wipe semantics, transactionality)",
+    "src/lib/db/repos/settingsRepo.js exportSettings() (settings payload is the raw settings object)",
+    "src/lib/db/backup.js (pre-schema-change safety backup; KEEP_BACKUPS=3; requestDetails excluded)",
+    "src/lib/db/migrate.js (pre-schema backup only when !fresh && pending schema change)",
+    "src/app/(dashboard)/dashboard/profile/page.js L474-551 (export/import UI with password confirmation)"
+  ],
+  "exportDomains": [
+    "settings",
+    "providerConnections",
+    "providerNodes",
+    "proxyPools",
+    "apiKeys",
+    "combos",
+    "modelAliases",
+    "customModels",
+    "mitmAlias",
+    "pricing"
+  ],
+  "alwaysExcludedDomains": [
+    "usageHistory",
+    "usageDaily",
+    "requestDetails",
+    "sessions",
+    "audit"
+  ],
+  "importSemantics": {
+    "wipe": "All exportable tables are deleted inside a single transaction before re-insertion; payload keys that are absent are still wiped (missing-key replacement).",
+    "transactionality": "The whole wipe-and-reinsert runs in one transaction; any failure rolls everything back.",
+    "validation": "The payload must be a JSON object (not array/null); each domain is validated before any write.",
+    "confirmation": "Import is destructive and partial; it requires explicit typed confirmation.",
+    "distinctFromDRBackup": "This is the manual configuration transfer contract (DECISIONS #378); disaster-recovery backup/restore is a separate contract (DECISIONS #201-204)."
+  },
+  "localReconciliation": {
+    "carriedDomains": [
+      "settings -> non-pricing gorouter_settings keys",
+      "providerConnections -> gorouter_providers",
+      "providerNodes -> gorouter_provider_nodes",
+      "proxyPools -> gorouter_proxy_pools (pool rows only; members reference non-transferable gorouter_proxy_configs)",
+      "modelAliases -> gorouter_model_aliases",
+      "pricing -> gorouter_settings key pricing:overrides"
+    ],
+    "rejectedDomainsOnImport": [
+      "apiKeys: local keys are hash-only and user-scoped; no raw key material exists to carry",
+      "combos: member routing lists reference non-transferable account identities",
+      "customModels: no local storage exists",
+      "mitmAlias: no local storage exists"
+    ],
+    "credentialHandling": "Fixture credential fields are placeholder values (sanitized). The export carries stored provider fields including api_key_value per the original contract; the resulting file must be treated as sensitive.",
+    "pricingKeyOwnership": "The settings repository never reads or writes the pricing:overrides key; the pricing repository owns it."
+  }
+}

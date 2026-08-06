@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "me": "My Profile"
+  }
+}

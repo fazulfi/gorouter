@@ -1,0 +1,156 @@
+version: 1
+pin_commit: 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+rows:
+- id: CMP-MODEL-01
+  upstream_path: /v1/:path
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Primary LLM API prefix
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L68; audit/01 \xA74 L74"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1/:path
+- id: CMP-MODEL-02
+  upstream_path: /v1
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Primary LLM API root
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L75; audit/01 \xA74 L75"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1
+- id: CMP-MODEL-03
+  upstream_path: /v1/v1/:path
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Double-/v1 normalization
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L37-40; audit/01 \xA74 L68"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1/:path
+- id: CMP-MODEL-04
+  upstream_path: /v1/v1
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Double-/v1 root normalization
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L41-44; audit/01 \xA74 L69"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1
+- id: CMP-MODEL-05
+  upstream_path: /codex/:path
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: "Codex SDK compatibility (always \u2192 Responses handler; sub-path\
+    \ discarded)"
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L45-48; audit/01 \xA74 L70, L81-84"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1/responses
+- id: CMP-MODEL-06
+  upstream_path: /responses
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Standalone Responses path
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L49-52; audit/01 \xA74 L71"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1/responses
+- id: CMP-MODEL-07
+  upstream_path: /v1beta/:path
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Gemini v1beta compatibility
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L53-56; audit/01 \xA74 L72"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1beta/:path
+- id: CMP-MODEL-08
+  upstream_path: /v1beta
+  method: ANY
+  external_auth: model-api-key
+  disposition: PASS
+  request_shape: model-request
+  response_envelope: Gemini v1beta root
+  status_errors: engine-defined (model-key 401/403)
+  cors: ACAO:* on model endpoints
+  headers: 'api-key: Authorization Bearer | x-api-key | x-goog-api-key | key query'
+  source: "next.config.mjs L57-60; audit/01 \xA74 L73"
+  nearest_admin_surface: ''
+  reason: ''
+  target: engine
+  admin_path: ''
+  admin_method: ''
+  admin_auth_tier: ''
+  host_gated: false
+  arrives_at: /api/v1beta

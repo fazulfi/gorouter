@@ -66,6 +66,9 @@ func fakeScope(providers provider.ProviderRepository, models tx.ModelRepository)
 		providers, nil, nil,
 		nil, nil,
 		models,
+		nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil,
+		nil, nil,
 	)
 }
 

@@ -1,0 +1,2482 @@
+version: 1
+pin_commit: 79918c7830695bbca4a45c9fea4a42c3e9fd73d1
+rows:
+- id: CMP-AUTH-01
+  upstream_path: /auth/login
+  method: POST
+  external_auth: public-api
+  disposition: PASS
+  request_shape: '{password}'
+  response_envelope: '{ok:true} / 200'
+  status_errors: 401 invalid; 429 + Retry-After on lockout
+  cors: same-origin; Browser session sets cookie
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/login/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/login
+  admin_method: POST
+  admin_auth_tier: public
+  host_gated: true
+- id: CMP-AUTH-02
+  upstream_path: /auth/logout
+  method: POST
+  external_auth: session
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 401 if unauthenticated
+  cors: same-origin; session cookie cleared
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/logout/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/logout
+  admin_method: POST
+  admin_auth_tier: session
+  host_gated: true
+- id: CMP-AUTH-03
+  upstream_path: /auth/status
+  method: GET
+  external_auth: public-api
+  disposition: PASS
+  request_shape: none
+  response_envelope: actor object / 200
+  status_errors: 401 if unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/status/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/status
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-AUTH-04
+  upstream_path: /auth/oidc/start
+  method: GET
+  external_auth: public-api
+  disposition: PASS
+  request_shape: none
+  response_envelope: redirect / 302
+  status_errors: 400 invalid issuer (HTTPS-only)
+  cors: same-origin; single-use state cookie
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/oidc/start/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/oidc/start
+  admin_method: GET
+  admin_auth_tier: public
+  host_gated: true
+- id: CMP-AUTH-05
+  upstream_path: /auth/oidc/callback
+  method: GET
+  external_auth: public-api
+  disposition: PASS
+  request_shape: none
+  response_envelope: redirect / 302
+  status_errors: 400 on PKCE/nonce/replay rejection
+  cors: same-origin; state cookie
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/oidc/callback/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/oidc/callback
+  admin_method: GET
+  admin_auth_tier: public
+  host_gated: true
+- id: CMP-AUTH-06
+  upstream_path: /auth/oidc/test
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: OIDC config
+  response_envelope: probe result / 200
+  status_errors: 400 invalid config
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 auth; pinned src/app/api/auth/oidc/test/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /auth/oidc/test
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-KEY-01
+  upstream_path: /keys
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of masked keys / 200
+  status_errors: 401 unauthenticated; 500 storage
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 keys; pinned src/app/api/keys/route.js (GET/POST)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /keys
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-KEY-02
+  upstream_path: /keys
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: '{name}'
+  response_envelope: '{key, ...} full value once / 201'
+  status_errors: 400 invalid name; 409 duplicate
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 keys; pinned src/app/api/keys/route.js (GET/POST, machineId)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /keys
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-KEY-03
+  upstream_path: /keys/[id]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: key object (prefix-only) / 200
+  status_errors: 404 not found; 403 wrong actor
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 keys/[id]; pinned src/app/api/keys/[id]/route.js (GET/PUT/DELETE)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /keys/{id}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-KEY-04
+  upstream_path: /keys/[id]
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: '{name, enabled}'
+  response_envelope: updated key / 200
+  status_errors: 404 not found; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 keys/[id]; pinned src/app/api/keys/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /keys/{id}
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-KEY-05
+  upstream_path: /keys/[id]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 keys/[id]; pinned src/app/api/keys/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /keys/{id}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-01
+  upstream_path: /providers
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of providers / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers; pinned src/app/api/providers/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-02
+  upstream_path: /providers
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: provider config (credential-safe)
+  response_envelope: created provider / 201
+  status_errors: 400 validation; 422 unsupported
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers; pinned src/app/api/providers/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-03
+  upstream_path: /providers/[id]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: provider (has_credentials, never key value) / 200
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers [id]; pinned src/app/api/providers/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/{id}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-04
+  upstream_path: /providers/[id]
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: partial provider config
+  response_envelope: updated provider / 200
+  status_errors: 404 not found; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers [id]; pinned src/app/api/providers/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/{id}
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-05
+  upstream_path: /providers/[id]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers [id]; pinned src/app/api/providers/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/{id}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-06
+  upstream_path: /providers/client
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: client-safe provider list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers client; pinned src/app/api/providers/client/route.js\
+    \ (SAFE_FIELDS)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/client
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-07
+  upstream_path: /providers/kilo/free-models
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: model list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers kilo; pinned src/app/api/providers/kilo/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/kilo/free-models
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-08
+  upstream_path: /providers/suggested-models
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: model list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers suggested-models; pinned src/app/api/providers/suggested-models/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/suggested-models
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-09
+  upstream_path: /providers/test-batch
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: '{} scope filter'
+  response_envelope: per-provider test results / 200
+  status_errors: 422 on unsupported; partial results with per-row status
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers test-batch; pinned src/app/api/providers/test-batch/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/test-batch
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PROV-10
+  upstream_path: /providers/validate
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: provider config
+  response_envelope: validation result / 200
+  status_errors: 400 invalid config; 422 credential rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 providers validate; pinned src/app/api/providers/validate/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /providers/validate
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-01
+  upstream_path: /provider-nodes
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of nodes / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes; pinned src/app/api/provider-nodes/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-02
+  upstream_path: /provider-nodes
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: node config
+  response_envelope: created node / 201
+  status_errors: 400 validation; 422 unsupported
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes; pinned src/app/api/provider-nodes/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-03
+  upstream_path: /provider-nodes/[id]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: node object / 200
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes [id]; pinned src/app/api/provider-nodes/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes/{id}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-04
+  upstream_path: /provider-nodes/[id]
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: partial node config
+  response_envelope: updated node / 200
+  status_errors: 404 not found; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes [id]; pinned src/app/api/provider-nodes/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes/{id}
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-05
+  upstream_path: /provider-nodes/[id]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes [id]; pinned src/app/api/provider-nodes/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes/{id}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-NODE-06
+  upstream_path: /provider-nodes/validate
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: node config
+  response_envelope: validation result / 200
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 provider-nodes validate; pinned src/app/api/provider-nodes/validate/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /provider-nodes/validate
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-01
+  upstream_path: /proxy-pools
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of pools / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools; pinned src/app/api/proxy-pools/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-02
+  upstream_path: /proxy-pools
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: pool config
+  response_envelope: created pool / 201
+  status_errors: 400 validation
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools; pinned src/app/api/proxy-pools/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-03
+  upstream_path: /proxy-pools/[id]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: pool object / 200
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools [id]; pinned src/app/api/proxy-pools/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/{id}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-04
+  upstream_path: /proxy-pools/[id]
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: partial pool config
+  response_envelope: updated pool / 200
+  status_errors: 404 not found; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools [id]; pinned src/app/api/proxy-pools/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/{id}
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-05
+  upstream_path: /proxy-pools/[id]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools [id]; pinned src/app/api/proxy-pools/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/{id}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-06
+  upstream_path: /proxy-pools/cloudflare-deploy
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: pool id / config
+  response_envelope: deployment config / 200
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools cloudflare-deploy; pinned src/app/api/proxy-pools/cloudflare-deploy/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/cloudflare-deploy
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-07
+  upstream_path: /proxy-pools/deno-deploy
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: pool id / config
+  response_envelope: deployment config / 200
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools deno-deploy; pinned src/app/api/proxy-pools/deno-deploy/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/deno-deploy
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-POOL-08
+  upstream_path: /proxy-pools/vercel-deploy
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: pool id / config
+  response_envelope: deployment config / 200
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 proxy-pools vercel-deploy; pinned src/app/api/proxy-pools/vercel-deploy/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /proxy-pools/vercel-deploy
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-01
+  upstream_path: /models
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of models / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models; pinned src/app/api/models/route.js (GET/PUT)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-02
+  upstream_path: /models
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model config
+  response_envelope: updated models / 200
+  status_errors: 400 validation
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models; pinned src/app/api/models/route.js (GET/PUT)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-03
+  upstream_path: /models/alias
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of aliases / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models alias; pinned src/app/api/models/alias/ (GET/PUT/DELETE)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/alias
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-04
+  upstream_path: /models/alias
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: alias map
+  response_envelope: updated aliases / 200
+  status_errors: 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models alias; pinned src/app/api/models/alias/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/alias
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-05
+  upstream_path: /models/alias
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: alias key
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models alias; pinned src/app/api/models/alias/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/alias
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-06
+  upstream_path: /models/custom
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of custom models / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models custom; pinned src/app/api/models/custom/ (GET/POST/DELETE)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/custom
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-07
+  upstream_path: /models/custom
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model config
+  response_envelope: created model / 201
+  status_errors: 400 validation
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models custom; pinned src/app/api/models/custom/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/custom
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-08
+  upstream_path: /models/custom
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model id
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models custom; pinned src/app/api/models/custom/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/custom
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-09
+  upstream_path: /models/disabled
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of disabled models / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models disabled; pinned src/app/api/models/disabled/\
+    \ (GET/POST/DELETE)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/disabled
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-10
+  upstream_path: /models/disabled
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model id
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models disabled; pinned src/app/api/models/disabled/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/disabled
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-11
+  upstream_path: /models/disabled
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model id
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models disabled; pinned src/app/api/models/disabled/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/disabled
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-12
+  upstream_path: /models/test
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: model id / prompt
+  response_envelope: probe result / 200
+  status_errors: 422 provider unavailable
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models test; pinned src/app/api/models/test/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/test
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MOD-13
+  upstream_path: /models/availability
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: availability map / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 models availability; pinned src/app/api/models/availability/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /models/availability
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-COMBO-01
+  upstream_path: /combos
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: array of combos / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 combos; pinned src/app/api/combos/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /combos
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-COMBO-02
+  upstream_path: /combos
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: combo config
+  response_envelope: created combo / 201
+  status_errors: 400 validation; 422 no valid combo
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 combos; pinned src/app/api/combos/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /combos
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-COMBO-03
+  upstream_path: /combos/[id]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: combo object / 200
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 combos [id]; pinned src/app/api/combos/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /combos/{id}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-COMBO-04
+  upstream_path: /combos/[id]
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: partial combo config
+  response_envelope: updated combo / 200
+  status_errors: 404 not found; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 combos [id]; pinned src/app/api/combos/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /combos/{id}
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-COMBO-05
+  upstream_path: /combos/[id]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 not found
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 combos [id]; pinned src/app/api/combos/[id]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /combos/{id}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PRICE-01
+  upstream_path: /pricing
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: pricing config / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pricing; pinned src/app/api/pricing/route.js (GET/PATCH/DELETE)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pricing
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PRICE-02
+  upstream_path: /pricing
+  method: PATCH
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: pricing override
+  response_envelope: updated pricing / 200
+  status_errors: 400 invalid; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pricing; pinned src/app/api/pricing/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pricing
+  admin_method: PATCH
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PRICE-03
+  upstream_path: /pricing
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pricing; pinned src/app/api/pricing/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pricing
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-01
+  upstream_path: /usage/stats
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: stats object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage stats; pinned src/app/api/usage/stats/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/stats
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-02
+  upstream_path: /usage/history
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: series / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage history; pinned src/app/api/usage/history/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/history
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-03
+  upstream_path: /usage/chart
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: chart series / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage chart; pinned src/app/api/usage/chart/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/chart
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-04
+  upstream_path: /usage/providers
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: per-provider usage / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage providers; pinned src/app/api/usage/providers/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/providers
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-05
+  upstream_path: /usage/request-details
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: request records (metadata; debug opt-in) / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage request-details; pinned src/app/api/usage/request-details/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/request-details
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-06
+  upstream_path: /usage/request-logs
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: log records / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage request-logs; pinned src/app/api/usage/request-logs/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/request-logs
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-07
+  upstream_path: /usage/logs
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: log records / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage logs; pinned src/app/api/usage/logs/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/logs
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-08
+  upstream_path: /usage/[connectionId]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: connection usage / 200
+  status_errors: 404 unknown connection
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage [connectionId]; pinned src/app/api/usage/[connectionId]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/{connectionId}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-USE-09
+  upstream_path: /usage/stream
+  method: GET
+  external_auth: session
+  disposition: PASS
+  request_shape: none
+  response_envelope: text/event-stream; stats push + light push; 25 s keepalive
+  status_errors: stream abort on disconnect; 401 unauthenticated
+  cors: 'stream: EventSource; session-cookie-only; Cache-Control: no-cache'
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 usage stream; pinned src/app/api/usage/stream/route.js\
+    \ (L12-69)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /usage/stream
+  admin_method: GET
+  admin_auth_tier: session
+  host_gated: true
+- id: CMP-CLI-01
+  upstream_path: /cli-tools/all-statuses
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: per-tool status map / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 cli-tools all-statuses; pinned src/app/api/cli-tools/all-statuses/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /cli-tools/all-statuses
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-CLI-02
+  upstream_path: /cli-tools/[tool]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: tool settings / 200
+  status_errors: 404 unknown tool ({tool} enum, 16 names)
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 cli-tools; pinned src/app/api/cli-tools/<tool>/route.js\
+    \ (16 tool dirs)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /cli-tools/{tool}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-CLI-03
+  upstream_path: /cli-tools/[tool]
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: action payload
+  response_envelope: action result / 200
+  status_errors: 404 unknown tool; 400 invalid action
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 cli-tools; pinned src/app/api/cli-tools/<tool>/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /cli-tools/{tool}
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-CLI-04
+  upstream_path: /cli-tools/antigravity-mitm/alias
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: alias payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 cli-tools antigravity-mitm; pinned src/app/api/cli-tools/antigravity-mitm/alias/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /cli-tools/antigravity-mitm/alias
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MEDIA-01
+  upstream_path: /media-providers/tts/voices
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: voice list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 media-providers tts; pinned src/app/api/media-providers/tts/voices/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /media-providers/tts/voices
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MEDIA-02
+  upstream_path: /media-providers/tts/deepgram/voices
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: voice list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 media-providers deepgram; pinned src/app/api/media-providers/tts/deepgram/voices/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /media-providers/tts/deepgram/voices
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MEDIA-03
+  upstream_path: /media-providers/tts/elevenlabs/voices
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: voice list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 media-providers elevenlabs; pinned src/app/api/media-providers/tts/elevenlabs/voices/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /media-providers/tts/elevenlabs/voices
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MEDIA-04
+  upstream_path: /media-providers/tts/inworld/voices
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: voice list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 media-providers inworld; pinned src/app/api/media-providers/tts/inworld/voices/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /media-providers/tts/inworld/voices
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MEDIA-05
+  upstream_path: /media-providers/tts/minimax/voices
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: voice list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 media-providers minimax; pinned src/app/api/media-providers/tts/minimax/voices/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /media-providers/tts/minimax/voices
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-01
+  upstream_path: /oauth/codex/import-token
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: token payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid token; 422 credential rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth codex; pinned src/app/api/oauth/codex/import-token/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/codex/import-token
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-02
+  upstream_path: /oauth/codex/bulk-import
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: token array
+  response_envelope: per-row results / 200
+  status_errors: partial results with per-row status
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth codex; pinned src/app/api/oauth/codex/bulk-import/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/codex/bulk-import
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-03
+  upstream_path: /oauth/cursor/import
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: session payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth cursor; pinned src/app/api/oauth/cursor/import/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/cursor/import
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-04
+  upstream_path: /oauth/cursor/auto-import
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: path/scan payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: local-only replaced by session+pat boundary
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth cursor; pinned src/app/api/oauth/cursor/auto-import/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/cursor/auto-import
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-05
+  upstream_path: /oauth/gitlab/pat
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: PAT payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth gitlab; pinned src/app/api/oauth/gitlab/pat/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/gitlab/pat
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-06
+  upstream_path: /oauth/iflow/cookie
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: cookie payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth iflow; pinned src/app/api/oauth/iflow/cookie/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/iflow/cookie
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-07
+  upstream_path: /oauth/kiro/import
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: session payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/import/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/import
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-08
+  upstream_path: /oauth/kiro/auto-import
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: path/scan payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: local-only replaced by session+pat boundary
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/auto-import/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/auto-import
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-09
+  upstream_path: /oauth/kiro/import-cli-proxy
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: proxy payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/import-cli-proxy/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/import-cli-proxy
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-10
+  upstream_path: /oauth/kiro/api-key
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: key payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/api-key/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/api-key
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-11
+  upstream_path: /oauth/kiro/social-authorize
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: authorize payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/social-authorize/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/social-authorize
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-12
+  upstream_path: /oauth/kiro/social-exchange
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: exchange payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth kiro; pinned src/app/api/oauth/kiro/social-exchange/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/kiro/social-exchange
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-13
+  upstream_path: /oauth/[provider]
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: provider status / 200
+  status_errors: 404 unknown provider
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth [provider] (local admin surface); pinned src/app/api/oauth/[provider]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/{provider}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-14
+  upstream_path: /oauth/[provider]
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: provider scope/config
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid; 422 rejected
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth [provider]; pinned src/app/api/oauth/[provider]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/{provider}
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-OAUTH-15
+  upstream_path: /oauth/[provider]
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 404 unknown provider
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 oauth [provider]; pinned src/app/api/oauth/[provider]/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /oauth/{provider}
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-01
+  upstream_path: /tunnel
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: tunnel config / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel; pinned src/lib/tunnel/cloudflare + src/app/api/tunnel/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-02
+  upstream_path: /tunnel/enable
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: config
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel enable; pinned src/app/api/tunnel/enable/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/enable
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-03
+  upstream_path: /tunnel/disable
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel disable; pinned src/app/api/tunnel/disable/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/disable
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-04
+  upstream_path: /tunnel/status
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: status object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel status; pinned src/app/api/tunnel/status/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/status
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-05
+  upstream_path: /tunnel/tailscale-check
+  method: GET
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: check result / 200
+  status_errors: authenticated as session+pat (local-only replaced)
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel tailscale-check; pinned src/app/api/tunnel/tailscale-check/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/tailscale-check
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-06
+  upstream_path: /tunnel/tailscale-install
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel tailscale-install; pinned src/app/api/tunnel/tailscale-install/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/tailscale-install
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-07
+  upstream_path: /tunnel/tailscale-enable
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel tailscale-enable; pinned src/app/api/tunnel/tailscale-enable/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/tailscale-enable
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TUNNEL-08
+  upstream_path: /tunnel/tailscale-disable
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tunnel tailscale-disable; pinned src/app/api/tunnel/tailscale-disable/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tunnel/tailscale-disable
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-01
+  upstream_path: /headroom/start
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.7 headroom; pinned src/app/api/headroom/start/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/start
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-02
+  upstream_path: /headroom/stop
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom stop; pinned src/app/api/headroom/stop/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/stop
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-03
+  upstream_path: /headroom/restart
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom restart; pinned src/app/api/headroom/restart/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/restart
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-04
+  upstream_path: /headroom/status
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: status object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom status; pinned src/app/api/headroom/status/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/status
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-05
+  upstream_path: /headroom/extras
+  method: GET
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: extras / 200
+  status_errors: 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom extras; pinned src/app/api/headroom/extras/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/extras
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-06
+  upstream_path: /headroom/proxy/[...path]
+  method: GET
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: proxied response / 200
+  status_errors: 503 feature disabled; audited; multi-segment upstream catch-all mapped
+    to single-segment twin
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom proxy; pinned src/app/api/headroom/proxy/[...path]/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/proxy/{path}
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-HR-07
+  upstream_path: /headroom/proxy/[...path]
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: proxied payload
+  response_envelope: proxied response / 200
+  status_errors: 503 feature disabled; audited; multi-segment upstream catch-all
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 headroom proxy; pinned src/app/api/headroom/proxy/[...path]/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /headroom/proxy/{path}
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-01
+  upstream_path: /pxpipe/install
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe install; pinned src/lib/pxpipe/ + src/app/api/pxpipe/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/install
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-02
+  upstream_path: /pxpipe/start
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe start; pinned src/app/api/pxpipe/start/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/start
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-03
+  upstream_path: /pxpipe/stop
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe stop; pinned src/app/api/pxpipe/stop/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/stop
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-04
+  upstream_path: /pxpipe/restart
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe restart; pinned src/app/api/pxpipe/restart/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/restart
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-05
+  upstream_path: /pxpipe/status
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: status object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe status; pinned src/app/api/pxpipe/status/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/status
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-06
+  upstream_path: /pxpipe/health
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: health object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe health; pinned src/app/api/pxpipe/health/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/health
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-07
+  upstream_path: /pxpipe/health
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: probe payload
+  response_envelope: health result / 200
+  status_errors: 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe health (GET+POST); pinned src/app/api/pxpipe/health/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/health
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-08
+  upstream_path: /pxpipe/logs
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: log records / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe logs; pinned src/app/api/pxpipe/logs/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/logs
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-PXP-09
+  upstream_path: /pxpipe/stats
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: stats object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 pxpipe stats; pinned src/app/api/pxpipe/stats/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /pxpipe/stats
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MCP-01
+  upstream_path: /mcp/[plugin]/message
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: JSON-RPC payload
+  response_envelope: JSON-RPC response / 200
+  status_errors: 428 confirm-required; 503 feature disabled; audited; labelled stream,
+    not chat
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 mcp message; pinned src/lib/mcp/stdioSseBridge.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /mcp/{plugin}/message
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-MCP-02
+  upstream_path: /mcp/[plugin]/sse
+  method: GET
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: text/event-stream / 200
+  status_errors: stream abort on disconnect; 401 unauthenticated
+  cors: 'stream: session-cookie-only; Cache-Control: no-cache'
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 mcp sse; pinned src/app/api/mcp/[plugin]/sse/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /mcp/{plugin}/sse
+  admin_method: GET
+  admin_auth_tier: session
+  host_gated: true
+- id: CMP-SET-01
+  upstream_path: /settings
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: settings object / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings route; pinned src/app/api/settings/route.js\
+    \ (GET/PATCH)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-02
+  upstream_path: /settings
+  method: PATCH
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: partial settings
+  response_envelope: updated settings / 200
+  status_errors: 400 invalid; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings route; pinned src/app/api/settings/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings
+  admin_method: PATCH
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-03
+  upstream_path: /settings/database
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: config-transfer payload / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings database; pinned src/app/api/settings/database/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings/database
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-04
+  upstream_path: /settings/database
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: config-transfer payload
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 422 invalid payload; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings database; pinned src/app/api/settings/database/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings/database
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-05
+  upstream_path: /settings/require-login
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{requireLogin:bool} / 200'
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings require-login; pinned src/app/api/settings/require-login/\
+    \ (GET only upstream; admin adds PUT)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings/require-login
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-06
+  upstream_path: /settings/require-login
+  method: PUT
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: '{requireLogin:bool}'
+  response_envelope: '{ok:true} / 200'
+  status_errors: write surface added by admin (upstream GET only)
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings require-login; admin twin adds write surface"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings/require-login
+  admin_method: PUT
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-SET-07
+  upstream_path: /settings/proxy-test
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: test config
+  response_envelope: test result / 200
+  status_errors: 422 unreachable; 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 settings proxy-test; pinned src/app/api/settings/proxy-test/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /settings/proxy-test
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-01
+  upstream_path: /translator/translate
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: translation request
+  response_envelope: translation result / 200
+  status_errors: 422 provider unavailable; feature-gated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator translate; pinned src/app/api/translator/translate/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/translate
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-02
+  upstream_path: /translator/load
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: translator config / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator load; pinned src/app/api/translator/load/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/load
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-03
+  upstream_path: /translator/save
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: translator config
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 invalid
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator save; pinned src/app/api/translator/save/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/save
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-04
+  upstream_path: /translator/send
+  method: POST
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: request payload
+  response_envelope: result / 200
+  status_errors: 422 provider unavailable
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator send; pinned src/app/api/translator/send/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/send
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-05
+  upstream_path: /translator/console-logs
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: log records / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator console-logs; pinned src/app/api/translator/console-logs/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/console-logs
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-06
+  upstream_path: /translator/console-logs
+  method: DELETE
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator console-logs; pinned src/app/api/translator/console-logs/"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/console-logs
+  admin_method: DELETE
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-TRANS-07
+  upstream_path: /translator/console-logs/stream
+  method: GET
+  external_auth: session
+  disposition: PASS
+  request_shape: none
+  response_envelope: text/event-stream; init + line events; 25 s keepalive
+  status_errors: stream abort on disconnect; 401 unauthenticated
+  cors: 'stream: session-cookie-only; Cache-Control: no-cache'
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 translator console-logs stream; pinned src/app/api/translator/console-logs/stream/route.js\
+    \ (L12-40)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /translator/console-logs/stream
+  admin_method: GET
+  admin_auth_tier: session
+  host_gated: true
+- id: CMP-SHUT-01
+  upstream_path: /shutdown
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited; never silent/kill
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.7 shutdown; pinned src/app/api/shutdown/route.js (SHUTDOWN_SECRET\u2192\
+    gate, L1-25)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /shutdown
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-VER-01
+  upstream_path: /version
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: version object (hasUpdate) / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 version; pinned src/app/api/version/route.js (L56-60)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /version
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-VER-02
+  upstream_path: /version/update
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited; detached updater
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.7 version/update; pinned src/app/api/version/update/route.js\
+    \ (L1-30)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /version/update
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-VER-03
+  upstream_path: /version/shutdown
+  method: POST
+  external_auth: local-only
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 428 confirm-required; 503 feature disabled; audited
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.7 version/shutdown; pinned src/app/api/version/shutdown/route.js\
+    \ (L1-18)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /version/shutdown
+  admin_method: POST
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-META-01
+  upstream_path: /init
+  method: POST
+  external_auth: public-api
+  disposition: PASS
+  request_shape: '{password}'
+  response_envelope: '{ok:true} / 200'
+  status_errors: 400 if already initialized
+  cors: same-origin; public
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 init; pinned src/app/api/init/route.js"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /init
+  admin_method: POST
+  admin_auth_tier: public
+  host_gated: true
+- id: CMP-META-02
+  upstream_path: /locale
+  method: POST
+  external_auth: public-api
+  disposition: PASS
+  request_shape: none
+  response_envelope: locale object / 200
+  status_errors: 401 unauthenticated (GET)
+  cors: same-origin; public
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 locale; pinned src/app/api/locale/route.js (POST upstream,\
+    \ GET admin surface)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /locale
+  admin_method: GET
+  admin_auth_tier: public
+  host_gated: true
+- id: CMP-META-03
+  upstream_path: /tags
+  method: GET
+  external_auth: session+pat
+  disposition: PASS
+  request_shape: none
+  response_envelope: tag list / 200
+  status_errors: 401 unauthenticated
+  cors: same-origin; cookie or PAT
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 tags; pinned src/app/api/tags/route.js (GET)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /tags
+  admin_method: GET
+  admin_auth_tier: session+pat
+  host_gated: true
+- id: CMP-META-04
+  upstream_path: /health
+  method: GET
+  external_auth: public-api
+  disposition: PASS
+  request_shape: none
+  response_envelope: '{ok:true} / 200'
+  status_errors: 401 only on detailed variants; public minimal
+  cors: same-origin; public
+  headers: session cookie / PAT bearer; X-CSRF-Token on cookie mutations
+  source: "route map \xA73.2 health; pinned src/app/api/health/route.js (L1-15)"
+  nearest_admin_surface: ''
+  reason: ''
+  target: admin
+  admin_path: /health
+  admin_method: GET
+  admin_auth_tier: public
+  host_gated: true

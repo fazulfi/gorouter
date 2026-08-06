@@ -2,15 +2,20 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	txpkg "gorouter/internal/app/tx"
 	"gorouter/internal/domain/auth"
+	"gorouter/internal/domain/backup"
+	"gorouter/internal/domain/console"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
+	"gorouter/internal/domain/passwordreset"
 	"gorouter/internal/domain/provider"
+	"gorouter/internal/domain/settings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -506,5 +511,205 @@ func TestModelRepo_SQL_UsesGorouterProviderModels(t *testing.T) {
 		repo := &ModelRepository{tx: tx}
 		_, _ = repo.ListByCapability(context.Background(), "chat")
 		assertTableInSQL(t, tx, "gorouter_provider_models")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConsoleLogRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestConsoleLogRepo_SQL_UsesGorouterConsoleLogs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Append", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_ = repo.Append(context.Background(), &console.ConsoleLog{
+			Seq: 1, RedactedMessage: "redacted",
+		})
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("ListAfter", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.ListAfter(context.Background(), 0, 50)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("DeleteBefore", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.DeleteBefore(context.Background(), 10)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("MaxSeq", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.MaxSeq(context.Background())
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("NextSeq", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.NextSeq(context.Background())
+		// The sequence watermark lives in the approved runtime-state KV
+		// table; the seeding read covers the purged console table.
+		assertTableInSQL(t, tx, "gorouter_runtime_state")
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+
+	t.Run("PurgeBefore", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &consoleLogRepo{tx: tx}
+		_, _ = repo.PurgeBefore(context.Background(), testNow)
+		assertTableInSQL(t, tx, "gorouter_console_logs")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// PasswordResetRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestPasswordResetRepo_SQL_UsesGorouterPasswordResets(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Create(context.Background(), &passwordreset.PasswordReset{
+			ID: uuid.New(), UserID: uuid.New(), TokenHash: "opaque-hash",
+		})
+		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+
+	t.Run("Complete", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Complete(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+
+	t.Run("Revoke", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &passwordResetRepo{tx: tx}
+		_ = repo.Revoke(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_password_resets")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// BackupRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestBackupRepo_SQL_UsesGorouterBackups(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Create", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_ = repo.Create(context.Background(), &backup.Backup{
+			ID: uuid.New(), Path: "/p", SHA256: "h", Bytes: 1,
+		})
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_, _ = repo.List(context.Background())
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("FindByID", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_, _ = repo.FindByID(context.Background(), uuid.New())
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+
+	t.Run("UpdateVerification", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &backupRepo{tx: tx}
+		_ = repo.UpdateVerification(context.Background(), uuid.New(), testNow)
+		assertTableInSQL(t, tx, "gorouter_backups")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SettingsRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestSettingsRepo_SQL_UsesGorouterSettings(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Get", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_, _ = repo.Get(context.Background(), "rtkEnabled")
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("Set", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_ = repo.Set(context.Background(), &settings.Setting{Key: "rtkEnabled", Value: json.RawMessage(`true`)})
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_, _ = repo.List(context.Background())
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+
+	t.Run("Wipe", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &settingsRepo{tx: tx}
+		_ = repo.Wipe(context.Background())
+		assertTableInSQL(t, tx, "gorouter_settings")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// AuditQueryRepo table name tests
+// ---------------------------------------------------------------------------
+
+func TestAuditQueryRepo_SQL_SelectOnlyOverGorouterAuditLog(t *testing.T) {
+	t.Parallel()
+
+	t.Run("List is SELECT-only", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &auditQueryRepo{tx: tx}
+		_, _ = repo.List(context.Background(), txpkg.AuditFilters{}, txpkg.AuditPage{})
+		assertTableInSQL(t, tx, "gorouter_audit_log")
+		upper := strings.ToUpper(tx.lastSQL)
+		if !strings.HasPrefix(strings.TrimSpace(upper), "SELECT") {
+			t.Errorf("List SQL must start with SELECT:\n%s", tx.lastSQL)
+		}
+		for _, banned := range []string{"UPDATE", "DELETE", "INSERT ", "TRUNCATE"} {
+			if strings.Contains(upper, banned) {
+				t.Errorf("List SQL must be SELECT-only, found %s", banned)
+			}
+		}
+	})
+
+	t.Run("Export is SELECT-only", func(t *testing.T) {
+		tx := captureLastSQL()
+		repo := &auditQueryRepo{tx: tx}
+		_, _ = repo.Export(context.Background(), txpkg.AuditFilters{})
+		assertTableInSQL(t, tx, "gorouter_audit_log")
+		upper := strings.ToUpper(tx.lastSQL)
+		if !strings.HasPrefix(strings.TrimSpace(upper), "SELECT") {
+			t.Errorf("Export SQL must start with SELECT:\n%s", tx.lastSQL)
+		}
+		for _, banned := range []string{"UPDATE", "DELETE", "INSERT ", "TRUNCATE"} {
+			if strings.Contains(upper, banned) {
+				t.Errorf("Export SQL must be SELECT-only, found %s", banned)
+			}
+		}
 	})
 }

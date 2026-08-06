@@ -59,6 +59,42 @@ func TestNewTxScope(t *testing.T) {
 		if scope.Models() == nil {
 			t.Error("Models() returned nil")
 		}
+		if scope.Aliases() == nil {
+			t.Error("Aliases() returned nil")
+		}
+		if scope.Combos() == nil {
+			t.Error("Combos() returned nil")
+		}
+		if scope.OAuth() == nil {
+			t.Error("OAuth() returned nil")
+		}
+		if scope.Pools() == nil {
+			t.Error("Pools() returned nil")
+		}
+		if scope.Nodes() == nil {
+			t.Error("Nodes() returned nil")
+		}
+		if scope.Usage() == nil {
+			t.Error("Usage() returned nil")
+		}
+		if scope.ConsoleLogs() == nil {
+			t.Error("ConsoleLogs() returned nil")
+		}
+		if scope.PasswordResets() == nil {
+			t.Error("PasswordResets() returned nil")
+		}
+		if scope.Backups() == nil {
+			t.Error("Backups() returned nil")
+		}
+		if scope.Pricing() == nil {
+			t.Error("Pricing() returned nil")
+		}
+		if scope.Settings() == nil {
+			t.Error("Settings() returned nil")
+		}
+		if scope.AuditQuery() == nil {
+			t.Error("AuditQuery() returned nil")
+		}
 	})
 
 	t.Run("with nil tx", func(t *testing.T) {
@@ -80,6 +116,18 @@ func TestNewTxScope(t *testing.T) {
 		_ = scope.Accounts()
 		_ = scope.Proxies()
 		_ = scope.Models()
+		_ = scope.Aliases()
+		_ = scope.Combos()
+		_ = scope.OAuth()
+		_ = scope.Pools()
+		_ = scope.Nodes()
+		_ = scope.Usage()
+		_ = scope.ConsoleLogs()
+		_ = scope.PasswordResets()
+		_ = scope.Backups()
+		_ = scope.Pricing()
+		_ = scope.Settings()
+		_ = scope.AuditQuery()
 	})
 
 	t.Run("each repo is correct type", func(t *testing.T) {
@@ -121,6 +169,42 @@ func TestNewTxScope(t *testing.T) {
 		}
 		if _, ok := scope.Models().(*ModelRepository); !ok {
 			t.Error("Models() is not *ModelRepository")
+		}
+		if _, ok := scope.Aliases().(*aliasRepo); !ok {
+			t.Error("Aliases() is not *aliasRepo")
+		}
+		if _, ok := scope.Combos().(*comboRepo); !ok {
+			t.Error("Combos() is not *comboRepo")
+		}
+		if _, ok := scope.OAuth().(*oauthRepo); !ok {
+			t.Error("OAuth() is not *oauthRepo")
+		}
+		if _, ok := scope.Pools().(*proxyPoolRepo); !ok {
+			t.Error("Pools() is not *proxyPoolRepo")
+		}
+		if _, ok := scope.Nodes().(*nodeStore); !ok {
+			t.Error("Nodes() is not *nodeStore")
+		}
+		if _, ok := scope.Usage().(*usageRepo); !ok {
+			t.Error("Usage() is not *usageRepo")
+		}
+		if _, ok := scope.ConsoleLogs().(*consoleLogRepo); !ok {
+			t.Error("ConsoleLogs() is not *consoleLogRepo")
+		}
+		if _, ok := scope.PasswordResets().(*passwordResetRepo); !ok {
+			t.Error("PasswordResets() is not *passwordResetRepo")
+		}
+		if _, ok := scope.Backups().(*backupRepo); !ok {
+			t.Error("Backups() is not *backupRepo")
+		}
+		if _, ok := scope.Pricing().(*pricingRepo); !ok {
+			t.Error("Pricing() is not *pricingRepo")
+		}
+		if _, ok := scope.Settings().(*settingsRepo); !ok {
+			t.Error("Settings() is not *settingsRepo")
+		}
+		if _, ok := scope.AuditQuery().(*auditQueryRepo); !ok {
+			t.Error("AuditQuery() is not *auditQueryRepo")
 		}
 	})
 }

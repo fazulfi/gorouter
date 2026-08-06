@@ -30,6 +30,18 @@ func NewTxScope(pgTx pgx.Tx) *tx.TxScope {
 		&accountRepo{tx: pgTx},
 		&proxyRepo{tx: pgTx},
 		NewModelRepository(pgTx),
+		NewAliasRepo(pgTx),
+		NewComboRepo(pgTx),
+		NewOAuthRepo(pgTx),
+		&proxyPoolRepo{tx: pgTx},
+		&nodeStore{tx: pgTx},
+		NewUsageRepo(pgTx),
+		NewConsoleLogRepo(pgTx),
+		NewPasswordResetRepo(pgTx),
+		NewBackupRepo(pgTx),
+		NewPricingRepo(pgTx),
+		NewSettingsRepo(pgTx),
+		NewAuditQueryRepo(pgTx),
 	)
 }
 

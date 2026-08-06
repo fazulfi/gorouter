@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getHealth,
   getDetailedHealth,
@@ -14,6 +14,7 @@ import {
   createProvider,
   updateProvider,
   deleteProvider,
+  _resetCsrfStateForTests,
 } from '@/shared/api/client';
 
 const mockFetch = vi.fn();
@@ -21,6 +22,11 @@ const mockFetch = vi.fn();
 beforeEach(() => {
   mockFetch.mockReset();
   globalThis.fetch = mockFetch;
+  _resetCsrfStateForTests();
+});
+
+afterEach(() => {
+  _resetCsrfStateForTests();
 });
 
 describe('API client', () => {
@@ -269,6 +275,147 @@ describe('API client', () => {
         code: 'UNKNOWN',
         message: 'HTTP 500',
       });
+    });
+  });
+
+  describe('CSRF double-submit echo (a11y A2)', () => {
+    it('echoes the gorouter_csrf cookie on mutations after a safe GET', async () => {
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: 'gorouter_csrf=csrf-token-123; Path=/' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', timestamp: '' }),
+      });
+      await getHealth();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      });
+      await deleteProvider('p1');
+
+      const [, init] = mockFetch.mock.calls[1] as [
+        string,
+        RequestInit | undefined,
+      ];
+      expect(init?.headers).toEqual(
+        expect.objectContaining({ 'X-CSRF-Token': 'csrf-token-123' }),
+      );
+
+      delete (globalThis as { document?: unknown }).document;
+    });
+
+    it('reads the CSRF cookie and echoes on a mutation without a prior GET', async () => {
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: 'gorouter_csrf=token-no-get; Path=/' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      });
+      await createPAT({ description: 'dev' });
+
+      const [, init] = mockFetch.mock.calls[0] as [
+        string,
+        RequestInit | undefined,
+      ];
+      expect(init?.headers).toEqual(
+        expect.objectContaining({ 'X-CSRF-Token': 'token-no-get' }),
+      );
+
+      delete (globalThis as { document?: unknown }).document;
+    });
+
+    it('does not send X-CSRF-Token on safe GET requests', async () => {
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: 'gorouter_csrf=csrf-token-123; Path=/' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', timestamp: '' }),
+      });
+      await getHealth();
+
+      const [url, init] = mockFetch.mock.calls[0] as [
+        string,
+        RequestInit | undefined,
+      ];
+      expect(url).toBe('/api/admin/v1/health');
+      expect(init?.headers).toEqual({ 'Content-Type': 'application/json' });
+
+      delete (globalThis as { document?: unknown }).document;
+    });
+
+    it('sends no X-CSRF-Token when the cookie is absent', async () => {
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: '' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      });
+      await logout();
+
+      const [, init] = mockFetch.mock.calls[0] as [
+        string,
+        RequestInit | undefined,
+      ];
+      expect(init?.headers).not.toHaveProperty('X-CSRF-Token');
+
+      delete (globalThis as { document?: unknown }).document;
+    });
+
+    it('re-latches the CSRF cookie after each safe response', async () => {
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: 'gorouter_csrf=old-token; Path=/' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', timestamp: '' }),
+      });
+      await getHealth();
+
+      Object.defineProperty(globalThis, 'document', {
+        value: { cookie: 'gorouter_csrf=new-token; Path=/' },
+        configurable: true,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', timestamp: '' }),
+      });
+      await getHealth();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      });
+      await logout();
+
+      const [, init] = mockFetch.mock.calls[2] as [
+        string,
+        RequestInit | undefined,
+      ];
+      expect(init?.headers).toEqual(
+        expect.objectContaining({ 'X-CSRF-Token': 'new-token' }),
+      );
+
+      delete (globalThis as { document?: unknown }).document;
     });
   });
 });

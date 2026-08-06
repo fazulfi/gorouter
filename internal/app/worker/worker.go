@@ -51,6 +51,12 @@ func (c *Config) validate() {
 	}
 }
 
+// drainTimeout bounds status persistence once the execution context has been
+// cancelled (shutdown drain or request timeout): the transaction manager
+// refuses to begin on a cancelled context, so persisting with the execution
+// context would strand an interrupted job in the running state.
+const drainTimeout = 10 * time.Second
+
 // JobStatusUpdater handles transactional job status updates. The production
 // implementation wraps tx.TransactionManager to ensure status changes are
 // atomic. Tests provide a mock.
@@ -58,21 +64,29 @@ type JobStatusUpdater interface {
 	UpdateJobStatus(ctx context.Context, id uuid.UUID, status jobs.JobStatus, result json.RawMessage, errMsg *string) error
 }
 
+// ScopeBeginner begins a transaction scope. tx.TransactionManager satisfies
+// this interface; it is an interface so tests can drive the updater with a
+// recording scope.
+type ScopeBeginner interface {
+	Begin(ctx context.Context) (*tx.TxScope, error)
+}
+
 // TransactionalJobUpdater implements JobStatusUpdater by delegating to a
 // tx.TransactionManager for atomic status changes.
 type TransactionalJobUpdater struct {
-	txManager *tx.TransactionManager
-	jobRepo   jobs.JobRepository
+	beginner ScopeBeginner
 }
 
 // NewTransactionalJobUpdater creates a JobStatusUpdater that persists status
 // changes through the transaction manager, ensuring atomicity.
-func NewTransactionalJobUpdater(txManager *tx.TransactionManager, jobRepo jobs.JobRepository) *TransactionalJobUpdater {
-	return &TransactionalJobUpdater{txManager: txManager, jobRepo: jobRepo}
+func NewTransactionalJobUpdater(beginner ScopeBeginner) *TransactionalJobUpdater {
+	return &TransactionalJobUpdater{beginner: beginner}
 }
 
-// UpdateJobStatus begins a transaction, delegates to the scoped JobRepository,
-// and commits. On any error the transaction is rolled back.
+// UpdateJobStatus begins a single transaction, delegates the status change to
+// the scoped JobRepository, and commits. On any error the transaction is
+// rolled back. No repository is called outside the scope, so a status
+// transition uses exactly one pool connection and its atomicity is real.
 func (u *TransactionalJobUpdater) UpdateJobStatus(
 	ctx context.Context,
 	id uuid.UUID,
@@ -80,7 +94,7 @@ func (u *TransactionalJobUpdater) UpdateJobStatus(
 	result json.RawMessage,
 	errMsg *string,
 ) error {
-	scope, err := u.txManager.Begin(ctx)
+	scope, err := u.beginner.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
@@ -88,7 +102,7 @@ func (u *TransactionalJobUpdater) UpdateJobStatus(
 		_ = scope.Rollback(ctx)
 	}()
 
-	if err := u.jobRepo.UpdateStatus(ctx, id, status, result, errMsg); err != nil {
+	if err := scope.Jobs().UpdateStatus(ctx, id, status, result, errMsg); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 	return scope.Commit(ctx)
@@ -116,8 +130,7 @@ type Worker struct {
 }
 
 // New creates a Worker with the given dependencies. If updater is nil, a
-// default TransactionalJobUpdater is constructed from the txManager and
-// jobRepo.
+// default TransactionalJobUpdater is constructed from the txManager.
 func New(
 	cfg Config,
 	jobRepo jobs.JobRepository,
@@ -136,7 +149,7 @@ func New(
 		signals:   make(chan uuid.UUID, cfg.QueueSize),
 		sem:       make(chan struct{}, cfg.MaxConcurrent),
 	}
-	w.updater = NewTransactionalJobUpdater(txManager, jobRepo)
+	w.updater = NewTransactionalJobUpdater(txManager)
 	return w
 }
 
@@ -299,7 +312,10 @@ func (w *Worker) releaseSem() {
 //  4. Stores the result and marks the job completed, or marks it failed on error
 //
 // All status updates are performed through the JobStatusUpdater, which in
-// production wraps tx.TransactionManager for atomicity.
+// production wraps tx.TransactionManager for atomicity. Status persistence
+// runs on a bounded context that stays usable after the execution context is
+// cancelled, so an interrupted job is never left stranded in the running
+// state.
 func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	log := w.logger.With().
 		Str("job_id", job.ID.String()).
@@ -308,7 +324,7 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 		Logger()
 
 	log.Info().Msg("processing job")
-	if err := w.updateJobStatus(ctx, job.ID, jobs.JobRunning, nil, nil); err != nil {
+	if err := w.updateJobStatus(job.ID, jobs.JobRunning, nil, nil); err != nil {
 		log.Error().Err(err).Msg("failed to set job status to running")
 		return
 	}
@@ -316,7 +332,7 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	req, err := w.buildRequest(job)
 	if err != nil {
 		errMsg := err.Error()
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
+		if updateErr := w.updateJobStatus(job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
 			log.Error().Err(updateErr).Msg("failed to persist job failure")
 		}
 		log.Error().Err(err).Msg("failed to build engine request from job payload")
@@ -325,9 +341,14 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 
 	resp, err := w.pipeline.ExecuteRequest(ctx, req)
 	if err != nil {
+		status := jobs.JobFailed
 		errMsg := fmt.Sprintf("execution failed: %v", err)
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
-			log.Error().Err(updateErr).Msg("failed to persist job failure")
+		if ctx.Err() != nil {
+			status = jobs.JobCancelled
+			errMsg = fmt.Sprintf("execution cancelled: %v", ctx.Err())
+		}
+		if updateErr := w.updateJobStatus(job.ID, status, nil, &errMsg); updateErr != nil {
+			log.Error().Err(updateErr).Msg("failed to persist job terminal state")
 		}
 		log.Error().Err(err).Msg("job execution failed")
 		return
@@ -336,14 +357,14 @@ func (w *Worker) processJob(ctx context.Context, job *jobs.Job) {
 	result, err := json.Marshal(resp)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to marshal response: %v", err)
-		if updateErr := w.updateJobStatus(ctx, job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
+		if updateErr := w.updateJobStatus(job.ID, jobs.JobFailed, nil, &errMsg); updateErr != nil {
 			log.Error().Err(updateErr).Msg("failed to persist job failure")
 		}
 		log.Error().Err(err).Msg("failed to marshal response")
 		return
 	}
 
-	if err := w.updateJobStatus(ctx, job.ID, jobs.JobCompleted, result, nil); err != nil {
+	if err := w.updateJobStatus(job.ID, jobs.JobCompleted, result, nil); err != nil {
 		log.Error().Err(err).Msg("failed to persist job completion")
 		return
 	}
@@ -371,12 +392,18 @@ func (w *Worker) buildRequest(job *jobs.Job) (*engine.Request, error) {
 	}, nil
 }
 
+// updateJobStatus persists a status transition on a bounded context derived
+// from context.Background() rather than the execution context: the execution
+// context is cancelled during shutdown drain and on request timeout, and the
+// transaction manager refuses to begin on a cancelled context, which would
+// strand an interrupted job in the running state.
 func (w *Worker) updateJobStatus(
-	ctx context.Context,
 	jobID uuid.UUID,
 	status jobs.JobStatus,
 	result json.RawMessage,
 	errMsg *string,
 ) error {
-	return w.updater.UpdateJobStatus(ctx, jobID, status, result, errMsg)
+	pctx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+	defer cancel()
+	return w.updater.UpdateJobStatus(pctx, jobID, status, result, errMsg)
 }

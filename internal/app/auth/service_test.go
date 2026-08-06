@@ -345,6 +345,9 @@ func TestAuthService_ValidateSession(t *testing.T) {
 	if actor.IsAdmin {
 		t.Error("expected non-admin actor")
 	}
+	if actor.Kind != domain.ActorKindSession || actor.Origin != domain.ActorOriginRemote {
+		t.Errorf("expected session/remote actor, got Kind=%q Origin=%q", actor.Kind, actor.Origin)
+	}
 }
 
 func TestAuthService_ValidateSession_Admin(t *testing.T) {
@@ -369,6 +372,9 @@ func TestAuthService_ValidateSession_Admin(t *testing.T) {
 	}
 	if !actor.IsAdmin {
 		t.Error("expected admin actor")
+	}
+	if actor.Kind != domain.ActorKindSession || actor.Origin != domain.ActorOriginRemote {
+		t.Errorf("expected session/remote actor, got Kind=%q Origin=%q", actor.Kind, actor.Origin)
 	}
 }
 

@@ -38,6 +38,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium
 
+      - name: Contract diff gate
+        working-directory: .
+        run: go run ./tools/contractgen --check
+
       - name: Typecheck
         run: npm run typecheck
 

@@ -538,9 +538,9 @@ func TestMigrate_DirectionDown(t *testing.T) {
 	if len(downResult.Applied) == 0 {
 		t.Fatal("expected at least 1 down migration to be applied")
 	}
-	if downResult.Applied[0] != "000004_engine_matrix.down.sql" {
+	if downResult.Applied[0] != "000009_backups_audit.down.sql" {
 		t.Errorf("first down applied = %q, want %q",
-			downResult.Applied[0], "000004_engine_matrix.down.sql")
+			downResult.Applied[0], "000009_backups_audit.down.sql")
 	}
 
 	// Verify tracking table is empty

@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os/signal"
@@ -13,16 +14,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"gorouter/internal/app/backup"
 	"gorouter/internal/app/cooldown"
 	"gorouter/internal/app/orchestrator"
 	"gorouter/internal/app/retry"
 	"gorouter/internal/app/routing"
 	"gorouter/internal/app/tx"
+	"gorouter/internal/app/worker"
 	"gorouter/internal/domain/engine"
+	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
 	"gorouter/internal/domain/provider"
 	"gorouter/internal/engine/formats"
 	"gorouter/internal/engine/providers/registry"
+	"gorouter/internal/persistence/postgres"
+	"gorouter/internal/persistence/postgres/migrations"
 	"gorouter/internal/persistence/postgres/repositories"
 	"gorouter/internal/shared"
 	"gorouter/internal/transport/httpserver"
@@ -117,8 +123,45 @@ func dispatchServer(app *App) (int, error) {
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Fail-closed bootstrap preconditions (design §8): a validated backup
+	// must pass before any DDL migration batch, and the batch must complete
+	// before the runtime pool acquires the runtime lock. Failure at either
+	// step enters safe mode: the process refuses to migrate or listen and
+	// never auto-resets.
+	if err := validateBackup(shutdownCtx, app); err != nil {
+		cd.Stop()
+		return 1, fmt.Errorf("safe mode: validated backup failed; refusing to run migrations or start the server (no automatic reset): %w", err)
+	}
+	if result, err := runMigrations(shutdownCtx, app); err != nil {
+		cd.Stop()
+		return 1, fmt.Errorf("safe mode: schema migration batch failed; refusing to start the server (no automatic reset): %w", err)
+	} else if result != nil && len(result.Applied) > 0 {
+		app.Logger.Info().Int("applied", len(result.Applied)).Msg("schema migration batch applied")
+	}
+
+	// Acquire the runtime-exclusivity advisory lock before any listener is
+	// opened: a second runtime on the same database is rejected. The lock
+	// is retained until the drain path completes and released on return.
+	releaseLock, err := acquireRuntimeLock(shutdownCtx, app)
+	if err != nil {
+		// The drain path below is unreachable on this refusal, so stop the
+		// cooldown cleanup goroutine before returning.
+		cd.Stop()
+		return 1, fmt.Errorf("acquire runtime lock: %w (another runtime may already be running on this database)", err)
+	}
+	defer func() {
+		if err := releaseLock(context.Background()); err != nil {
+			app.Logger.Error().Err(err).Msg("release runtime lock error")
+		}
+	}()
+
+	// Start the background job worker after the lock is held and before
+	// the listener opens; it is stopped during drain.
+	wk := buildWorker(app, orch)
+	wk.Start(context.Background())
+
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := listenAndServe(srv); err != nil && err != http.ErrServerClosed {
 			app.Logger.Fatal().Err(err).Msg("server failed")
 		}
 	}()
@@ -134,6 +177,7 @@ func dispatchServer(app *App) (int, error) {
 	}
 
 	cd.Stop()
+	wk.Stop()
 
 	return 0, nil
 }
@@ -279,6 +323,124 @@ func (r *poolAccountRepo) Update(ctx context.Context, account *provider.Account)
 func (r *poolAccountRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.withTx(ctx, func(scope *tx.TxScope) error {
 		return scope.Accounts().Delete(ctx, id)
+	})
+}
+
+// acquireRuntimeLock acquires the runtime-exclusivity advisory lock before
+// any listener is opened, enforcing single-runtime ownership of the database.
+// It is a package-level variable so bootstrap tests can assert the serve-mode
+// ordering contract without a live PostgreSQL instance; the production
+// implementation delegates to postgres.AcquireRuntimeLock.
+var acquireRuntimeLock = func(ctx context.Context, app *App) (func(context.Context) error, error) {
+	lock, err := postgres.AcquireRuntimeLock(ctx, app.DB)
+	if err != nil {
+		return nil, err
+	}
+	return lock.Release, nil
+}
+
+// validateBackup is the validated-backup precondition gate that must pass
+// before any DDL migration batch runs (design §8: migrations run at
+// bootstrap after validated backup and before the runtime lock). It is a
+// package-level variable so bootstrap tests can assert safe-mode refusal
+// with a failing verifier. The production implementation fails closed when
+// the database holds pending schema migrations but no validated backup is
+// available; fresh or fully-migrated databases (the development state) pass
+// without any backup, so development never depends on production resources.
+var validateBackup = func(ctx context.Context, app *App) error {
+	if app.DB == nil {
+		return nil
+	}
+	return backup.ValidateBootstrapBackup(ctx, app.DB)
+}
+
+// runMigrations executes the DDL-role migration batch: a dedicated
+// connection is opened with the DDL role, pending up migrations are applied
+// on it, and the connection is closed. The runtime pool is never used for
+// DDL. It is a package-level variable so bootstrap tests can assert the
+// batch position in the serve-mode ordering contract.
+var runMigrations = func(ctx context.Context, app *App) (*migrations.Result, error) {
+	cfg, err := migrations.FromRuntimeDSN(app.Config.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("derive DDL-role connection config: %w", err)
+	}
+	return migrations.RunMigrations(ctx, cfg)
+}
+
+// backgroundWorker is the subset of the job worker used by serve mode. It is
+// defined as an interface so bootstrap tests can substitute a fake and assert
+// start/stop ordering; *worker.Worker satisfies it.
+type backgroundWorker interface {
+	Start(ctx context.Context)
+	Stop()
+}
+
+// buildWorker constructs the background job worker used by serve mode. It is
+// a package-level variable so bootstrap tests can substitute a fake and
+// observe worker start/stop ordering; *worker.Worker satisfies backgroundWorker.
+var buildWorker = func(app *App, pipeline engine.ExecutePipeline) backgroundWorker {
+	return worker.New(worker.DefaultConfig(), &poolJobRepo{pool: app.DB}, pipeline, app.TxMgr, app.Logger)
+}
+
+// listenAndServe starts the HTTP server listener. It is a package-level
+// variable so bootstrap tests can assert ordering without binding real
+// sockets; the production implementation is http.Server.ListenAndServe.
+var listenAndServe = func(srv *http.Server) error { return srv.ListenAndServe() }
+
+// poolJobRepo implements jobs.JobRepository by acquiring a pool connection
+// and opening a transaction for each method call. This adapter bridges the
+// long-lived worker with per-operation persistence, mirroring poolAccountRepo.
+type poolJobRepo struct {
+	pool *pgxpool.Pool
+}
+
+func (r *poolJobRepo) withTx(ctx context.Context, fn func(*tx.TxScope) error) error {
+	conn, err := r.pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	pgTx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer pgTx.Rollback(ctx)
+	scope := repositories.NewTxScope(pgTx)
+	if err := fn(scope); err != nil {
+		return err
+	}
+	return pgTx.Commit(ctx)
+}
+
+func (r *poolJobRepo) FindByID(ctx context.Context, id uuid.UUID) (*jobs.Job, error) {
+	var result *jobs.Job
+	err := r.withTx(ctx, func(scope *tx.TxScope) error {
+		var err error
+		result, err = scope.Jobs().FindByID(ctx, id)
+		return err
+	})
+	return result, err
+}
+
+func (r *poolJobRepo) FindPending(ctx context.Context, limit int) ([]jobs.Job, error) {
+	var result []jobs.Job
+	err := r.withTx(ctx, func(scope *tx.TxScope) error {
+		var err error
+		result, err = scope.Jobs().FindPending(ctx, limit)
+		return err
+	})
+	return result, err
+}
+
+func (r *poolJobRepo) Create(ctx context.Context, job *jobs.Job) error {
+	return r.withTx(ctx, func(scope *tx.TxScope) error {
+		return scope.Jobs().Create(ctx, job)
+	})
+}
+
+func (r *poolJobRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status jobs.JobStatus, result json.RawMessage, errMsg *string) error {
+	return r.withTx(ctx, func(scope *tx.TxScope) error {
+		return scope.Jobs().UpdateStatus(ctx, id, status, result, errMsg)
 	})
 }
 

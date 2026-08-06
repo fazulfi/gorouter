@@ -240,6 +240,9 @@ func TestModelKeyAuth_ActorContextPopulated(t *testing.T) {
 	if capturedActor.UserID != userID {
 		t.Errorf("expected UserID %s, got %s", userID.String(), capturedActor.UserID.String())
 	}
+	if capturedActor.Kind != auth.ActorKindUser || capturedActor.Origin != auth.ActorOriginRemote {
+		t.Errorf("expected user/remote actor, got Kind=%q Origin=%q", capturedActor.Kind, capturedActor.Origin)
+	}
 }
 
 func TestModelKeyAuth_ValidatorError_Returns401(t *testing.T) {

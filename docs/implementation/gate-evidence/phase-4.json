@@ -1,0 +1,221 @@
+{
+  "phase": "4",
+  "status": "in-progress",
+  "timestamp": "2026-08-07T00:00:00Z",
+  "checks": [
+    {
+      "name": "BE-01: TxScope wiring",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-01.md",
+      "review": ".sisyphus/reviews/be-01-review.md"
+    },
+    {
+      "name": "BE-02: Bootstrap lock ordering",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-02.md",
+      "review": ".sisyphus/reviews/be-02-review-v2.md"
+    },
+    {
+      "name": "BE-03: Domain purity guard",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-03.md",
+      "review": ".sisyphus/reviews/be-03-review.md"
+    },
+    {
+      "name": "BE-04: DDL-role migrations",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-04.md",
+      "review": ".sisyphus/reviews/be-04-review.md"
+    },
+    {
+      "name": "BE-05: Proxy pools/node store",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-05.md",
+      "review": ".sisyphus/reviews/be-05-review-v2.md"
+    },
+    {
+      "name": "BE-06: Usage storage",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-06.md",
+      "review": ".sisyphus/reviews/be-06-review.md"
+    },
+    {
+      "name": "BE-07: Console logs",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-07.md",
+      "review": ".sisyphus/reviews/be-07-review.md"
+    },
+    {
+      "name": "BE-08: Password reset (LOCAL CLI)",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-08.md",
+      "review": ".sisyphus/reviews/be-08-review.md"
+    },
+    {
+      "name": "BE-09: Backup + audit immutability",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-09.md",
+      "review": ".sisyphus/reviews/be-09-review-v2.md"
+    },
+    {
+      "name": "BE-10: Provider services",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-10.md",
+      "review": ".sisyphus/reviews/be-10-review-v2.md"
+    },
+    {
+      "name": "BE-11: Pricing combos",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-11.md",
+      "review": ".sisyphus/reviews/be-11-review.md"
+    },
+    {
+      "name": "BE-12: Usage pipeline ring 50",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-12.md",
+      "review": ".sisyphus/reviews/be-12-review.md"
+    },
+    {
+      "name": "BE-13: Quota unlock/reset",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-13.md",
+      "review": ".sisyphus/reviews/be-13-review.md"
+    },
+    {
+      "name": "BE-14: Console redaction/watermark",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-14.md",
+      "review": ".sisyphus/reviews/be-14-review-v4.md"
+    },
+    {
+      "name": "BE-15: Settings/audit/backup service",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/be-15-a4.md",
+      "review": ".sisyphus/reviews/be-15-a4-review-v2.md"
+    },
+    {
+      "name": "API-01: Admin API contract",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-01.md",
+      "review": ".sisyphus/reviews/api-01-review.md"
+    },
+    {
+      "name": "API-02: Contract generator",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-02.md",
+      "review": ".sisyphus/reviews/api-02-review.md"
+    },
+    {
+      "name": "API-03: Actor model extension",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-03.md",
+      "review": ".sisyphus/reviews/api-03-review.md"
+    },
+    {
+      "name": "API-04: Auth middleware",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-04.md",
+      "review": ".sisyphus/reviews/api-04-review-v2.md"
+    },
+    {
+      "name": "API-05: Resource group handlers",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-05.md",
+      "review": ".sisyphus/reviews/api-05-review.md"
+    },
+    {
+      "name": "API-06: Auth handlers",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-06.md",
+      "review": ".sisyphus/reviews/api-06-review.md"
+    },
+    {
+      "name": "API-07: OIDC handlers",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-07.md",
+      "review": ".sisyphus/reviews/api-07-review.md"
+    },
+    {
+      "name": "API-08: Compatibility fixtures",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-08.md",
+      "review": ".sisyphus/reviews/api-08-review.md"
+    },
+    {
+      "name": "API-09: Compat adapters",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-09.md",
+      "review": ".sisyphus/reviews/api-09-review.md"
+    },
+    {
+      "name": "API-10: SSE streams",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-10.md",
+      "review": ".sisyphus/reviews/api-10-review.md"
+    },
+    {
+      "name": "API-11: Embedded frontend",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/api-11.md",
+      "review": ".sisyphus/reviews/api-11-review.md"
+    },
+    {
+      "name": "FE-01: Dependencies & token migration",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/fe-01.md",
+      "review": ".sisyphus/reviews/fe-02-review.md"
+    },
+    {
+      "name": "FE-02: Router/auth shell/a11y",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/fe-02.md",
+      "review": ".sisyphus/reviews/fe-02-review.md"
+    },
+    {
+      "name": "FE-03: Theme persistence",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/fe-03.md"
+    },
+    {
+      "name": "FE-04: i18n catalogs",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/fe-04.md"
+    },
+    {
+      "name": "FE-05: Live regions/motion/form",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/fe-05.md"
+    },
+    {
+      "name": "Login page",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/login-page.md"
+    },
+    {
+      "name": "Dashboard page",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/dashboard.md"
+    },
+    {
+      "name": "Settings page",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/settings.md"
+    },
+    {
+      "name": "Providers page",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/providers.md"
+    },
+    {
+      "name": "Usage analytics",
+      "status": "pass",
+      "evidence": ".sisyphus/evidence/usage.md"
+    }
+  ],
+  "total_checks": 35,
+  "passed": 35,
+  "failed": 0,
+  "pr_number": 25,
+  "branch": "feat/phase-4-product-surfaces",
+  "ci_status": "queued"
+}

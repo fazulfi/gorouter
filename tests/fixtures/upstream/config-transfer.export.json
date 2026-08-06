@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "rtkEnabled": true,
+    "claudeAutoPing": false,
+    "codexAutoPing": true,
+    "requireLogin": false,
+    "enableTranslator": false
+  },
+  "providerConnections": [
+    {
+      "id": "0d4f2c1e-8a3b-4c5d-9e6f-1a2b3c4d5e6f",
+      "provider": "openai",
+      "authType": "apiKey",
+      "name": "Primary OpenAI",
+      "email": null,
+      "priority": 0,
+      "isActive": true,
+      "createdAt": "2026-07-01T10:00:00.000Z",
+      "updatedAt": "2026-07-20T12:30:00.000Z",
+      "apiKey": "sk-placeholder-redacted"
+    },
+    {
+      "id": "1e5f3d2f-9b4c-5d6e-0f7a-2b3c4d5e6f70",
+      "provider": "anthropic",
+      "authType": "oauth",
+      "name": "Anthropic Work",
+      "email": "admin@example.com",
+      "priority": 1,
+      "isActive": true,
+      "createdAt": "2026-06-15T08:00:00.000Z",
+      "updatedAt": "2026-07-19T09:15:00.000Z",
+      "accessToken": "placeholder-oauth-token-redacted",
+      "refreshToken": "placeholder-refresh-token-redacted"
+    }
+  ],
+  "providerNodes": [
+    {
+      "id": "2f6a4e30-ac5d-6e7f-108b-3c4d5e6f7081",
+      "type": "custom",
+      "name": "EU mirror",
+      "createdAt": "2026-06-20T11:00:00.000Z",
+      "updatedAt": "2026-07-10T14:45:00.000Z",
+      "baseUrl": "https://mirror.example.com",
+      "region": "eu"
+    }
+  ],
+  "proxyPools": [
+    {
+      "id": "3a7b5f41-bd6e-7f80-219c-4d5e6f708192",
+      "name": "EU pool",
+      "isActive": true,
+      "testStatus": "unknown",
+      "createdAt": "2026-06-25T16:20:00.000Z",
+      "updatedAt": "2026-07-12T10:05:00.000Z",
+      "proxies": ["proxy-a", "proxy-b"]
+    }
+  ],
+  "apiKeys": [
+    {
+      "id": "4b8c6052-ce7f-8091-32ad-5e6f708192a3",
+      "key": "placeholder-api-key-redacted",
+      "name": "dashboard-key",
+      "machineId": null,
+      "isActive": true,
+      "createdAt": "2026-05-01T09:00:00.000Z"
+    }
+  ],
+  "combos": [
+    {
+      "id": "5c9d7163-df80-91a2-43be-6f708192a3b4",
+      "name": "Smart fallback",
+      "kind": "sequential",
+      "models": ["gpt-4o", "claude-sonnet-4"],
+      "createdAt": "2026-06-01T13:10:00.000Z",
+      "updatedAt": "2026-07-15T08:40:00.000Z"
+    }
+  ],
+  "modelAliases": {
+    "gpt-4-turbo": {
+      "id": "gpt-4-turbo",
+      "provider": "openai",
+      "model": "gpt-4-turbo"
+    },
+    "claude-fast": {
+      "id": "claude-fast",
+      "provider": "anthropic",
+      "model": "claude-haiku-4"
+    }
+  },
+  "customModels": [
+    {
+      "providerAlias": "openai-compatible-local",
+      "id": "local-llm",
+      "type": "llm",
+      "baseUrl": "http://127.0.0.1:11434"
+    }
+  ],
+  "mitmAlias": {
+    "codex": {
+      "target": "openai",
+      "model": "gpt-5-codex"
+    }
+  },
+  "pricing": {
+    "openai": {
+      "gpt-4o": {
+        "inputPrice": 2.5,
+        "outputPrice": 10
+      }
+    },
+    "anthropic": {
+      "claude-sonnet-4": {
+        "inputPrice": 3,
+        "outputPrice": 15
+      }
+    }
+  }
+}
