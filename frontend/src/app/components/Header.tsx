@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from '@/app/navigation';
+import ThemeToggle from '@/app/components/ThemeToggle';
 import styles from './Header.module.css';
 
 function useRouteCrumb(pathname: string) {
@@ -35,6 +36,7 @@ export default function Header({ pathname }: HeaderProps) {
         <span className={styles.statusRegion} role="status" aria-live="polite">
           Connected
         </span>
+        <ThemeToggle />
       </div>
     </header>
   );

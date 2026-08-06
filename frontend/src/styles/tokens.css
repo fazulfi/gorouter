@@ -16,7 +16,8 @@ body {
   margin: 0;
 }
 
-:root {
+:root,
+[data-theme='light'] {
   /* Light theme (default) */
   --color-bg: hsl(225, 20%, 99%);
   --color-bg-subtle: hsl(225, 15%, 97%);
@@ -88,32 +89,30 @@ body {
   --transition-normal: 250ms ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: hsl(220, 20%, 8%);
-    --color-bg-subtle: hsl(220, 18%, 11%);
-    --color-bg-surface: hsl(220, 18%, 14%);
-    --color-bg-hover: hsl(220, 15%, 18%);
+:root[data-theme='dark'] {
+  --color-bg: hsl(220, 20%, 8%);
+  --color-bg-subtle: hsl(220, 18%, 11%);
+  --color-bg-surface: hsl(220, 18%, 14%);
+  --color-bg-hover: hsl(220, 15%, 18%);
 
-    --color-text: hsl(220, 15%, 92%);
-    --color-text-secondary: hsl(220, 10%, 68%);
-    --color-text-muted: hsl(220, 8%, 52%);
-    --color-text-inverse: hsl(220, 15%, 10%);
+  --color-text: hsl(220, 15%, 92%);
+  --color-text-secondary: hsl(220, 10%, 68%);
+  --color-text-muted: hsl(220, 8%, 52%);
+  --color-text-inverse: hsl(220, 15%, 10%);
 
-    --color-border: hsl(220, 12%, 24%);
-    --color-border-hover: hsl(220, 12%, 35%);
+  --color-border: hsl(220, 12%, 24%);
+  --color-border-hover: hsl(220, 12%, 35%);
 
-    --color-primary: hsl(235, 45%, 60%);
-    --color-primary-hover: hsl(235, 50%, 52%);
+  --color-primary: hsl(235, 45%, 60%);
+  --color-primary-hover: hsl(235, 50%, 52%);
 
-    --color-accent: hsl(190, 55%, 55%);
+  --color-accent: hsl(190, 55%, 55%);
 
-    --color-danger: hsl(0, 60%, 55%);
-    --color-success: hsl(150, 50%, 45%);
-    --color-warning: hsl(35, 75%, 55%);
+  --color-danger: hsl(0, 60%, 55%);
+  --color-success: hsl(150, 50%, 45%);
+  --color-warning: hsl(35, 75%, 55%);
 
-    --shadow-sm: 0 1px 2px hsl(0, 0%, 0%, 0.2);
-    --shadow-md: 0 4px 6px hsl(0, 0%, 0%, 0.3);
-    --shadow-lg: 0 10px 15px hsl(0, 0%, 0%, 0.4);
-  }
+  --shadow-sm: 0 1px 2px hsl(0, 0%, 0%, 0.2);
+  --shadow-md: 0 4px 6px hsl(0, 0%, 0%, 0.3);
+  --shadow-lg: 0 10px 15px hsl(0, 0%, 0%, 0.4);
 }
