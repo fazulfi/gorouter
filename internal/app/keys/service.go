@@ -11,6 +11,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// PAT is an alias for the domain PAT type.
+type PAT = domain.PAT
+
+// APIKey is an alias for the domain APIKey type.
+type APIKey = domain.APIKey
+
 // Service is the application-layer key management service.
 type Service struct {
 	apiKeyRepo domain.APIKeyRepository

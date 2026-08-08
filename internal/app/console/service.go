@@ -9,6 +9,12 @@ import (
 	"gorouter/internal/shared/redact"
 )
 
+// ConsoleLog represents a redacted console log entry.
+type ConsoleLog = console.ConsoleLog
+
+// DefaultCap is the default ListAfter limit.
+const DefaultCap = console.DefaultCap
+
 // ConsoleService exposes the redacted console-log projection: log lines are
 // written through Append (redacted at the boundary, durably persisted,
 // strictly ordered) and replayed through ListAfter for the realtime console
