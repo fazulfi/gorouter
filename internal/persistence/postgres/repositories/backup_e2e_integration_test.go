@@ -13,7 +13,6 @@ import (
 
 	backupapp "gorouter/internal/app/backup"
 	"gorouter/internal/domain/auth"
-	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -482,23 +481,40 @@ func TestValidateBootstrapBackup_FreshDB_Integration(t *testing.T) {
 
 	slash := strings.LastIndex(adminDSN, "/")
 	dsn := adminDSN[:slash+1] + dbName + "?sslmode=disable"
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
+
+	bootstrapRolesForRepoTest(t, ctx, adminDSN)
+
+	runtimePool := freshRuntimePoolForBackupTest(t, ctx, dsn)
+	defer runtimePool.Close()
 
 	// The tracking table does not exist yet: the gate treats it as fresh.
-	if err := backupapp.ValidateBootstrapBackup(ctx, pool); err != nil {
+	if err := backupapp.ValidateBootstrapBackup(ctx, runtimePool); err != nil {
 		t.Fatalf("fresh database must pass: %v", err)
 	}
 
 	// After a full migration run the database is non-fresh with no pending
-	// migrations: still passes without any backup.
-	if _, err := migrations.Migrate(ctx, pool, migrations.DirectionUp); err != nil {
-		t.Fatalf("migrate fresh db: %v", err)
-	}
-	if err := backupapp.ValidateBootstrapBackup(ctx, pool); err != nil {
+	// migrations: still passes without any backup. Migrations run as the DDL
+	// role; the runtime pool is then reopened as the runtime role.
+	migratedPool := migrateAsDDLRepoTest(t, ctx, dsn)
+	defer migratedPool.Close()
+	if err := backupapp.ValidateBootstrapBackup(ctx, migratedPool); err != nil {
 		t.Fatalf("migrated database must pass: %v", err)
 	}
+}
+
+// freshRuntimePoolForBackupTest opens a runtime pool (gorouter) on a fresh
+// database before any migration has run, so the fresh-database precondition
+// of the backup gate can be observed.
+func freshRuntimePoolForBackupTest(t *testing.T, ctx context.Context, dsn string) *pgxpool.Pool {
+	t.Helper()
+	cfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		t.Fatalf("parse DSN: %v", err)
+	}
+	cfg.ConnConfig.User = "gorouter"
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pool
 }

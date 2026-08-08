@@ -96,7 +96,11 @@ func setupOwnershipTestDB(t *testing.T, ctx context.Context, upToVersion, applie
 		_, _ = cleanupConn.Exec(cleanupCtx, "DROP DATABASE IF EXISTS "+dbName)
 	})
 
-	for _, role := range []string{DDLRoleUser, nomemberDDLRole} {
+	// Grant CREATE ON SCHEMA public to roles that may apply migrations:
+	// - DDLRoleUser/nomemberDDLRole are the migration executors (per Rev3)
+	// - gorouter is granted only for the legacy-schema simulation where the
+	//   runtime role owns tables (fixtures at lines 307–346)
+	for _, role := range []string{DDLRoleUser, nomemberDDLRole, "gorouter"} {
 		freshAdmin, err := pgx.Connect(ctx, runtimeTestDSN(t, runtimeBase, dbName))
 		if err != nil {
 			t.Fatalf("connect to fresh db as runtime role: %v", err)

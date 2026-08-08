@@ -10,7 +10,6 @@ import (
 
 	"gorouter/internal/domain/provider"
 	enginerouting "gorouter/internal/engine/routing"
-	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -75,18 +74,15 @@ func getTestPool(t *testing.T) *pgxpool.Pool {
 	}
 
 	ctx := context.Background()
+	adminDSN := os.Getenv("DATABASE_URL")
+
+	bootstrapRolesForRepoTest(t, ctx, adminDSN)
+
 	dbName := setupRepoTestDB(t, ctx)
 	dsn := isolatedTestDSN(t, dbName)
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		t.Fatalf("pgxpool.New: %v", err)
-	}
-	t.Cleanup(pool.Close)
 
-	if _, err := migrations.Migrate(ctx, pool, migrations.DirectionUp); err != nil {
-		t.Fatalf("migrate up in test DB: %v", err)
-	}
-	return pool
+	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
+	return migrateAsDDLRepoTest(t, ctx, dsn)
 }
 
 // ─────────────────────────────────────────────────────────────

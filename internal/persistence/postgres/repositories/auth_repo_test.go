@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gorouter/internal/domain/auth"
-	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,25 +33,10 @@ func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 		t.Skip("skipping integration test in short mode")
 	}
 	dsn := getTestDSN()
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		t.Fatalf("parse test DSN: %v", err)
-	}
-	cfg.MaxConns = 5
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		t.Fatalf("create test pool: %v", err)
-	}
-	t.Cleanup(pool.Close)
 
-	// Ensure the schema is applied. This is safe to call repeatedly — already-
-	// applied migrations are skipped. Makes integration tests self-sufficient
-	// regardless of test-package execution order.
-	if _, err := migrations.NewRunner(pool).Migrate(ctx, migrations.DirectionUp); err != nil {
-		t.Fatalf("apply migrations: %v", err)
-	}
-
-	return pool
+	bootstrapRolesForRepoTest(t, ctx, dsn)
+	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
+	return migrateAsDDLRepoTest(t, ctx, dsn)
 }
 
 func TestUserRepo_Integration(t *testing.T) {
