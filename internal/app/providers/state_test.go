@@ -27,7 +27,7 @@ func newTestStateService() *StateService {
 	})
 	state := routing.NewRoutingStateManagerWithClockAndAuthority(frozenNow, cd)
 	checkpoint := routing.NewFakeCheckpointer()
-	return NewStateService(DefaultStateConfig(), state, checkpoint)
+	return NewStateServiceWithClock(DefaultStateConfig(), state, checkpoint, frozenNow)
 }
 
 func TestStateService_RecordAccountFailure(t *testing.T) {
@@ -172,6 +172,14 @@ func TestStateService_SaveListTransitions(t *testing.T) {
 	}
 	if len(transitions) != 1 {
 		t.Errorf("got %d transitions, want 1", len(transitions))
+	}
+}
+
+func TestStateService_NilClockFallsBackToWallClock(t *testing.T) {
+	state := routing.NewRoutingStateManagerWithClock(frozenNow)
+	svc := NewStateServiceWithClock(DefaultStateConfig(), state, nil, nil)
+	if svc.now == nil {
+		t.Fatal("expected non-nil clock after nil fallback")
 	}
 }
 

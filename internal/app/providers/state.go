@@ -43,8 +43,20 @@ type StateService struct {
 	now        func() time.Time
 }
 
-// NewStateService creates a provider state service.
+// NewStateService creates a provider state service with the wall clock.
+// Production callers that do not need clock injection should use this
+// constructor; it delegates to NewStateServiceWithClock with time.Now.
 func NewStateService(config StateConfig, state *routing.RoutingStateManager, checkpoint routing.Checkpointer) *StateService {
+	return NewStateServiceWithClock(config, state, checkpoint, time.Now)
+}
+
+// NewStateServiceWithClock creates a provider state service with an injectable
+// clock, mirroring the routing.NewRoutingStateManagerWithClock pattern. A nil
+// clock falls back to time.Now for production safety.
+func NewStateServiceWithClock(config StateConfig, state *routing.RoutingStateManager, checkpoint routing.Checkpointer, now func() time.Time) *StateService {
+	if now == nil {
+		now = time.Now
+	}
 	if config.CheckpointInterval == 0 {
 		config.CheckpointInterval = 5 * time.Minute
 	}
@@ -59,7 +71,7 @@ func NewStateService(config StateConfig, state *routing.RoutingStateManager, che
 		state:      state,
 		checkpoint: checkpoint,
 		stopCh:     make(chan struct{}),
-		now:        time.Now,
+		now:        now,
 	}
 }
 
