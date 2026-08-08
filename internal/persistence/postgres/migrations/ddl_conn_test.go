@@ -322,3 +322,22 @@ func TestRunMigrations_OwnershipPreconditionFailsClosed(t *testing.T) {
 		t.Errorf("unmet expectations (batch must not run): %v", err)
 	}
 }
+
+// TestDDLConnConfig_TransportsPassword proves the DDL connection builder
+// transports the optional DDLConfig.Password into pgconn.Config so TCP+SCRAM
+// authentication works on managed PostgreSQL (Password="" keeps peer/trust).
+func TestDDLConnConfig_TransportsPassword(t *testing.T) {
+	connCfg := ddlConnConfig(DDLConfig{
+		Host:     "127.0.0.1",
+		Port:     5432,
+		Database: "gorouter",
+		User:     DDLRoleUser,
+		Password: "s3cret-pw",
+	})
+	if connCfg.Password != "s3cret-pw" {
+		t.Fatalf("pgconn.Config.Password = %q, want %q (openDDL drops DDLConfig.Password)", connCfg.Password, "s3cret-pw")
+	}
+	if connCfg.User != DDLRoleUser {
+		t.Errorf("pgconn.Config.User = %q, want %q", connCfg.User, DDLRoleUser)
+	}
+}

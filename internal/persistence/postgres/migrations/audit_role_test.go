@@ -35,6 +35,10 @@ func setupAuditRoleTestDB(t *testing.T, ctx context.Context) string {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	if err := bootstrapRolesOnCluster(t, ctx, runtimeBase); err != nil {
+		t.Fatalf("bootstrap roles: %v", err)
+	}
+
 	// The runtime role creates the database (CREATEDB) and owns it, which
 	// makes it the effective owner of the public schema; it then grants the
 	// DDL role schema-create rights for the migration batch.

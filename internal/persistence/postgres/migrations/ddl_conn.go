@@ -15,14 +15,17 @@ import (
 const DDLRoleUser = "gorouter_ddl"
 
 // DDLConfig selects the dedicated DDL-role connection used for migration
-// batches.  It deliberately has no password field: the connection
-// authenticates via Unix socket peer auth for the DDL role by default, so
-// the DDL connection never transports the runtime credential.
+// batches.  It supports an optional password field for TCP+SCRAM
+// authentication on managed PostgreSQL; the connection authenticates via
+// Unix socket peer auth (Password="") or TCP+password (Password sourced
+// from secret store) for the DDL role, so the DDL connection never
+// transports the runtime credential.
 type DDLConfig struct {
 	Host          string
 	Port          uint16
 	Database      string
 	User          string
+	Password      string
 	RuntimeParams map[string]string
 	TLSConfig     *tls.Config
 	Fallbacks     []*pgconn.FallbackConfig
@@ -62,22 +65,28 @@ type ddlConn interface {
 	Close(ctx context.Context) error
 }
 
-// openDDL opens the dedicated DDL-role connection for migration batches.
-// It is a package-level variable so tests can inject a mock and assert the
-// batch executes on the dedicated connection, never the runtime pool.
-var openDDL = func(ctx context.Context, cfg DDLConfig) (ddlConn, error) {
-	connCfg := &pgx.ConnConfig{
+// ddlConnConfig derives the pgx connection config for the dedicated
+// DDL-role connection from the DDLConfig transport settings.
+func ddlConnConfig(cfg DDLConfig) *pgx.ConnConfig {
+	return &pgx.ConnConfig{
 		Config: pgconn.Config{
 			Host:          cfg.Host,
 			Port:          cfg.Port,
 			Database:      cfg.Database,
 			User:          cfg.User,
+			Password:      cfg.Password,
 			TLSConfig:     cfg.TLSConfig,
 			Fallbacks:     cfg.Fallbacks,
 			RuntimeParams: cfg.RuntimeParams,
 		},
 	}
-	conn, err := pgx.ConnectConfig(ctx, connCfg)
+}
+
+// openDDL opens the dedicated DDL-role connection for migration batches.
+// It is a package-level variable so tests can inject a mock and assert the
+// batch executes on the dedicated connection, never the runtime pool.
+var openDDL = func(ctx context.Context, cfg DDLConfig) (ddlConn, error) {
+	conn, err := pgx.ConnectConfig(ctx, ddlConnConfig(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("open DDL-role connection: %w", err)
 	}
