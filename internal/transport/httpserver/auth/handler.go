@@ -14,7 +14,6 @@ import (
 	"time"
 
 	appauth "gorouter/internal/app/auth"
-	domauth "gorouter/internal/domain/auth"
 	"gorouter/internal/transport/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -38,10 +37,10 @@ type Config struct {
 // AuthService is the application-layer surface the handlers map onto. The
 // concrete *appauth.Service satisfies it; fakes drive the transport tests.
 type AuthService interface {
-	Login(ctx context.Context, email, password string) (*domauth.Session, string, error)
+	Login(ctx context.Context, email, password string) (*appauth.Session, string, error)
 	Logout(ctx context.Context, sessionID uuid.UUID) error
-	ValidateSession(ctx context.Context, rawToken string) (*domauth.Actor, error)
-	GetCurrentUser(ctx context.Context, userID uuid.UUID) (*domauth.User, error)
+	ValidateSession(ctx context.Context, rawToken string) (*appauth.Actor, error)
+	GetCurrentUser(ctx context.Context, userID uuid.UUID) (*appauth.User, error)
 }
 
 // Handler serves the admin auth routes: login, logout, me, status. It is
@@ -84,7 +83,7 @@ func (h *Handler) SessionCookieName() string {
 }
 
 // ValidateSession adapts the app service for the SessionAuth middleware.
-func (h *Handler) ValidateSession(ctx context.Context, rawToken string) (*domauth.Actor, error) {
+func (h *Handler) ValidateSession(ctx context.Context, rawToken string) (*appauth.Actor, error) {
 	return h.svc.ValidateSession(ctx, rawToken)
 }
 
@@ -165,7 +164,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Logout revokes the current session and clears the session and CSRF cookies.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	actor, ok := domauth.FromContext(r.Context())
+	actor, ok := appauth.FromContext(r.Context())
 	if !ok || actor.SessionID == uuid.Nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -181,7 +180,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 // Me returns the authenticated user as a credential-safe projection.
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-	actor, ok := domauth.FromContext(r.Context())
+	actor, ok := appauth.FromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -197,7 +196,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 // Status returns the authentication status, the current user, and the CSRF
 // token the client echoes on mutations.
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
-	actor, ok := domauth.FromContext(r.Context())
+	actor, ok := appauth.FromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -286,7 +285,7 @@ func isCredentialFailure(err error) bool {
 
 // projectUser returns the credential-safe user projection: the password hash
 // is never included.
-func projectUser(u *domauth.User) map[string]any {
+func projectUser(u *appauth.User) map[string]any {
 	var display *string
 	if u.DisplayName != nil {
 		display = u.DisplayName

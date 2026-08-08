@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	domauth "gorouter/internal/domain/auth"
+	appauth "gorouter/internal/app/auth"
 	engineoauth "gorouter/internal/engine/oauth"
 
 	"github.com/go-chi/chi/v5"
@@ -99,7 +99,7 @@ func (c OIDCConfig) audiences() []string {
 // token for cookie issuance. The concrete app service is wired at bootstrap;
 // fakes drive the transport tests.
 type OIDCService interface {
-	LoginWithOIDC(ctx context.Context, email string) (*domauth.Session, string, error)
+	LoginWithOIDC(ctx context.Context, email string) (*appauth.Session, string, error)
 }
 
 // OIDCState is a single-use authorization-state record bound to one sign-in
