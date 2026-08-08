@@ -68,8 +68,8 @@ type fakeBootstrapT struct {
 	failed bool
 }
 
-func (f *fakeBootstrapT) Helper()                             {}
-func (f *fakeBootstrapT) Fatalf(format string, args ...any)   { f.failed = true }
+func (f *fakeBootstrapT) Helper()                           {}
+func (f *fakeBootstrapT) Fatalf(format string, args ...any) { f.failed = true }
 
 func TestFailClosedOnUnsupportedAttributes_FreshCluster(t *testing.T) {
 	skipIfNoPG(t)
