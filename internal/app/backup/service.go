@@ -26,12 +26,21 @@ import (
 	"github.com/google/uuid"
 )
 
+// Backup represents a backup artifact.
+type Backup = backup.Backup
+
 // DefaultKeep is the retention target: exactly this many newest validated
 // backups are retained after every generation (DECISIONS #203: 30 daily
 // backups). Unvalidated artifacts beyond the validated retention window are
 // pruned, and the just-generated artifact is never pruned before it can be
 // verified.
 const DefaultKeep = 30
+
+// storageRootDirMode is the directory tier of the backup permission model
+// (directories 0700, files 0600; see Config). Gosec G302's file mode threshold
+// (0600) does not apply to directories; 0700 is the most restrictive mode that
+// still permits owner traversal (gosec's directory rule G301 allows up to 0750).
+const storageRootDirMode os.FileMode = 0o700
 
 // Bounded command and shadow-database contexts: every subprocess and every
 // shadow-database management step runs under a timeout so a stuck tool or
@@ -187,7 +196,7 @@ func (s *Service) Generate(ctx context.Context, actor *auth.Actor) (*backup.Back
 	if err := os.MkdirAll(s.cfg.Dir, 0o700); err != nil {
 		return nil, fmt.Errorf("backup: create storage directory: %w", err)
 	}
-	_ = os.Chmod(s.cfg.Dir, 0o700)
+	_ = os.Chmod(s.cfg.Dir, storageRootDirMode)
 	if err := s.enforceDaily(ctx); err != nil {
 		return nil, err
 	}
