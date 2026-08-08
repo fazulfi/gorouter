@@ -3,7 +3,7 @@ package v1
 import (
 	"context"
 
-	"gorouter/internal/domain/provider"
+	appproviders "gorouter/internal/app/providers"
 
 	"github.com/google/uuid"
 )
@@ -12,8 +12,8 @@ import (
 // contract has no standalone /accounts path (account management rides the
 // provider surfaces); this seam keeps the group's future wiring in one place.
 type AccountsService interface {
-	List(ctx context.Context, providerID string) ([]provider.Account, error)
-	Update(ctx context.Context, account *provider.Account) error
+	List(ctx context.Context, providerID string) ([]appproviders.Account, error)
+	Update(ctx context.Context, account *appproviders.Account) error
 }
 
 type accountsGroup struct{ svc AccountsService }
@@ -31,7 +31,7 @@ type accountView struct {
 	ModelFilters  []string  `json:"model_filters,omitempty"`
 }
 
-func projectAccount(a *provider.Account) accountView {
+func projectAccount(a *appproviders.Account) accountView {
 	return accountView{
 		ID: a.ID, ProviderID: a.ProviderID,
 		Label: a.Label, AuthType: a.AuthType, Priority: a.Priority,

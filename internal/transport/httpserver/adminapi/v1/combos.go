@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/combo"
+	appauth "gorouter/internal/app/auth"
+	appcombo "gorouter/internal/app/combos"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -16,11 +16,11 @@ import (
 // CombosService is the application seam for the combos group. Mutations
 // receive the actor so the service audits.
 type CombosService interface {
-	List(ctx context.Context) ([]combo.Definition, error)
-	Get(ctx context.Context, id uuid.UUID) (*combo.Definition, error)
-	Create(ctx context.Context, actor *auth.Actor, name string, strategy combo.Strategy, config json.RawMessage, members []combo.Member) (*combo.Definition, error)
-	Update(ctx context.Context, actor *auth.Actor, def *combo.Definition) error
-	Delete(ctx context.Context, actor *auth.Actor, id uuid.UUID) error
+	List(ctx context.Context) ([]appcombo.Definition, error)
+	Get(ctx context.Context, id uuid.UUID) (*appcombo.Definition, error)
+	Create(ctx context.Context, actor *appauth.Actor, name string, strategy appcombo.Strategy, config json.RawMessage, members []appcombo.Member) (*appcombo.Definition, error)
+	Update(ctx context.Context, actor *appauth.Actor, def *appcombo.Definition) error
+	Delete(ctx context.Context, actor *appauth.Actor, id uuid.UUID) error
 }
 
 type combosGroup struct{ svc CombosService }
@@ -36,7 +36,7 @@ type comboView struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-func projectCombo(d *combo.Definition) comboView {
+func projectCombo(d *appcombo.Definition) comboView {
 	return comboView{
 		ID: d.ID, Name: d.Name, Strategy: string(d.Strategy), IsActive: d.IsActive,
 		Config: sanitizeJSON(d.Config), CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,
@@ -85,10 +85,10 @@ func (g *combosGroup) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Name     string          `json:"name"`
-		Strategy combo.Strategy  `json:"strategy"`
-		Config   json.RawMessage `json:"config"`
-		Members  []combo.Member  `json:"members"`
+		Name     string            `json:"name"`
+		Strategy appcombo.Strategy `json:"strategy"`
+		Config   json.RawMessage   `json:"config"`
+		Members  []appcombo.Member `json:"members"`
 	}
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
@@ -122,10 +122,10 @@ func (g *combosGroup) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Name     string          `json:"name"`
-		Strategy combo.Strategy  `json:"strategy"`
-		Config   json.RawMessage `json:"config"`
-		IsActive *bool           `json:"is_active"`
+		Name     string            `json:"name"`
+		Strategy appcombo.Strategy `json:"strategy"`
+		Config   json.RawMessage   `json:"config"`
+		IsActive *bool             `json:"is_active"`
 	}
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
