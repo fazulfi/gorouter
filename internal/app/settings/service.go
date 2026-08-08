@@ -18,6 +18,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Setting is an alias for domain settings.Setting.
+type Setting = settings.Setting
+
 // ErrActorRequired reports a settings operation without an actor. Every
 // application service entry point accepts the actor and passes it to audit.
 var ErrActorRequired = errors.New("settings: actor is required")

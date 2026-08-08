@@ -18,6 +18,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// QuotaStatus is an alias for quota.QuotaStatus.
+type QuotaStatus = quota.QuotaStatus
+
 var (
 	errActorRequired   = errors.New("quota: actor is required")
 	errProviderIDNil   = errors.New("quota: provider ID is required")
