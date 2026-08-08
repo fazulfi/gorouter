@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"gorouter/internal/domain/keys"
+	appkeys "gorouter/internal/app/keys"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -15,9 +15,9 @@ import (
 // backend service exposes create/revoke; list/get are wired when the backend
 // lane lands them.
 type PATsService interface {
-	List(ctx context.Context, userID uuid.UUID) ([]keys.PAT, error)
-	Get(ctx context.Context, id uuid.UUID) (*keys.PAT, error)
-	Create(ctx context.Context, userID uuid.UUID, description *string, expiresAt *time.Time) (*keys.PAT, string, error)
+	List(ctx context.Context, userID uuid.UUID) ([]appkeys.PAT, error)
+	Get(ctx context.Context, id uuid.UUID) (*appkeys.PAT, error)
+	Create(ctx context.Context, userID uuid.UUID, description *string, expiresAt *time.Time) (*appkeys.PAT, string, error)
 	Revoke(ctx context.Context, id uuid.UUID) error
 }
 
@@ -43,7 +43,7 @@ type createPATView struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func projectPAT(p *keys.PAT) patView {
+func projectPAT(p *appkeys.PAT) patView {
 	prefix := ""
 	if len(p.TokenHash) > 8 {
 		prefix = p.TokenHash[:8]

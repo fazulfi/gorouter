@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/keys"
+	appauth "gorouter/internal/app/auth"
+	appkeys "gorouter/internal/app/keys"
 	"gorouter/internal/transport/middleware"
 )
 
@@ -48,7 +48,7 @@ type AuthHandlers interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 	Me(w http.ResponseWriter, r *http.Request)
 	Status(w http.ResponseWriter, r *http.Request)
-	ValidateSession(ctx context.Context, rawToken string) (*auth.Actor, error)
+	ValidateSession(ctx context.Context, rawToken string) (*appauth.Actor, error)
 	SessionCookieName() string
 }
 
@@ -92,7 +92,7 @@ type Dependencies struct {
 	Backups        BackupsService
 	Audit          AuditService
 
-	ValidatePAT func(context.Context, string) (*keys.PAT, error)
+	ValidatePAT func(context.Context, string) (*appkeys.PAT, error)
 	Auditor     Auditor
 }
 
@@ -158,7 +158,7 @@ func (stubAuth) Login(w http.ResponseWriter, r *http.Request)  { backendUnavaila
 func (stubAuth) Logout(w http.ResponseWriter, r *http.Request) { backendUnavailable(w, r) }
 func (stubAuth) Me(w http.ResponseWriter, r *http.Request)     { backendUnavailable(w, r) }
 func (stubAuth) Status(w http.ResponseWriter, r *http.Request) { backendUnavailable(w, r) }
-func (stubAuth) ValidateSession(context.Context, string) (*auth.Actor, error) {
+func (stubAuth) ValidateSession(context.Context, string) (*appauth.Actor, error) {
 	return nil, errUnauthorized
 }
 func (stubAuth) SessionCookieName() string { return "gorouter_session" }
@@ -250,7 +250,7 @@ func HostGate(cfg Config, feature string, h http.HandlerFunc) http.HandlerFunc {
 			writeError(w, r, errUnauthorized)
 			return
 		}
-		if actor.Kind != auth.ActorKindPAT && actor.Kind != auth.ActorKindSession {
+		if actor.Kind != appauth.ActorKindPAT && actor.Kind != appauth.ActorKindSession {
 			writeError(w, r, errForbidden)
 			return
 		}

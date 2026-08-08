@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"gorouter/internal/domain/auth"
+	appauth "gorouter/internal/app/auth"
 	enginerouting "gorouter/internal/engine/routing"
 
 	"github.com/go-chi/chi/v5"
@@ -14,7 +14,7 @@ import (
 type NodesService interface {
 	List(ctx context.Context) ([]enginerouting.ProviderNode, error)
 	Get(ctx context.Context, id string) (*enginerouting.ProviderNode, error)
-	Save(ctx context.Context, actor *auth.Actor, node enginerouting.ProviderNode) error
+	Save(ctx context.Context, actor *appauth.Actor, node enginerouting.ProviderNode) error
 	Update(ctx context.Context, node enginerouting.ProviderNode) error
 	Delete(ctx context.Context, id string) error
 	Validate(ctx context.Context, id string) error

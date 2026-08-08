@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/quota"
+	appauth "gorouter/internal/app/auth"
+	appquota "gorouter/internal/app/quota"
 
 	"github.com/google/uuid"
 )
@@ -14,9 +14,9 @@ import (
 // contract has no standalone /quota path (quota state rides the usage and
 // provider surfaces); this seam keeps the group's future wiring in one place.
 type QuotaService interface {
-	Status(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) (*quota.QuotaStatus, error)
-	Unlock(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error
-	Reset(ctx context.Context, actor *auth.Actor, providerID uuid.UUID) error
+	Status(ctx context.Context, actor *appauth.Actor, providerID uuid.UUID) (*appquota.QuotaStatus, error)
+	Unlock(ctx context.Context, actor *appauth.Actor, providerID uuid.UUID) error
+	Reset(ctx context.Context, actor *appauth.Actor, providerID uuid.UUID) error
 }
 
 type quotaGroup struct{ svc QuotaService }
@@ -30,7 +30,7 @@ type quotaStatusView struct {
 	ErrorKind     string    `json:"error_kind,omitempty"`
 }
 
-func projectQuotaStatus(s *quota.QuotaStatus) quotaStatusView {
+func projectQuotaStatus(s *appquota.QuotaStatus) quotaStatusView {
 	return quotaStatusView{
 		ProviderID: s.ProviderID, WindowStart: s.WindowStart,
 		CooldownUntil: s.CooldownUntil, LastError: s.LastError, ErrorKind: string(s.ErrorKind),

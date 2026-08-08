@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/pricing"
+	appauth "gorouter/internal/app/auth"
+	appcombos "gorouter/internal/app/combos"
 
 	"github.com/google/uuid"
 )
@@ -14,9 +14,9 @@ import (
 // PricingService is the application seam for the pricing group. Overrides
 // receive the actor so the service stamps and audits the author.
 type PricingService interface {
-	ListOverrides(ctx context.Context) ([]pricing.PriceOverride, error)
-	ApplyOverride(ctx context.Context, actor *auth.Actor, override pricing.PriceOverride) (pricing.PriceOverride, error)
-	Reset(ctx context.Context, actor *auth.Actor) error
+	ListOverrides(ctx context.Context) ([]appcombos.PriceOverride, error)
+	ApplyOverride(ctx context.Context, actor *appauth.Actor, override appcombos.PriceOverride) (appcombos.PriceOverride, error)
+	Reset(ctx context.Context, actor *appauth.Actor) error
 }
 
 type pricingGroup struct{ svc PricingService }
@@ -30,7 +30,7 @@ type pricingView struct {
 	UpdatedAt   time.Time `json:"updated_at,omitempty"`
 }
 
-func projectOverride(o pricing.PriceOverride) pricingView {
+func projectOverride(o appcombos.PriceOverride) pricingView {
 	return pricingView{
 		ModelID: o.ModelID, ProviderID: o.ProviderID,
 		InputPrice: o.InputPrice, OutputPrice: o.OutputPrice,
@@ -61,7 +61,7 @@ func (g *pricingGroup) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, errUnauthorized)
 		return
 	}
-	var body pricing.PriceOverride
+	var body appcombos.PriceOverride
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
 		return

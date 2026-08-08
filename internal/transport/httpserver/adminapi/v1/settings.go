@@ -5,27 +5,26 @@ import (
 	"encoding/json"
 	"net/http"
 
+	appauth "gorouter/internal/app/auth"
 	appsettings "gorouter/internal/app/settings"
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/settings"
 )
 
 // SettingsService is the application seam for the settings group.
 type SettingsService interface {
-	Get(ctx context.Context, actor *auth.Actor, key string) (*settings.Setting, error)
-	List(ctx context.Context, actor *auth.Actor) ([]settings.Setting, error)
-	Update(ctx context.Context, actor *auth.Actor, values map[string]json.RawMessage) error
-	ProxyTest(ctx context.Context, actor *auth.Actor, in any) (any, error)
-	RequireLogin(ctx context.Context, actor *auth.Actor) (*settings.Setting, error)
-	SetRequireLogin(ctx context.Context, actor *auth.Actor, enabled bool) error
+	Get(ctx context.Context, actor *appauth.Actor, key string) (*appsettings.Setting, error)
+	List(ctx context.Context, actor *appauth.Actor) ([]appsettings.Setting, error)
+	Update(ctx context.Context, actor *appauth.Actor, values map[string]json.RawMessage) error
+	ProxyTest(ctx context.Context, actor *appauth.Actor, in any) (any, error)
+	RequireLogin(ctx context.Context, actor *appauth.Actor) (*appsettings.Setting, error)
+	SetRequireLogin(ctx context.Context, actor *appauth.Actor, enabled bool) error
 }
 
 // ConfigTransferService is the application seam for the manual configuration
 // transfer surface (/settings/database). Import requires the confirmation
 // echo and is destructive/partial per #378.
 type ConfigTransferService interface {
-	Export(ctx context.Context, actor *auth.Actor) (*appsettings.ConfigPayload, error)
-	Import(ctx context.Context, actor *auth.Actor, payload appsettings.ConfigPayload, confirmation string) (*appsettings.ConfigPayload, error)
+	Export(ctx context.Context, actor *appauth.Actor) (*appsettings.ConfigPayload, error)
+	Import(ctx context.Context, actor *appauth.Actor, payload appsettings.ConfigPayload, confirmation string) (*appsettings.ConfigPayload, error)
 }
 
 // TranslatorService is the application seam for the translator surface,
