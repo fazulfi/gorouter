@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	domauth "gorouter/internal/domain/auth"
-	domkeys "gorouter/internal/domain/keys"
+	appauth "gorouter/internal/app/auth"
+	appkeys "gorouter/internal/app/keys"
 	adminapiv1 "gorouter/internal/transport/httpserver/adminapi/v1"
 	"gorouter/internal/transport/httpserver/compatibility"
 	"gorouter/internal/transport/httpserver/realtime"
@@ -21,7 +21,7 @@ type AuthEndpoints interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 	Me(w http.ResponseWriter, r *http.Request)
 	Status(w http.ResponseWriter, r *http.Request)
-	ValidateSession(ctx context.Context, rawToken string) (*domauth.Actor, error)
+	ValidateSession(ctx context.Context, rawToken string) (*appauth.Actor, error)
 	SessionCookieName() string
 }
 
@@ -71,7 +71,7 @@ func NewAdminChain(cfg AdminConfig) []func(http.Handler) http.Handler {
 // groups. Design §6 L127: PAT/CLI/job paths bypass CSRF (no cookie), so
 // resource-group handlers (API-05) mount PAT mutations in a PAT group rather
 // than inside the session group's CSRF.
-func PATAuthMiddleware(validate func(context.Context, string) (*domkeys.PAT, error)) func(http.Handler) http.Handler {
+func PATAuthMiddleware(validate func(context.Context, string) (*appkeys.PAT, error)) func(http.Handler) http.Handler {
 	return middleware.PATAuth(validate)
 }
 
