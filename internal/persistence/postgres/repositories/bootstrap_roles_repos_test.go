@@ -169,8 +169,9 @@ func migrateAsDDLRepoTest(t *testing.T, ctx context.Context, dsn string) *pgxpoo
 // DDL-owned and the runtime role receives explicit grants. The audit log keeps
 // its migration-000009 posture (INSERT+SELECT only) and is excluded from the
 // CRUD grant so the immutability invariant stays intact. The migration tracking
-// table is granted read-only because the backup bootstrap gate reads it as the
-// runtime role. This is a test fixture grant mirroring the production runtime
+// table is granted CRUD because the backup bootstrap gate reads it as the
+// runtime role, and the integration tests manipulate it to simulate pending
+// migrations. This is a test fixture grant mirroring the production runtime
 // privilege bootstrap.
 func grantRuntimeCRUDRepoTest(t *testing.T, ctx context.Context, ddlPool *pgxpool.Pool) {
 	t.Helper()
@@ -187,7 +188,7 @@ END $$`
 	if _, err := ddlPool.Exec(ctx, doStmt); err != nil {
 		t.Fatalf("grant runtime CRUD on business tables: %v", err)
 	}
-	if _, err := ddlPool.Exec(ctx, "GRANT SELECT ON gorouter_migrations TO gorouter"); err != nil {
+	if _, err := ddlPool.Exec(ctx, "GRANT SELECT, INSERT, UPDATE, DELETE ON gorouter_migrations TO gorouter"); err != nil {
 		t.Fatalf("grant runtime read on migrations table: %v", err)
 	}
 	if _, err := ddlPool.Exec(ctx, "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO gorouter"); err != nil {
