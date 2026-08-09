@@ -179,7 +179,12 @@ func TestBootstrapRolesOnCluster_FailClosedOnSuperuser(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		cleanupCtx := context.Background()
-		_, _ = admin.Exec(cleanupCtx, "ALTER ROLE gorouter NOSUPERUSER")
+		cleanupConn, err := pgx.Connect(cleanupCtx, runtimeDSN)
+		if err != nil {
+			return
+		}
+		defer cleanupConn.Close(cleanupCtx)
+		_, _ = cleanupConn.Exec(cleanupCtx, "ALTER ROLE gorouter NOSUPERUSER")
 	})
 
 	ft := &fakeBootstrapT{}
