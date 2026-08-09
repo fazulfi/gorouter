@@ -13,8 +13,8 @@ func TestRedact(t *testing.T) {
 	}{
 		{
 			name:    "api key value",
-			input:   "provider call failed: api_key_value=SK-SYNTH! unauthorized",
-			secrets: []string{"SK-SYNTH!", "api_key_value=SK-SYNTH!"},
+			input:   "provider call failed: api_key_value=sk-proj-abc123xyz unauthorized",
+			secrets: []string{"sk-proj-abc123xyz", "api_key_value=sk-proj-abc123xyz"},
 		},
 		{
 			name:    "labeled api key",
@@ -28,8 +28,8 @@ func TestRedact(t *testing.T) {
 		},
 		{
 			name:    "github classic pat",
-			input:   "clone failed with ghp_SynTh1",
-			secrets: []string{"ghp_SynTh1"},
+			input:   "clone failed with ghp_16C7e42F292c6912E7710c838347Ae178B4a",
+			secrets: []string{"ghp_16C7e42F292c6912E7710c838347Ae178B4a"},
 		},
 		{
 			name:    "github fine-grained pat",
@@ -38,8 +38,8 @@ func TestRedact(t *testing.T) {
 		},
 		{
 			name:    "gitlab pat",
-			input:   "ci failed glpat-Synth1",
-			secrets: []string{"glpat-Synth1"},
+			input:   "ci failed glpat-4x7y8z9a0b1c2d3e4f5g6h7i",
+			secrets: []string{"glpat-4x7y8z9a0b1c2d3e4f5g6h7i"},
 		},
 		{
 			name:    "session hash labeled",
@@ -58,13 +58,13 @@ func TestRedact(t *testing.T) {
 		},
 		{
 			name:    "oauth access token",
-			input:   "oauth failed access_token=ya29.Syn2",
-			secrets: []string{"ya29.Syn2"},
+			input:   "oauth failed access_token=ya29.a0AfH6SMDZ9g",
+			secrets: []string{"ya29.a0AfH6SMDZ9g"},
 		},
 		{
 			name:    "oauth refresh token",
-			input:   "refresh_token=RE-SYN1!",
-			secrets: []string{"RE-SYN1!"},
+			input:   "refresh_token=1//0c7wVh8x9y2aA3bB4cC5dD6eE7fF8gG9hH0iI",
+			secrets: []string{"1//0c7wVh8x9y2aA3bB4cC5dD6eE7fF8gG9hH0iI"},
 		},
 		{
 			name:    "bearer token",
@@ -99,8 +99,8 @@ func TestRedact(t *testing.T) {
 		// Quoted and JSON-shaped labeled values, one per mandated category.
 		{
 			name:    "quoted api key value",
-			input:   `provider call failed: api_key_value="SK-SYN2!" unauthorized`,
-			secrets: []string{"SK-SYN2!", `api_key_value="SK-SYN2!"`},
+			input:   `provider call failed: api_key_value="sk-proj-AbCdEf123456" unauthorized`,
+			secrets: []string{"sk-proj-AbCdEf123456", `api_key_value="sk-proj-AbCdEf123456"`},
 		},
 		{
 			name:    "json api key value",
@@ -129,13 +129,13 @@ func TestRedact(t *testing.T) {
 		},
 		{
 			name:    "quoted oauth token",
-			input:   `oauth failed access_token="ya29.Syn"`,
-			secrets: []string{"ya29.Syn", `access_token="ya29.Syn"`},
+			input:   `oauth failed access_token="ya29.a0AfH6SMDZ9gQbCdEf123"`,
+			secrets: []string{"ya29.a0AfH6SMDZ9gQbCdEf123", `access_token="ya29.a0AfH6SMDZ9gQbCdEf123"`},
 		},
 		{
 			name:    "json oauth token",
-			input:   `{"refresh_token":"RE-SYN1!"}`,
-			secrets: []string{"RE-SYN1!"},
+			input:   `{"refresh_token":"1//0c7wVh8x9y2aA3bB4cC5dD6eE7fF8gG9hH0iI"}`,
+			secrets: []string{"1//0c7wVh8x9y2aA3bB4cC5dD6eE7fF8gG9hH0iI"},
 		},
 		{
 			name:    "quoted cookie",
@@ -180,8 +180,8 @@ func TestRedact(t *testing.T) {
 		},
 		{
 			name:    "mixed-case bare ya29 token",
-			input:   "oauth failed ya29.Syn",
-			secrets: []string{"ya29.Syn"},
+			input:   "oauth failed ya29.a0AfH6SMDZ9gQbCdEf123",
+			secrets: []string{"ya29.a0AfH6SMDZ9gQbCdEf123"},
 		},
 		{
 			name:    "mixed-case bare sk with api03 segment",
@@ -333,9 +333,9 @@ func TestRedact(t *testing.T) {
 }
 
 func TestRedactMultipleSecretsInOneLine(t *testing.T) {
-	in := "api_key_value=SK-SYN3! token=ghp_aaaaaa Cookie: session=abc123"
+	in := "api_key_value=sk-proj-abc123 token=ghp_16C7e42F Cookie: session=abc123"
 	got := Redact(in)
-	for _, s := range []string{"SK-SYN3!", "ghp_aaaaaa", "abc123"} {
+	for _, s := range []string{"sk-proj-abc123", "ghp_16C7e42F", "abc123"} {
 		if strings.Contains(got, s) {
 			t.Errorf("Redact(%q) = %q, still contains secret %q", in, got, s)
 		}

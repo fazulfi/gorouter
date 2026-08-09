@@ -433,7 +433,7 @@ func TestQuotaErrorKindMapping(t *testing.T) {
 
 func TestQuotaNoSecrets(t *testing.T) {
 	svc, scope := newTestService()
-	leaky := errors.New("upstream auth failed: Bearer abcdef1234567890 token=xyz-secret sk-SYNTH1")
+	leaky := errors.New("upstream auth failed: Bearer abcdef1234567890 token=xyz-secret sk-ABCDEF12345678901234")
 	if err := svc.RecordPingFailure(context.Background(), providerA, leaky, quota.ErrorKindDefinitive); err != nil {
 		t.Fatalf("record failure: %v", err)
 	}
@@ -441,7 +441,7 @@ func TestQuotaNoSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("status: %v", err)
 	}
-	for _, secret := range []string{"abcdef1234567890", "xyz-secret", "SYNTH1"} {
+	for _, secret := range []string{"abcdef1234567890", "xyz-secret", "ABCDEF12345678901234"} {
 		if strings.Contains(st.LastError, secret) {
 			t.Fatalf("status must not leak secret %q, got %q", secret, st.LastError)
 		}

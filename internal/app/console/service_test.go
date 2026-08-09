@@ -14,7 +14,7 @@ func TestConsoleRedaction(t *testing.T) {
 	scope, repo := newFakeScope()
 	svc := NewConsoleService(newFakeBeginner(scope))
 
-	raw := "provider call failed: api_key_value=SK-SYNTH! unauthorized"
+	raw := "provider call failed: api_key_value=sk-proj-abc123xyz unauthorized"
 	if err := svc.Append(context.Background(), &console.ConsoleLog{
 		Level: strPtr("error"), Message: &raw,
 	}); err != nil {
@@ -33,12 +33,12 @@ func TestConsoleRedaction(t *testing.T) {
 		t.Fatalf("stored %d entries, want 2", len(repo.entries))
 	}
 	stored := repo.entries[0]
-	if strings.Contains(stored.RedactedMessage, "SK-SYNTH!") {
+	if strings.Contains(stored.RedactedMessage, "sk-proj-abc123xyz") {
 		t.Errorf("RedactedMessage %q still contains raw api key", stored.RedactedMessage)
 	}
 	if stored.Message == nil {
 		t.Error("Message not populated with redacted text")
-	} else if strings.Contains(*stored.Message, "SK-SYNTH!") {
+	} else if strings.Contains(*stored.Message, "sk-proj-abc123xyz") {
 		t.Errorf("Message %q still contains raw api key", *stored.Message)
 	}
 	if !strings.Contains(stored.RedactedMessage, "[REDACTED]") {
@@ -58,7 +58,7 @@ func TestConsoleRedaction(t *testing.T) {
 		t.Errorf("seqs = [%d %d], want [1 2] (ascending)", got[0].Seq, got[1].Seq)
 	}
 	for _, e := range got {
-		if strings.Contains(e.RedactedMessage, "SK-SYNTH!") {
+		if strings.Contains(e.RedactedMessage, "sk-proj-abc123xyz") {
 			t.Errorf("row seq %d exposes raw api key in %q", e.Seq, e.RedactedMessage)
 		}
 	}
