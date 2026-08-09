@@ -32,15 +32,9 @@ func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	if os.Getenv("DATABASE_URL") == "" {
-		t.Skip("DATABASE_URL not set")
-	}
+	dsn := getTestDSN()
 
-	adminDSN := os.Getenv("DATABASE_URL")
-	bootstrapRolesForRepoTest(t, ctx, adminDSN)
-
-	dbName := setupRepoTestDB(t, ctx)
-	dsn := isolatedTestDSN(t, dbName)
+	bootstrapRolesForRepoTest(t, ctx, dsn)
 	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
 	return migrateAsDDLRepoTest(t, ctx, dsn)
 }

@@ -54,20 +54,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Install PostgreSQL $\{matrix.pg-version\} client for backup dumps
-        run: |
-          # PGDG repo ensures we get the correct version (pg_dump 16 only supports PG16, not 17/18)
-          sudo apt-get update && sudo apt-get install -y curl ca-certificates gnupg
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
-          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-${{ matrix.pg-version }}
-          echo "PostgreSQL client installed:"
-          pg_dump --version || true
-
-      - name: Add PG${{ matrix.pg-version }} bin to PATH
-        run: echo "/usr/lib/postgresql/${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
-
       - name: Run integration tests ${{ matrix.race == 'on' && 'with race' || '' }}
         run: |
           RACE_FLAG="${{ matrix.race == 'on' && '-race' || '' }}"

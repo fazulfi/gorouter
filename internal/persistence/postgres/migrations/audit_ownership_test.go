@@ -266,7 +266,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if len(result.Applied) != 9 {
 			t.Errorf("applied = %d, want 9", len(result.Applied))
 		}
-		pool, err := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
+		pool, err := pgxpool.New(ctx, db.runtimeDSN)
 		if err != nil {
 			t.Fatalf("runtime pool: %v", err)
 		}
@@ -293,7 +293,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if len(result.Applied) != 1 || result.Applied[0] != "000009_backups_audit.up.sql" {
 			t.Errorf("applied = %v, want exactly 000009_backups_audit.up.sql", result.Applied)
 		}
-		pool, err := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
+		pool, err := pgxpool.New(ctx, db.runtimeDSN)
 		if err != nil {
 			t.Fatalf("runtime pool: %v", err)
 		}
@@ -324,7 +324,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), want)
 			}
 		}
-		pool, err := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
+		pool, err := pgxpool.New(ctx, db.runtimeDSN)
 		if err != nil {
 			t.Fatalf("runtime pool: %v", err)
 		}
@@ -363,7 +363,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if !found {
 			t.Errorf("applied = %v, want 000009 included", result.Applied)
 		}
-		pool, err := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
+		pool, err := pgxpool.New(ctx, db.runtimeDSN)
 		if err != nil {
 			t.Fatalf("runtime pool: %v", err)
 		}

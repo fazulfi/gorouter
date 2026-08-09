@@ -89,14 +89,6 @@ func parseMigrations(dir Direction) ([]Migration, error) {
 	return migrations, nil
 }
 
-// ParseMigrations is the exported form of parseMigrations. It reads embedded
-// SQL files for the given direction and returns them sorted by version. The
-// backup bootstrap gate uses it to compute pending migrations read-only, so the
-// gate can run on a DML-only runtime connection that lacks CREATE on the schema.
-func ParseMigrations(dir Direction) ([]Migration, error) {
-	return parseMigrations(dir)
-}
-
 func parseVersion(name string) (string, error) {
 	// Must match: VERSION_NAME.direction.sql
 	if !strings.HasSuffix(name, ".sql") {

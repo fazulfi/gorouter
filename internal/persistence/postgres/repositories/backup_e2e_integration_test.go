@@ -484,8 +484,6 @@ func TestValidateBootstrapBackup_FreshDB_Integration(t *testing.T) {
 
 	bootstrapRolesForRepoTest(t, ctx, adminDSN)
 
-	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
-
 	runtimePool := freshRuntimePoolForBackupTest(t, ctx, dsn)
 	defer runtimePool.Close()
 

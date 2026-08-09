@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -155,25 +154,6 @@ func runtimeTestDSN(t *testing.T, base, dbName string) string {
 	return u.String()
 }
 
-// runtimePoolAsGorouter creates a runtime pool authenticated as gorouter.
-// The password is preserved from dsn (bootstrapRolesOnCluster aligns it for
-// all bootstrapped roles); only User is switched so runtime assertions run
-// under the true runtime identity instead of the administrative DATABASE_URL
-// user.
-func runtimePoolAsGorouter(t *testing.T, ctx context.Context, dsn string) (*pgxpool.Pool, error) {
-	t.Helper()
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("parse runtime DSN: %w", err)
-	}
-	cfg.ConnConfig.User = "gorouter"
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("create runtime pool as gorouter: %w", err)
-	}
-	return pool, nil
-}
-
 // TestJobAuditInsert proves, at the DB level, that an audit INSERT with
 // actor_kind='job', job_id=<job-type> and actor_id IS NULL succeeds with the
 // FK/CHECK/GRANT satisfied, that the inserted job row is filterable by
@@ -183,7 +163,7 @@ func TestJobAuditInsert(t *testing.T) {
 	ctx := context.Background()
 	runtimeDSN := setupAuditRoleTestDB(t, ctx)
 
-	pool, err := runtimePoolAsGorouter(t, ctx, runtimeDSN)
+	pool, err := pgxpool.New(ctx, runtimeDSN)
 	if err != nil {
 		t.Fatalf("runtime pool: %v", err)
 	}
@@ -341,7 +321,7 @@ func TestAuditRoleImmutability(t *testing.T) {
 	ctx := context.Background()
 	runtimeDSN := setupAuditRoleTestDB(t, ctx)
 
-	pool, err := runtimePoolAsGorouter(t, ctx, runtimeDSN)
+	pool, err := pgxpool.New(ctx, runtimeDSN)
 	if err != nil {
 		t.Fatalf("runtime pool: %v", err)
 	}

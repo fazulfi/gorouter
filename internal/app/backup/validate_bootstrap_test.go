@@ -60,6 +60,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(9))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 9; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -77,6 +79,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -97,6 +101,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -125,6 +131,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -146,6 +154,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -173,6 +183,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -200,6 +212,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")
@@ -221,6 +235,8 @@ func TestValidateBootstrapBackup(t *testing.T) {
 		db, _ := pgxmock.NewPool()
 		db.ExpectQuery(`SELECT count\(\*\) FROM gorouter_migrations`).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(8))
+		db.ExpectExec("CREATE TABLE IF NOT EXISTS gorouter_migrations").
+			WillReturnResult(pgconn.NewCommandTag("CREATE TABLE"))
 		rows := pgxmock.NewRows([]string{"version", "name"})
 		for i := 1; i <= 8; i++ {
 			rows.AddRow("00000"+string(rune('0'+i)), "migration")

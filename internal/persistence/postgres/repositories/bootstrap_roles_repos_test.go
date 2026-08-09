@@ -149,8 +149,6 @@ func migrateAsDDLRepoTest(t *testing.T, ctx context.Context, dsn string) *pgxpoo
 		t.Fatalf("migrate as DDL role: %v", err)
 	}
 
-	grantRuntimeCRUDRepoTest(t, ctx, ddlPool)
-
 	cfg, err = pgxpool.ParseConfig(dsn)
 	if err != nil {
 		t.Fatalf("parse DSN for runtime pool: %v", err)
@@ -161,39 +159,6 @@ func migrateAsDDLRepoTest(t *testing.T, ctx context.Context, dsn string) *pgxpoo
 		t.Fatalf("create runtime pool: %v", err)
 	}
 	return runtimePool
-}
-
-// grantRuntimeCRUDRepoTest grants the runtime role (gorouter) the privileges it
-// needs to exercise the repositories against tables owned by the DDL role. Rev3
-// applies every migration as gorouter_ddl, so all application tables are
-// DDL-owned and the runtime role receives explicit grants. The audit log keeps
-// its migration-000009 posture (INSERT+SELECT only) and is excluded from the
-// CRUD grant so the immutability invariant stays intact. The migration tracking
-// table is granted CRUD because the backup bootstrap gate reads it as the
-// runtime role, and the integration tests manipulate it to simulate pending
-// migrations. This is a test fixture grant mirroring the production runtime
-// privilege bootstrap.
-func grantRuntimeCRUDRepoTest(t *testing.T, ctx context.Context, ddlPool *pgxpool.Pool) {
-	t.Helper()
-	doStmt := `DO $$
-DECLARE r RECORD;
-BEGIN
-  FOR r IN SELECT tablename FROM pg_tables
-           WHERE schemaname = 'public'
-             AND tablename NOT IN ('gorouter_audit_log', 'gorouter_migrations')
-  LOOP
-    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO gorouter', r.tablename);
-  END LOOP;
-END $$`
-	if _, err := ddlPool.Exec(ctx, doStmt); err != nil {
-		t.Fatalf("grant runtime CRUD on business tables: %v", err)
-	}
-	if _, err := ddlPool.Exec(ctx, "GRANT SELECT, INSERT, UPDATE, DELETE ON gorouter_migrations TO gorouter"); err != nil {
-		t.Fatalf("grant runtime read on migrations table: %v", err)
-	}
-	if _, err := ddlPool.Exec(ctx, "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO gorouter"); err != nil {
-		t.Fatalf("grant runtime sequence usage: %v", err)
-	}
 }
 
 // redactDSN removes the password from a DSN for safe logging.
