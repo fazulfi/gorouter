@@ -179,7 +179,20 @@ func TestBootstrapRolesOnCluster_FailClosedOnSuperuser(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		cleanupCtx := context.Background()
-		_, _ = admin.Exec(cleanupCtx, "ALTER ROLE gorouter NOSUPERUSER")
+		// FRESH CONNECTION (never reuse the already-closed `admin`)
+		cleanupConn, err := pgx.Connect(cleanupCtx, runtimeDSN)
+		if err != nil {
+			t.Logf("cleanup: failed to open fresh connection for SUPERUSER reset: %v", err)
+			return
+		}
+		defer cleanupConn.Close(cleanupCtx)
+		_, err = cleanupConn.Exec(cleanupCtx, "ALTER ROLE gorouter NOSUPERUSER")
+		if err != nil {
+			// Idempotent; swallow error if role already NOSUPERUSER or doesn't exist
+			t.Logf("cleanup: failed to reset gorouter to NOSUPERUSER: %v", err)
+		} else {
+			t.Logf("cleanup: successfully reset gorouter to NOSUPERUSER")
+		}
 	})
 
 	ft := &fakeBootstrapT{}

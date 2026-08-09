@@ -82,7 +82,9 @@ func getTestPool(t *testing.T) *pgxpool.Pool {
 	dsn := isolatedTestDSN(t, dbName)
 
 	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
-	return migrateAsDDLRepoTest(t, ctx, dsn)
+	pool := migrateAsDDLRepoTest(t, ctx, dsn)
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn)
+	return pool
 }
 
 // ─────────────────────────────────────────────────────────────

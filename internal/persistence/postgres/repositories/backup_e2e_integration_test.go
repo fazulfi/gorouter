@@ -497,6 +497,7 @@ func TestValidateBootstrapBackup_FreshDB_Integration(t *testing.T) {
 	// role; the runtime pool is then reopened as the runtime role.
 	migratedPool := migrateAsDDLRepoTest(t, ctx, dsn)
 	defer migratedPool.Close()
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn)
 	if err := backupapp.ValidateBootstrapBackup(ctx, migratedPool); err != nil {
 		t.Fatalf("migrated database must pass: %v", err)
 	}

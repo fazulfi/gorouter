@@ -128,6 +128,55 @@ func grantSchemaCreateToDDLRepoTest(t *testing.T, ctx context.Context, dbDSN str
 	}
 }
 
+// grantRuntimeFixturePrivilegesRepoTest grants the runtime role (gorouter) the
+// object-level privileges required to exercise the repositories and the backup
+// bootstrap gate after migrations have been applied as the DDL role. It grants
+// DML on every business table and the migration tracking table, sequence usage
+// for SERIAL/identity columns, and schema CREATE so the gate's
+// ensureMigrationsTable (CREATE TABLE IF NOT EXISTS) path succeeds. The audit
+// log gorouter_audit_log is EXCLUDED: migration 000009's REVOKE/GRANT is the
+// sole authority over it. Grants run as the fixture admin connection, never via
+// SUPERUSER elevation and never by granting SUPERUSER.
+func grantRuntimeFixturePrivilegesRepoTest(t *testing.T, ctx context.Context, dbDSN string) {
+	t.Helper()
+	conn, err := pgx.Connect(ctx, dbDSN)
+	if err != nil {
+		t.Fatalf("grant runtime privileges: connect: %v", err)
+	}
+	defer conn.Close(ctx)
+
+	if _, err := conn.Exec(ctx, `GRANT CREATE ON SCHEMA public TO gorouter`); err != nil {
+		t.Fatalf("grant CREATE ON SCHEMA public to gorouter: %v", err)
+	}
+
+	if _, err := conn.Exec(ctx, `
+		DO $$
+		DECLARE r RECORD;
+		BEGIN
+			FOR r IN
+				SELECT tablename FROM pg_tables
+				WHERE schemaname = 'public' AND tablename <> 'gorouter_audit_log'
+			LOOP
+				EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO gorouter', r.tablename);
+			END LOOP;
+		END $$`); err != nil {
+		t.Fatalf("grant runtime DML on business/tracking tables: %v", err)
+	}
+
+	if _, err := conn.Exec(ctx, `
+		DO $$
+		DECLARE r RECORD;
+		BEGIN
+			FOR r IN
+				SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
+			LOOP
+				EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE public.%I TO gorouter', r.sequencename);
+			END LOOP;
+		END $$`); err != nil {
+		t.Fatalf("grant runtime sequence usage: %v", err)
+	}
+}
+
 // migrateAsDDLRepoTest runs migrations using the DDL role (gorouter_ddl),
 // ensuring separation of duty: DDL operations never run as the runtime role.
 // After migrations complete, the runtime pool is opened as gorouter.
