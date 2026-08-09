@@ -43,9 +43,9 @@ export function Login(_props: LoginProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <Icons.logo className="h-12 w-12 mx-auto" />
-          <CardTitle className="text-2xl text-center">Sign in to your account</CardTitle>
+          <CardTitle className="text-2xl text-center">{t('auth.signInTitle')}</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and password to access your account
+            {t('auth.signInDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -54,6 +54,7 @@ export function Login(_props: LoginProps) {
               <Input
                 id="email"
                 type="email"
+                aria-label={t('auth.emailLabel')}
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -63,7 +64,8 @@ export function Login(_props: LoginProps) {
               <Input
                 id="password"
                 type="password"
-                placeholder="Password"
+                aria-label={t('auth.passwordLabel')}
+                placeholder={t('auth.passwordLabel')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -72,7 +74,7 @@ export function Login(_props: LoginProps) {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              {t('auth.signIn')}
             </Button>
             <Separator />
             <div className="grid grid-cols-3 gap-4">

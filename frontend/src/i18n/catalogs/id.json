@@ -6,6 +6,11 @@
   "auth": {
     "login": "Masuk",
     "logout": "Keluar",
-    "me": "Profil Saya"
+    "me": "Profil Saya",
+    "signInTitle": "Masuk ke akun Anda",
+    "signInDescription": "Masukkan email dan kata sandi Anda untuk mengakses akun Anda",
+    "signIn": "Masuk",
+    "emailLabel": "Email",
+    "passwordLabel": "Kata sandi"
   }
 }

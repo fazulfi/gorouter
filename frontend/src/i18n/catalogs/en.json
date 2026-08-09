@@ -6,6 +6,11 @@
   "auth": {
     "login": "Login",
     "logout": "Logout",
-    "me": "My Profile"
+    "me": "My Profile",
+    "signInTitle": "Sign in to your account",
+    "signInDescription": "Enter your email and password to access your account",
+    "signIn": "Sign In",
+    "emailLabel": "Email",
+    "passwordLabel": "Password"
   }
 }
