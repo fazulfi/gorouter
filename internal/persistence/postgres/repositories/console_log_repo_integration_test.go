@@ -596,6 +596,7 @@ func TestConsoleLogRepo_NextSeq_ConcurrentAppends_Integration(t *testing.T) {
 	dsn := isolatedTestDSN(t, dbName)
 	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
 	pool := migrateAsDDLRepoTest(t, ctx, dsn)
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn) // FIX_C: concurrent writers need gorouter DML grants on tracking tables
 	defer pool.Close()
 
 	const writers = 12

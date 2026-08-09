@@ -495,6 +495,7 @@ func TestValidateBootstrapBackup_FreshDB_Integration(t *testing.T) {
 	// After a full migration run the database is non-fresh with no pending
 	// migrations: still passes without any backup. Migrations run as the DDL
 	// role; the runtime pool is then reopened as the runtime role.
+	grantSchemaCreateToDDLRepoTest(t, ctx, dsn) // FIX_B: fresh DB needs CREATE on schema public for gorouter_ddl
 	migratedPool := migrateAsDDLRepoTest(t, ctx, dsn)
 	defer migratedPool.Close()
 	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn)

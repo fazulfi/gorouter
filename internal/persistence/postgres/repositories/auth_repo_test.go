@@ -12,14 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func getTestDSN() string {
-	dsn := os.Getenv("POSTGRES_TEST_DSN")
-	if dsn != "" {
-		return dsn
-	}
-	return "postgres://postgres:postgres@localhost:5432/postgres"
-}
-
 func skipIfShort(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
 	if testing.Short() {
@@ -27,16 +19,28 @@ func skipIfShort(t *testing.T, pool *pgxpool.Pool) {
 	}
 }
 
+// FIX_A: aligned with getTestPool topology (isolation + complete fixture grants) to restore
+// least-privilege CI correctness after Wave-3 exposed true role boundaries. The historical
+// shared DB approach using POSTGRES_TEST_DSN was broken under correct topology: migrations
+// applied as postgres admin → gorouter_migrations owned by postgres; gorouter_ddl cannot SELECT.
 func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	dsn := getTestDSN()
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL not set")
+	}
 
 	bootstrapRolesForRepoTest(t, ctx, dsn)
+	dbName := setupRepoTestDB(t, ctx)
+	dsn = isolatedTestDSN(t, dbName)
+
 	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
-	return migrateAsDDLRepoTest(t, ctx, dsn)
+	pool := migrateAsDDLRepoTest(t, ctx, dsn)
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn)
+	return pool
 }
 
 func TestUserRepo_Integration(t *testing.T) {
