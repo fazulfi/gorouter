@@ -103,22 +103,7 @@ func parseVersion(name string) (string, error) {
 }
 
 // ensureMigrationsTable creates the gorouter_migrations tracking table if it does not exist.
-// It probes information_schema first so that a role holding only DML privileges (the runtime role)
-// can call it against an existing table without requiring CREATE on the schema; the CREATE statement
-// runs only when the table is genuinely absent, which is the migration executor's path (the DDL role
-// holds CREATE per database).
 func ensureMigrationsTable(ctx context.Context, pool *pgxpool.Pool) error {
-	var exists bool
-	if err := pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = 'gorouter_migrations'
-		)`).Scan(&exists); err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
 	query := `
 		CREATE TABLE IF NOT EXISTS gorouter_migrations (
 			id         SERIAL PRIMARY KEY,
