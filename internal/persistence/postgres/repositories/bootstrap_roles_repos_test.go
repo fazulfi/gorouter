@@ -190,6 +190,9 @@ END $$`
 	if _, err := ddlPool.Exec(ctx, "GRANT SELECT ON gorouter_migrations TO gorouter"); err != nil {
 		t.Fatalf("grant runtime read on migrations table: %v", err)
 	}
+	if _, err := ddlPool.Exec(ctx, "GRANT CREATE ON SCHEMA public TO gorouter"); err != nil {
+		t.Fatalf("grant schema create for backup bootstrap gate: %v", err)
+	}
 	if _, err := ddlPool.Exec(ctx, "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO gorouter"); err != nil {
 		t.Fatalf("grant runtime sequence usage: %v", err)
 	}
