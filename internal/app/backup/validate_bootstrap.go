@@ -39,7 +39,7 @@ func validateBootstrapBackup(ctx context.Context, db migrations.Pool, hashFile f
 	if applied == 0 {
 		return nil
 	}
-	pending, err := migrations.NewRunner(db).ListPending(ctx, migrations.DirectionUp)
+	pending, err := readPendingMigrations(ctx, db)
 	if err != nil {
 		return fmt.Errorf("backup: cannot determine pending migrations: %w", err)
 	}
@@ -87,6 +87,41 @@ func validateBootstrapBackup(ctx context.Context, db migrations.Pool, hashFile f
 		return fmt.Errorf("backup: validated backup file hash mismatch")
 	}
 	return nil
+}
+
+// readPendingMigrations computes pending up migrations by reading the applied
+// versions from the tracking table (SELECT only) and comparing them against the
+// embedded migration set. It never creates or alters the tracking table, so it
+// runs on a DML-only connection. The caller has already confirmed the table
+// exists via the prior applied-count probe (applied > 0).
+func readPendingMigrations(ctx context.Context, db migrations.Pool) ([]migrations.Migration, error) {
+	all, err := migrations.ParseMigrations(migrations.DirectionUp)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT version, name FROM gorouter_migrations`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	applied := make(map[string]bool)
+	for rows.Next() {
+		var version, name string
+		if err := rows.Scan(&version, &name); err != nil {
+			return nil, err
+		}
+		applied[version] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var pending []migrations.Migration
+	for _, m := range all {
+		if !applied[m.Version] {
+			pending = append(pending, m)
+		}
+	}
+	return pending, nil
 }
 
 func scanCount(ctx context.Context, db migrations.Pool, query string, dest *int) error {
