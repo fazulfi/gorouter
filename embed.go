@@ -8,7 +8,10 @@
 // embed_placeholder.go instead and rely on the Vite dev server.
 package frontendassets
 
-import "embed"
+import (
+	"embed"
+	"io/fs"
+)
 
 // FS is the read-only, compiled-in frontend served by
 // internal/transport/httpserver.EmbedHandler. The `all:` prefix in the embed
@@ -17,4 +20,14 @@ import "embed"
 // systemd hardening (no runtime write to the embedded pages is ever needed).
 //
 //go:embed all:frontend/dist
-var FS embed.FS
+var frontendDistFS embed.FS
+
+var FS fs.FS = mustSubFrontendDist()
+
+func mustSubFrontendDist() fs.FS {
+	frontendDist, err := fs.Sub(frontendDistFS, "frontend/dist")
+	if err != nil {
+		panic(err)
+	}
+	return frontendDist
+}
