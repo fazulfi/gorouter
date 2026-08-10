@@ -84,6 +84,9 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
+      - name: Test embedded frontend mount (prod)
+        run: go test -tags prod -run '^TestMountFrontendServesEmbeddedIndex$' ./internal/bootstrap/...
+
       - name: Build payload (run 1)
         run: >
           go run ./tools/build
