@@ -1,0 +1,7 @@
+{
+  "schema": "https://slsa.dev/provenance/v1",
+  "buildType": "https://github.com/gorouter/release/go-build",
+  "materials": [{"uri": "git+repository", "digest": "SOURCE_REVISION_REQUIRED"}],
+  "metadata": {"reproducible": true, "signing": "deferred-to-t14-t16"},
+  "subjects": [{"name": "release-artifact", "digest": {"sha256": "ARTIFACT_SHA256_REQUIRED"}}]
+}

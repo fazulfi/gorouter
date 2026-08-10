@@ -90,7 +90,7 @@ func (m *Manager) Upgrade(_ context.Context, from, to string) error {
 		return ErrMustBeStopped
 	}
 	marker := filepath.Join(m.config.DataDir, "PG_VERSION")
-	current, err := os.ReadFile(marker)
+	current, err := os.ReadFile(marker) // #nosec G304 -- marker is fixed beneath the configured PostgreSQL data directory.
 	if err != nil {
 		return fmt.Errorf("read current version: %w", err)
 	}

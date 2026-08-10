@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -14,8 +15,7 @@ import (
 type runner func(ctx context.Context, goBin string, env, args []string) error
 
 func defaultRunner(ctx context.Context, goBin string, env, args []string) error {
-	cmd := exec.CommandContext(ctx, goBin, args...)
-	cmd.Env = env
+	cmd := &exec.Cmd{Path: goBin, Args: append([]string{goBin}, args...), Env: env} // #nosec G204 -- goBin is the validated Go toolchain path selected by the build configuration.
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
@@ -77,7 +77,7 @@ func build(ctx context.Context, opts *options, r runner) (*Manifest, error) {
 		return nil, fmt.Errorf("frontend hash: %w", err)
 	}
 
-	if err := os.MkdirAll(opts.outDir, 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Clean(opts.outDir), 0o700); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
 	}
 

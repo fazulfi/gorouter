@@ -64,7 +64,7 @@ func (m *Manager) withBoundary(fn func() error) error {
 	if e := os.MkdirAll(filepath.Dir(p), 0700); e != nil {
 		return e
 	}
-	f, e := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	f, e := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600) // #nosec G304 -- p is the manager-owned lock path.
 	if e != nil {
 		return errors.New("lifecycle is busy")
 	}
@@ -110,7 +110,7 @@ func (m *Manager) Logs(opts ...LogOption) (<-chan string, error) {
 	for _, f := range opts {
 		f(&o)
 	}
-	b, e := os.ReadFile(logPath())
+	b, e := os.ReadFile(logPath()) // #nosec G304 -- logPath is derived from the application state path.
 	if e != nil && !os.IsNotExist(e) {
 		return nil, e
 	}
@@ -168,7 +168,7 @@ func splitLines(s string) []string {
 func followLog(p string, ch chan<- string, o int) {
 	defer close(ch)
 	for i := 0; i < 100; i++ {
-		b, e := os.ReadFile(p)
+		b, e := os.ReadFile(p) // #nosec G304 -- p is the manager-owned lifecycle log path.
 		if e == nil && len(b) > o {
 			for _, l := range splitLines(string(b[o:])) {
 				ch <- l

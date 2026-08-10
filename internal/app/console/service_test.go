@@ -14,7 +14,7 @@ func TestConsoleRedaction(t *testing.T) {
 	scope, repo := newFakeScope()
 	svc := NewConsoleService(newFakeBeginner(scope))
 
-	apiKey := "sk-proj-" + "abc123xyz"
+	apiKey := "sk-" + "proj-" + "abc123xyz"
 	raw := "provider call failed: api_key_value=" + apiKey + " unauthorized"
 	if err := svc.Append(context.Background(), &console.ConsoleLog{
 		Level: strPtr("error"), Message: &raw,

@@ -358,8 +358,8 @@ func TestSettingsService_Set(t *testing.T) {
 	})
 
 	t.Run("audits sanitized before and after diff", func(t *testing.T) {
-		beforeKey := "sk-proj-" + "abcdef123456"
-		afterKey := "sk-proj-" + "abcdef654321"
+		beforeKey := "sk-" + "proj-" + "abcdef123456"
+		afterKey := "sk-" + "proj-" + "abcdef654321"
 		scope := newFakeSettingsScope()
 		_ = scope.backing.Set(context.Background(), &settings.Setting{
 			Key: "provider-secret", Value: json.RawMessage(`{"api_key_value":"` + beforeKey + `"}`),

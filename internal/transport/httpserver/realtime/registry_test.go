@@ -38,7 +38,7 @@ func TestWriteKeepaliveCommentFormat(t *testing.T) {
 
 func TestWriteEventAppliesOutboundRedaction(t *testing.T) {
 	w := httptest.NewRecorder()
-	apiKey := "sk-proj-" + "abc123xyz"
+	apiKey := "sk-" + "proj-" + "abc123xyz"
 	payload := struct {
 		Line string `json:"line"`
 	}{

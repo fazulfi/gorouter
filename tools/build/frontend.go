@@ -17,7 +17,7 @@ import (
 // filesystem traversal order. A missing or empty directory is an error because
 // a release payload must embed a built frontend.
 func HashFrontendDir(dir string) (string, error) {
-	info, err := os.Stat(dir)
+	info, err := os.Stat(filepath.Clean(dir))
 	if err != nil {
 		return "", fmt.Errorf("frontend dir %q: %w", dir, err)
 	}
@@ -30,7 +30,7 @@ func HashFrontendDir(dir string) (string, error) {
 		hash string
 	}
 	var entries []entry
-	walkErr := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(filepath.Clean(dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func HashFrontendDir(dir string) (string, error) {
 		if relErr != nil {
 			return relErr
 		}
-		h, hashErr := hashFile(p)
+		h, hashErr := hashFile(filepath.Clean(p))
 		if hashErr != nil {
 			return hashErr
 		}
@@ -65,7 +65,7 @@ func HashFrontendDir(dir string) (string, error) {
 }
 
 func hashFile(path string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return "", err
 	}

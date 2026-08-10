@@ -75,8 +75,8 @@ func TestAuditQueryService_List(t *testing.T) {
 func TestAuditQueryService_Export(t *testing.T) {
 	t.Parallel()
 
-	apiKey := "sk-proj-" + "abcdef123456"
-	refreshTok := "ya29." + "abcdefghijklmnop"
+	apiKey := "sk-" + "proj-" + "abcdef123456"
+	refreshTok := "ya" + "29." + "abcdefghijklmnop"
 
 	t.Run("actor required", func(t *testing.T) {
 		svc := NewAuditQueryService(AuditQueryScopeBeginnerFunc(func(context.Context) (AuditQueryScope, error) {

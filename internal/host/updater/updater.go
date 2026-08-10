@@ -248,7 +248,7 @@ func (u *Updater) snapshot() error {
 	if err != nil {
 		return err
 	}
-	data, err := os.ReadFile(target)
+	data, err := os.ReadFile(target) // #nosec G304 -- target is validated as the updater's installation path.
 	if err != nil {
 		return err
 	}

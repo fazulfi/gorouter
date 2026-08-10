@@ -81,5 +81,6 @@ func WriteManifest(m *Manifest, dir string) error {
 		return err
 	}
 	data = append(data, '\n')
-	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
+	manifestPath := filepath.Join(filepath.Clean(dir), "manifest.json")
+	return os.WriteFile(manifestPath, data, 0o600)
 }

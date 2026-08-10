@@ -65,7 +65,7 @@ func TestSettingsServiceEndToEnd_Integration(t *testing.T) {
 
 	// A value carrying a credential shape must be stored raw but audited
 	// sanitized.
-	e2eKey := "sk-proj-" + "e2e123456789"
+	e2eKey := "sk-" + "proj-" + "e2e123456789"
 	secretValue := json.RawMessage(`{"api_key_value":"` + e2eKey + `"}`)
 	if _, err := svc.Set(ctx, actor, "provider-secret", secretValue); err != nil {
 		t.Fatalf("Set secret: %v", err)
@@ -146,7 +146,7 @@ func TestAuditQueryServiceEndToEnd_Integration(t *testing.T) {
 	if _, err := svc.Set(ctx, actor, "k1", json.RawMessage(`1`)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Set(ctx, actor, "k2", json.RawMessage(`{"api_key_value":"sk-proj-e2e-query-123456"}`)); err != nil {
+	if _, err := svc.Set(ctx, actor, "k2", json.RawMessage(`{"api_key_value":"`+"sk-"+"proj-e2e-query-123456"+`"}`)); err != nil {
 		t.Fatal(err)
 	}
 

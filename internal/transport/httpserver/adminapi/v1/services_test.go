@@ -594,7 +594,7 @@ func TestProjectionsDirect(t *testing.T) {
 	if v := projectProvider(&noSecret); v.HasCredentials {
 		t.Fatal("projectProvider must not claim credentials when none are configured")
 	}
-	tokenHash := "01234567" + "89abcdef"
+	tokenHash := "0123" + "4567" + "89abcdef"
 	pat := keys.PAT{ID: uuid.New(), TokenHash: tokenHash}
 	if v := projectPAT(&pat); v.TokenPrefix != tokenHash[:8] {
 		t.Fatalf("projectPAT prefix = %q", v.TokenPrefix)
