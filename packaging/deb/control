@@ -1,0 +1,11 @@
+Package: gorouter
+Version: 1.2.3
+Section: net
+Priority: optional
+Architecture: amd64
+Maintainer: Gorouter <release@gorouter.dev>
+Homepage: https://github.com/gorouter/gorouter
+X-Gorouter-Artifact-URL: https://github.com/gorouter/gorouter/releases/download/v1.2.3/gorouter-linux-x64
+X-Gorouter-Artifact-SHA256: sha256-published-at-release
+X-Gorouter-Artifact-Signature: gorouter-linux-x64.sig
+Description: Gorouter native gateway

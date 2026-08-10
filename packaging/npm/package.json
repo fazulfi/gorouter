@@ -1,0 +1,9 @@
+{
+  "name": "gorouter",
+  "version": "1.2.3",
+  "description": "Gorouter native launcher",
+  "bin": { "gorouter": "launcher.js" },
+  "scripts": { "test": "node --test test/*.js", "coverage": "node --test --experimental-test-coverage test/*.js" },
+  "engines": { "node": ">=18" },
+  "files": ["launcher.js", "postinstall.js"]
+}
