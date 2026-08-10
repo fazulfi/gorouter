@@ -22,6 +22,12 @@ func main() {
 
 func run() int {
 	args := os.Args
+	if len(args) == 1 {
+		return runBare()
+	}
+	if len(args) > 1 && (args[1] == "service" || args[1] == "logs" || args[1] == "exit") {
+		return runLifecycleCommand(args[1:], os.Stdout)
+	}
 
 	mode, modeErr := bootstrap.ParseMode(args)
 	if modeErr != nil {
