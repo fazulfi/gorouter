@@ -15,12 +15,27 @@ import (
 type runner func(ctx context.Context, goBin string, env, args []string) error
 
 func defaultRunner(ctx context.Context, goBin string, env, args []string) error {
-	cmd := &exec.Cmd{Path: goBin, Args: append([]string{goBin}, args...), Env: env} // #nosec G204 -- goBin is the validated Go toolchain path selected by the build configuration.
+	resolvedGoBin, err := resolveGoBinary(goBin)
+	if err != nil {
+		return err
+	}
+	cmd := &exec.Cmd{Path: resolvedGoBin, Args: append([]string{resolvedGoBin}, args...), Env: env} // #nosec G204 -- goBin is the validated Go toolchain path selected by the build configuration.
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+func resolveGoBinary(goBin string) (string, error) {
+	if strings.ContainsAny(goBin, `/\\`) {
+		return goBin, nil
+	}
+	resolved, err := exec.LookPath(goBin)
+	if err != nil {
+		return "", fmt.Errorf("resolve go toolchain %q: %w", goBin, err)
+	}
+	return resolved, nil
 }
 
 // reproducibleBuildArgs returns the go build invocation that strips everything

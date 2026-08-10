@@ -3,11 +3,37 @@ package main
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestResolveGoBinaryUsesPATH(t *testing.T) {
+	goPath, err := exec.LookPath("go")
+	if err != nil {
+		t.Skipf("go is not available on PATH: %v", err)
+	}
+	resolved, err := resolveGoBinary("go")
+	if err != nil {
+		t.Fatalf("resolveGoBinary failed: %v", err)
+	}
+	if resolved != goPath {
+		t.Fatalf("resolved go = %q, want %q", resolved, goPath)
+	}
+}
+
+func TestResolveGoBinaryPreservesExplicitPath(t *testing.T) {
+	const configured = "custom/bin/go"
+	resolved, err := resolveGoBinary(configured)
+	if err != nil {
+		t.Fatalf("resolveGoBinary failed: %v", err)
+	}
+	if resolved != configured {
+		t.Fatalf("resolved go = %q, want %q", resolved, configured)
+	}
+}
 
 func setupFrontend(t *testing.T, dir string) {
 	t.Helper()
