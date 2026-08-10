@@ -1,0 +1,11 @@
+version: 1
+platform: windows
+shortcuts: []
+contents:
+  - gorouter.exe
+  - config/
+  - data/postgresql/
+  - backups/
+  - logs/
+relocation: allowed-when-stopped
+service: optional

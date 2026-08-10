@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Gorouter" Manufacturer="Gorouter" Version="1.2.3" UpgradeCode="00000000-0000-0000-0000-000000000001">
+    <MajorUpgrade DowngradeErrorMessage="A newer Gorouter is already installed." />
+    <StandardDirectory Id="ProgramFilesFolder"><Directory Id="INSTALLFOLDER" Name="Gorouter" /></StandardDirectory>
+    <Feature Id="MainFeature" Title="Gorouter"><ComponentGroupRef Id="ApplicationFiles" /></Feature>
+  </Package>
+  <Fragment>
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Component Id="GorouterExecutable" Guid="00000000-0000-0000-0000-000000000002">
+        <File Id="GorouterExe" Source="gorouter.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

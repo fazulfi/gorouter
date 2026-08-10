@@ -1,0 +1,10 @@
+version: 1
+layout:
+  - gorouter
+  - config/
+  - data/postgresql/
+  - backups/
+  - logs/
+constraints:
+  relocation: only-when-stopped
+  shortcuts: none

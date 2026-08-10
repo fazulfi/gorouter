@@ -1,0 +1,8 @@
+version: 1
+platform: linux
+format: tar.gz
+postgres: external-via-DATABASE_URL
+service_user:
+  name: gorouter
+  login_shell: /usr/sbin/nologin
+service: packaging/linux/gorouter.service
