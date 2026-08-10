@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gorouter.dev/build/manifest.schema.json",
+  "title": "GoRouter Release Manifest",
+  "description": "Schema for the release manifest emitted by tools/build next to each release payload. Two builds from identical source and toolchain inputs must produce byte-identical manifests, so no timestamp field is permitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commit",
+    "version",
+    "go_version",
+    "os",
+    "arch",
+    "frontend_hash",
+    "payload_sha256",
+    "signature"
+  ],
+  "properties": {
+    "commit": {
+      "type": "string",
+      "description": "Full 40-character lowercase hex git commit SHA the payload was built from.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the release, e.g. v1.2.3 or v1.2.3-beta.1+build.",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "go_version": {
+      "type": "string",
+      "description": "Go toolchain version used to compile the payload, e.g. go1.25.0.",
+      "pattern": "^go[0-9]+(\\.[0-9]+)*"
+    },
+    "os": {
+      "type": "string",
+      "description": "Target operating system (GOOS).",
+      "enum": ["linux", "darwin", "windows"]
+    },
+    "arch": {
+      "type": "string",
+      "description": "Target architecture (GOARCH).",
+      "enum": ["amd64", "arm64", "386"]
+    },
+    "frontend_hash": {
+      "type": "string",
+      "description": "Deterministic sha256 over the frontend build directory embedded into the payload.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "payload_sha256": {
+      "type": "string",
+      "description": "sha256 of the release payload binary.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": ["string", "null"],
+      "description": "Detached signature over the payload. Null until signing key material is provisioned; signing execution is intentionally excluded from reproducible-build scope."
+    }
+  }
+}

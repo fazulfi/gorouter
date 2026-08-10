@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	frontendassets "gorouter"
 	"gorouter/internal/app/backup"
 	"gorouter/internal/app/cooldown"
 	"gorouter/internal/app/orchestrator"
@@ -82,6 +83,10 @@ func DispatchMode(mode Mode, app *App) (exitCode int, err error) {
 	}
 }
 
+func mountFrontend(router chi.Router) {
+	router.Mount("/", httpserver.EmbedHandler(frontendassets.FS))
+}
+
 func dispatchServer(app *App) (int, error) {
 	router := httpserver.New(
 		middleware.Correlation,
@@ -103,6 +108,7 @@ func dispatchServer(app *App) (int, error) {
 		r.Use(middleware.ModelKeyAuth(modelKeyValidator))
 		apiHandler.RegisterRoutes(r)
 	})
+	mountFrontend(router)
 
 	addr := app.Config.Host + ":" + strconv.Itoa(app.Config.Port)
 
