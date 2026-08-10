@@ -23,6 +23,10 @@ func main() {
 func run() int {
 	args := os.Args
 	if len(args) == 1 {
+		cfg, cfgErr := bootstrap.LoadConfig(args, os.Getenv, nil, nil)
+		if cfgErr != nil || cfg.DatabaseURL == "" {
+			return 1
+		}
 		return runBare()
 	}
 	if len(args) > 1 && (args[1] == "service" || args[1] == "logs" || args[1] == "exit") {
