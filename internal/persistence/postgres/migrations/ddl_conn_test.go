@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v2"
 )
 
@@ -339,5 +341,50 @@ func TestDDLConnConfig_TransportsPassword(t *testing.T) {
 	}
 	if connCfg.User != DDLRoleUser {
 		t.Errorf("pgconn.Config.User = %q, want %q", connCfg.User, DDLRoleUser)
+	}
+}
+
+// TestDDLConnConfig_ParseConfigClean reproduces the production crash-loop:
+// pgx v5 panics with "config must be created by ParseConfig" unless the
+// ConnConfig was created by pgx.ParseConfig (conn.go:253-255). The DDL-role
+// migration path builds its config via ddlConnConfig and hands it to
+// pgx.ConnectConfig, so the returned config must be parse-created. This test
+// constructs the config exactly as ddl_conn.go does at HEAD and drives it
+// through pgx.ConnectConfig, which performs the createdByParseConfig check
+// before any network I/O — a panic here is the production bug. A non-routable
+// TEST-NET-1 address plus a bounded connect timeout keeps the post-fix path
+// deterministic without a live database.
+func TestDDLConnConfig_ParseConfigClean(t *testing.T) {
+	cfg := DDLConfig{
+		Host:     "192.0.2.1", // TEST-NET-1: non-routable, no real server
+		Port:     5432,
+		Database: "gorouter",
+		User:     DDLRoleUser,
+		Password: "s3cret-pw",
+	}
+	connCfg := ddlConnConfig(cfg)
+	if connCfg == nil {
+		t.Fatal("ddlConnConfig returned nil")
+	}
+	if connCfg.Host != cfg.Host || connCfg.Port != cfg.Port || connCfg.Database != cfg.Database {
+		t.Errorf("transport = %s:%d/%s, want %s:%d/%s",
+			connCfg.Host, connCfg.Port, connCfg.Database, cfg.Host, cfg.Port, cfg.Database)
+	}
+	if connCfg.User != DDLRoleUser {
+		t.Errorf("pgconn.Config.User = %q, want %q", connCfg.User, DDLRoleUser)
+	}
+	if connCfg.Password != "s3cret-pw" {
+		t.Errorf("pgconn.Config.Password = %q, want %q", connCfg.Password, "s3cret-pw")
+	}
+	connCfg.ConnectTimeout = time.Second
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("pgx.ConnectConfig panicked with a non-parse-created config: %v", r)
+		}
+	}()
+	conn, err := pgx.ConnectConfig(context.Background(), connCfg)
+	if err == nil {
+		_ = conn.Close(context.Background())
 	}
 }
