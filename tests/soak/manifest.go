@@ -82,7 +82,9 @@ func WriteLabManifest(path string, m *LabManifest) error {
 	}
 	dir := filepath.Dir(path)
 	if dir != "." && dir != "" {
-		os.MkdirAll(dir, 0700)
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return err
+		}
 	}
 	return os.WriteFile(path, append(data, '\n'), 0600)
 }

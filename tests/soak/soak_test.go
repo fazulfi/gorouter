@@ -107,7 +107,9 @@ func TestProhibitedEventDetection(t *testing.T) {
 	}
 	var goroutineLeak, memoryAnomaly bool
 	snapshots := make([]*TrendPoint, 0)
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		for snap := range harness.Samples() {
 			snapshots = append(snapshots, snap)
 			if snap.GoroutineCount > cfg.GoroutineThreshold {
@@ -121,6 +123,7 @@ func TestProhibitedEventDetection(t *testing.T) {
 	harness.Start()
 	time.Sleep(2500 * time.Millisecond)
 	harness.Stop()
+	<-done
 	if goroutineLeak {
 		t.Errorf("goroutine leak detected")
 	}
@@ -165,7 +168,9 @@ func TestSoakSmokeRun(t *testing.T) {
 	harness.SetTarget(server.URL)
 
 	snapshots := make([]*TrendPoint, 0)
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		for snap := range harness.Samples() {
 			snapshots = append(snapshots, snap)
 		}
@@ -175,6 +180,7 @@ func TestSoakSmokeRun(t *testing.T) {
 	harness.Start()
 	time.Sleep(2 * cfg.Duration)
 	harness.Stop()
+	<-done
 	elapsed := time.Since(start)
 
 	t.Logf("smoke elapsed: %v, snapshots: %d", elapsed, len(snapshots))

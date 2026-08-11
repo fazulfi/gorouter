@@ -77,8 +77,8 @@ func (c *SnapshotCollector) collect() *TrendPoint {
 	return &TrendPoint{
 		Timestamp:          now,
 		GoroutineCount:     int64(runtime.NumGoroutine()),
-		MemoryBytes:        int64(m.HeapAlloc),
-		LatencyPercentiles: Percentiles{P95Ms: 15.0 + float64(rand.Intn(10))},
+		MemoryBytes:        int64(m.HeapAlloc),                                // #nosec G115 -- heapAlloc fits in int64 on all runtime platforms; test-only simulation
+		LatencyPercentiles: Percentiles{P95Ms: 15.0 + float64(rand.Intn(10))}, // #nosec G404 -- test fixture only, not cryptographic or sensitive simulation
 		ErrorCount:         0,
 		CrashIndicator:     false,
 		DeadlockIndicator:  false,

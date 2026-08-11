@@ -100,7 +100,7 @@ func ComputeLockHashes(root string) (map[string]string, error) {
 
 // HashFile returns the lowercase hex SHA-256 of the file at path.
 func HashFile(path string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- path derives from hardcoded LockPaths table, never user input
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +154,7 @@ func WriteFreezeRecord(rec *FreezeRecord, path string) error {
 		return err
 	}
 	data = append(data, '\n')
-	return os.WriteFile(path, data, 0o644)
+	return os.WriteFile(path, data, 0o644) // #nosec G306 -- freeze manifest is a public release artifact, 0644 readability required
 }
 
 // SortedLockNames returns the lock names in a stable order for display.

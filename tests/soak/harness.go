@@ -70,7 +70,6 @@ type Harness struct {
 	started       atomic.Bool
 	stopOnce      sync.Once
 	stopChan      chan struct{}
-	rng           *rand.Rand
 	wg            sync.WaitGroup
 	samplerWg     sync.WaitGroup
 	routerHits    atomic.Int64
@@ -97,7 +96,6 @@ func NewHarness(cfg Config) (*Harness, error) {
 		config:      cfg,
 		samplesChan: make(chan *TrendPoint, 1000),
 		stopChan:    make(chan struct{}),
-		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -172,7 +170,7 @@ func (h *Harness) collectSnapshot() *TrendPoint {
 		LatencyPercentiles: h.percentiles(),
 		ErrorCount:         h.errorCount.Load(),
 		GoroutineCount:     int64(runtime.NumGoroutine()),
-		MemoryBytes:        int64(m.HeapAlloc),
+		MemoryBytes:        int64(m.HeapAlloc), // #nosec G115 -- heapAlloc fits in int64 on all platforms, test simulation only
 	}
 }
 
@@ -199,18 +197,20 @@ func (h *Harness) worker(id int) {
 	if target == "" {
 		return
 	}
+	// Create per-worker random source to avoid concurrent access to shared rng
+	workerRng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(id))) // #nosec G404 -- per-worker rand for workload mixing, not cryptographic/sensitive usage
 	for {
 		select {
 		case <-h.stopChan:
 			return
 		default:
 		}
-		h.runWorkload(target, id)
+		h.runWorkload(target, id, workerRng)
 	}
 }
 
-func (h *Harness) runWorkload(target string, workerID int) {
-	workloadType := h.rng.Float64()
+func (h *Harness) runWorkload(target string, workerID int, workerRng *rand.Rand) {
+	workloadType := workerRng.Float64()
 	start := time.Now()
 	var err error
 	switch {
@@ -247,7 +247,7 @@ func (h *Harness) httpRequest(target string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	io.Copy(io.Discard, resp.Body) // #nosec G104 -- discard response body for latency measurement; intentional design
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
@@ -268,7 +268,7 @@ func (h *Harness) streamRequest(target string) error {
 	}
 	defer resp.Body.Close()
 	buf := make([]byte, 256)
-	io.ReadFull(resp.Body, buf)
+	io.ReadFull(resp.Body, buf) // #nosec G104 -- best-effort stream drain for latency measurement
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("unexpected stream status %d", resp.StatusCode)
 	}
@@ -290,7 +290,7 @@ func (h *Harness) providerRequest(target string, workerID int) error {
 		return err
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	io.Copy(io.Discard, resp.Body) // #nosec G104 -- discard provider response body for throughput measurement
 	return nil
 }
 
@@ -306,7 +306,7 @@ func (h *Harness) authRequest(target string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	io.Copy(io.Discard, resp.Body) // #nosec G104 -- discard auth response body for throughput measurement
 	return nil
 }
 

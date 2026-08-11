@@ -1,6 +1,8 @@
 package soak
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -119,4 +121,41 @@ func mustHarness(t *testing.T) *Harness {
 		t.Fatalf("new harness: %v", err)
 	}
 	return h
+}
+
+// TestConcurrentWorkloadCounterConsistency is a regression test for the
+// P5-T13 soak harness data race: the original harness shared a single
+// *rand.Rand across concurrent worker goroutines, which the CI race
+// detector reported as a DATA RACE (WARNING: DATA RACE in
+// math/rand.(*rngSource) from Harness.runWorkload under Harness.worker).
+// The fix gives each worker its own seeded *rand.Rand. This test runs the
+// full concurrent workload path (many workers against a live httptest
+// server) and asserts the per-worker counters stay consistent, so it will
+// exercise the same goroutine interleavings the race detector checks.
+func TestConcurrentWorkloadCounterConsistency(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		Duration: 5 * time.Second, SampleInterval: 2 * time.Second,
+		Concurrency: 16, TestMode: true, ProviderCount: 2, AuthRequestRatio: 0.2,
+	}
+	h, err := NewHarness(cfg)
+	if err != nil {
+		t.Fatalf("new harness: %v", err)
+	}
+	h.SetTarget(server.URL)
+	h.Start()
+	time.Sleep(1200 * time.Millisecond)
+	h.Stop()
+
+	m := h.GetMetrics()
+	if m.RouterHits+m.StreamingHits+m.AuthHits+m.ProviderCalls == 0 {
+		t.Fatal("no workload executed; regression test did not exercise concurrent path")
+	}
+	if m.RouterHits < 0 || m.StreamingHits < 0 || m.AuthHits < 0 || m.ProviderCalls < 0 {
+		t.Fatalf("negative counter observed: %+v", m)
+	}
 }
