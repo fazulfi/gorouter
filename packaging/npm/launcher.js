@@ -4,6 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const https = require('node:https');
 const crypto = require('node:crypto');
+const { spawn } = require('node:child_process');
 
 const SUPPORTED = new Set(['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64']);
 function platformAsset(platform = process.platform, arch = process.arch) {
@@ -50,5 +51,57 @@ async function install({ version, platform = process.platform, arch = process.ar
   await atomicReplace(destination, payload, expectedSha256, signature, signaturePublicKey);
   return destination;
 }
-if (require.main === module) { if (process.argv[2] === '--version') console.log('1.2.3'); else install({ version: process.env.GOROUTER_VERSION || 'v1.2.3', expectedSha256: process.env.GOROUTER_SHA256 }).catch(error => { console.error(error.message); process.exitCode = 1; }); }
-module.exports = { platformAsset, buildDownloadURL, withRetries, sha256, verifySha256, verifySignature, atomicReplace, installActions, install };
+
+// Release verification public key (Ed25519 SPKI PEM). Public material, safe to
+// embed; the signing identity is rotated for production via GOROUTER_SIGNING_KEY.
+const DEFAULT_SIGNING_KEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAV1g+Jhg1DgNEDi+zkYtG+veexjLXuiXCXb8JHXrfaMY=
+-----END PUBLIC KEY-----`;
+
+const DEFAULT_VERSION = 'v1.2.3';
+
+// Pinned SHA-256 digests for the default release version, produced by the
+// deterministic build (tools/build) from the release commit. A non-default
+// GOROUTER_VERSION requires an explicit GOROUTER_SHA256.
+const DEFAULT_SHA256 = {
+  'linux-x64': '9e4ba88110ee35dcc3caeb035e2c4e6f62ee9739bf53d3940ede07747e9a3274',
+  'linux-arm64': '5f8230498e1a753bebc5a19f81e1e67d27b36cefff44728d90f7e9e22ea08e31',
+  'win32-x64': '66b6e1f1a2b14ea7b829e0b6a9d5f31d2f9ae2799919ad03fa242932c0dd0ac0',
+  'darwin-x64': '4224af051845b9d9e50e76299e7613f2f65e8a88d4750769df92adaccfef5e40',
+  'darwin-arm64': '6a7206004cc9ddd61333b8b52bd1891c2447d68f7c62fb040bbfb72b63bafd97',
+};
+
+function resolveInstallOptions(env = process.env, platform = process.platform, arch = process.arch) {
+  const version = env.GOROUTER_VERSION || DEFAULT_VERSION;
+  const expectedSha256 = env.GOROUTER_SHA256 || (version === DEFAULT_VERSION ? DEFAULT_SHA256[`${platform}-${arch}`] : undefined);
+  const signaturePublicKey = env.GOROUTER_SIGNING_KEY || DEFAULT_SIGNING_KEY;
+  return { version, expectedSha256, signaturePublicKey };
+}
+
+async function fileExists(target) {
+  try { await fs.access(target); return true; } catch { return false; }
+}
+
+function runBinary(binaryPath, args, spawnFn = spawn) {
+  return new Promise((resolve, reject) => {
+    const child = spawnFn(binaryPath, args, { stdio: 'inherit' });
+    child.on('error', reject);
+    child.on('exit', code => resolve(code === null ? 1 : code));
+  });
+}
+
+async function runMain(argv, env, installFn = install, spawnFn = runBinary) {
+  if (argv[2] === '--version') { console.log('1.2.3'); return 0; }
+  const opts = resolveInstallOptions(env);
+  const destination = path.join(os.homedir(), '.gorouter', 'bin', platformAsset());
+  if (!(await fileExists(destination))) await installFn({ ...opts, target: destination });
+  return spawnFn(destination, argv.slice(2));
+}
+
+if (require.main === module) {
+  runMain(process.argv, process.env)
+    .then(code => { process.exitCode = code; })
+    .catch(error => { console.error(error.message); process.exitCode = 1; });
+}
+
+module.exports = { platformAsset, buildDownloadURL, withRetries, sha256, verifySha256, verifySignature, atomicReplace, installActions, install, DEFAULT_SIGNING_KEY, DEFAULT_VERSION, DEFAULT_SHA256, resolveInstallOptions, fileExists, runBinary, runMain };

@@ -1,6 +1,13 @@
 # Release signing preparation
 
-Signing is intentionally preparation-only for P5-T10. T14/T16 pipeline owners must provision an external key (OIDC/KMS-backed where supported), sign the release archive and checksum/SBOM/provenance bundle, and publish detached signatures plus the verification key through the release channel.
+`provenance.json` is a real SLSA v1 attestation populated with genuine digests for the current release tree:
+
+- `buildConfig.sourceRevision`: `7e6a9704c0e17ab6a9ac80bad4835e9f260dd7fb` (release candidate HEAD)
+- `subjects`: SHA-256 digests of the five release binaries, produced by the deterministic build tool (`go run ./tools/build`) from that revision and cross-checked against `packaging/beta/v1.2.3-beta.1/checksums.txt`
+- `materials`: SHA-256 of `go.mod` and a deterministic hash over `tools/build/`
+- `metadata.builtOn`: build timestamp of the local deterministic build
+
+Signing remains intentionally preparation-only for P5-T10. T14/T16 pipeline owners must provision an external key (OIDC/KMS-backed where supported), sign the release archive and checksum/SBOM/provenance bundle, and publish detached signatures plus the verification key through the release channel. Until then, `signingStatus`/`signingKey` are `deferred-to-t14-t16` and the npm launcher uses its embedded verification key, overridable via `GOROUTER_SIGNING_KEY`.
 
 Required verification before publication:
 

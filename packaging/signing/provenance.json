@@ -1,7 +1,77 @@
 {
-  "schema": "https://slsa.dev/provenance/v1",
+  "$schema": "https://slsa.dev/provenance/v1",
   "buildType": "https://github.com/gorouter/release/go-build",
-  "materials": [{"uri": "git+repository", "digest": "SOURCE_REVISION_REQUIRED"}],
-  "metadata": {"reproducible": true, "signing": "deferred-to-t14-t16"},
-  "subjects": [{"name": "release-artifact", "digest": {"sha256": "ARTIFACT_SHA256_REQUIRED"}}]
+  "buildConfig": {
+    "sourceRevision": "7e6a9704c0e17ab6a9ac80bad4835e9f260dd7fb",
+    "version": "v1.2.3",
+    "reproducible": true,
+    "signingStatus": "deferred-to-t14-t16"
+  },
+  "metadata": {
+    "builtOn": "2026-08-11T11:11:51Z",
+    "builder": {
+      "id": "fazulfi-worktree-gorouter-phase5"
+    },
+    "invocation": {
+      "configSource": {
+        "uri": "git+repository",
+        "digest": {
+          "sha256": "7e6a9704c0e17ab6a9ac80bad4835e9f260dd7fb"
+        }
+      }
+    },
+    "signingKey": "deferred-to-t14-t16"
+  },
+  "materials": [
+    {
+      "uri": "git+repository@7e6a9704c0e17ab6a9ac80bad4835e9f260dd7fb",
+      "digest": {
+        "sha256": "7e6a9704c0e17ab6a9ac80bad4835e9f260dd7fb"
+      }
+    },
+    {
+      "uri": "gorouter/go.mod",
+      "digest": {
+        "sha256": "af1c6e94f045558e06adc5b31f57e6877289055c536eec489b0711bd0ee5b904"
+      }
+    },
+    {
+      "uri": "gorouter/tools/build/",
+      "digest": {
+        "sha256": "9ec4ab77907f785979c82de129afd54cd633d2136fbae7c65606ba2ffb4a7830"
+      }
+    }
+  ],
+  "subjects": [
+    {
+      "name": "gorouter-windows-amd64.exe",
+      "digest": {
+        "sha256": "66b6e1f1a2b14ea7b829e0b6a9d5f31d2f9ae2799919ad03fa242932c0dd0ac0"
+      }
+    },
+    {
+      "name": "gorouter-linux-amd64",
+      "digest": {
+        "sha256": "9e4ba88110ee35dcc3caeb035e2c4e6f62ee9739bf53d3940ede07747e9a3274"
+      }
+    },
+    {
+      "name": "gorouter-linux-arm64",
+      "digest": {
+        "sha256": "5f8230498e1a753bebc5a19f81e1e67d27b36cefff44728d90f7e9e22ea08e31"
+      }
+    },
+    {
+      "name": "gorouter-darwin-amd64",
+      "digest": {
+        "sha256": "4224af051845b9d9e50e76299e7613f2f65e8a88d4750769df92adaccfef5e40"
+      }
+    },
+    {
+      "name": "gorouter-darwin-arm64",
+      "digest": {
+        "sha256": "6a7206004cc9ddd61333b8b52bd1891c2447d68f7c62fb040bbfb72b63bafd97"
+      }
+    }
+  ]
 }
