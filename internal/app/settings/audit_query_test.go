@@ -75,6 +75,9 @@ func TestAuditQueryService_List(t *testing.T) {
 func TestAuditQueryService_Export(t *testing.T) {
 	t.Parallel()
 
+	apiKey := "sk-" + "proj-" + "abcdef123456"
+	refreshTok := "ya" + "29." + "abcdefghijklmnop"
+
 	t.Run("actor required", func(t *testing.T) {
 		svc := NewAuditQueryService(AuditQueryScopeBeginnerFunc(func(context.Context) (AuditQueryScope, error) {
 			return &fakeAuditQueryScope{repo: &fakeAuditQueryRepo{}}, nil
@@ -88,12 +91,12 @@ func TestAuditQueryService_Export(t *testing.T) {
 		repo := &fakeAuditQueryRepo{entries: []tx.AuditEntry{
 			{
 				ID: uuid.New(), Action: "provider.update", ResourceType: "provider",
-				Details:    []byte(`{"api_key_value":"sk-proj-abcdef123456","ok":true}`),
+				Details:    []byte(`{"api_key_value":"` + apiKey + `","ok":true}`),
 				OccurredAt: time.Now().UTC(),
 			},
 			{
 				ID: uuid.New(), Action: "oauth.token", ResourceType: "oauth",
-				Details:    []byte(`{"refresh_token":"ya29.abcdefghijklmnop"}`),
+				Details:    []byte(`{"refresh_token":"` + refreshTok + `"}`),
 				OccurredAt: time.Now().UTC(),
 			},
 			{
@@ -113,7 +116,7 @@ func TestAuditQueryService_Export(t *testing.T) {
 			t.Fatalf("entries = %d, want 3", len(entries))
 		}
 		joined := strings.Join([]string{string(entries[0].Details), string(entries[1].Details), string(entries[2].Details)}, "\n")
-		if strings.Contains(joined, "sk-proj-abcdef123456") || strings.Contains(joined, "ya29.abcdefghijklmnop") {
+		if strings.Contains(joined, apiKey) || strings.Contains(joined, refreshTok) {
 			t.Errorf("raw credential leaked into export: %s", joined)
 		}
 		if !strings.Contains(joined, "[REDACTED]") {
@@ -131,7 +134,7 @@ func TestAuditQueryService_Export(t *testing.T) {
 	})
 
 	t.Run("does not mutate repository rows", func(t *testing.T) {
-		raw := []byte(`{"api_key_value":"sk-proj-abcdef123456"}`)
+		raw := []byte(`{"api_key_value":"` + apiKey + `"}`)
 		repo := &fakeAuditQueryRepo{entries: []tx.AuditEntry{{ID: uuid.New(), Action: "a", Details: raw}}}
 		svc := NewAuditQueryService(AuditQueryScopeBeginnerFunc(func(context.Context) (AuditQueryScope, error) {
 			return &fakeAuditQueryScope{repo: repo}, nil

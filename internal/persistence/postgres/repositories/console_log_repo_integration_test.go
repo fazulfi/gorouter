@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"gorouter/internal/domain/console"
-	"gorouter/internal/persistence/postgres/migrations"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ─────────────────────────────────────────────────────────────
@@ -593,20 +590,14 @@ func TestConsoleLogRepo_NextSeq_ConcurrentAppends_Integration(t *testing.T) {
 	}
 	ctx := context.Background()
 	dbName := setupRepoTestDB(t, ctx)
-	cfg, err := pgxpool.ParseConfig(isolatedTestDSN(t, dbName))
-	if err != nil {
-		t.Fatalf("parse config: %v", err)
-	}
-	// Enough connections for every writer to run truly concurrently.
-	cfg.MaxConns = 16
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		t.Fatalf("pool: %v", err)
-	}
+
+	bootstrapRolesForRepoTest(t, ctx, os.Getenv("DATABASE_URL"))
+
+	dsn := isolatedTestDSN(t, dbName)
+	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
+	pool := migrateAsDDLRepoTest(t, ctx, dsn)
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn) // FIX_C: concurrent writers need gorouter DML grants on tracking tables
 	defer pool.Close()
-	if _, err := migrations.Migrate(ctx, pool, migrations.DirectionUp); err != nil {
-		t.Fatalf("migrate up: %v", err)
-	}
 
 	const writers = 12
 	const rounds = 2

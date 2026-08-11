@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"gorouter/internal/domain/console"
+	appconsole "gorouter/internal/app/console"
 )
 
 // ConsoleStreamSource is the read seam for the console stream: the durable
@@ -15,7 +15,7 @@ import (
 // strictly after the last delivered sequence number.
 type ConsoleStreamSource interface {
 	Updates() <-chan struct{}
-	ListAfter(ctx context.Context, seq int64, limit int) ([]console.ConsoleLog, error)
+	ListAfter(ctx context.Context, seq int64, limit int) ([]appconsole.ConsoleLog, error)
 }
 
 // ConsoleLinePayload is one durable console line. Message always carries the
@@ -51,7 +51,7 @@ func NewConsoleStream(src ConsoleStreamSource, keepalive time.Duration) http.Han
 		if c, ok := src.(Canceler); ok {
 			defer c.Cancel()
 		}
-		rows, err := src.ListAfter(ctx, cursor, console.DefaultCap)
+		rows, err := src.ListAfter(ctx, cursor, appconsole.DefaultCap)
 		if err != nil {
 			return
 		}
@@ -75,7 +75,7 @@ func NewConsoleStream(src ConsoleStreamSource, keepalive time.Duration) http.Han
 			case <-ticker.C:
 				writeKeepalive(w, f)
 			case <-src.Updates():
-				rows, err := src.ListAfter(ctx, last, console.DefaultCap)
+				rows, err := src.ListAfter(ctx, last, appconsole.DefaultCap)
 				if err != nil {
 					return
 				}
@@ -94,7 +94,7 @@ func NewConsoleStream(src ConsoleStreamSource, keepalive time.Duration) http.Han
 
 // toConsoleLine projects one durable console row to the registry payload,
 // serving the redacted message only.
-func toConsoleLine(row console.ConsoleLog) ConsoleLinePayload {
+func toConsoleLine(row appconsole.ConsoleLog) ConsoleLinePayload {
 	return ConsoleLinePayload{
 		Seq:        row.Seq,
 		Level:      row.Level,

@@ -4,7 +4,7 @@ export const ariaLiveRegions = {
   log: 'role="log"' as const,
 };
 
-export const getAnnouncementAttrs = (message: string) => ({
+export const getAnnouncementAttrs = () => ({
   'aria-live': 'polite',
   'aria-atomic': 'true' as const,
   role: 'status',
@@ -14,7 +14,7 @@ export function announce(message: string) {
   if (typeof document === 'undefined') return;
   
   const el = document.createElement('div');
-  Object.assign(el, getAnnouncementAttrs(message));
+  Object.assign(el, getAnnouncementAttrs());
   el.textContent = message;
   document.body.appendChild(el);
   

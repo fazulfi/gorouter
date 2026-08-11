@@ -1,0 +1,22 @@
+services:
+  gorouter:
+    build:
+      context: ../..
+      dockerfile: packaging/docker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://gorouter:gorouter@postgres:5432/gorouter
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gorouter
+      POSTGRES_PASSWORD: gorouter
+      POSTGRES_DB: gorouter
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes:
+  postgres-data:

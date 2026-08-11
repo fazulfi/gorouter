@@ -1,0 +1,53 @@
+{
+  "schema_version": "p5-t13-lab-manifest.v1",
+  "task": "P5-T13",
+  "authority": "phase5-implementation-plan.md §4.13 and §7 soak-72h gate",
+  "status": "pending_authoritative_run",
+  "candidate_sha": "c1532fcd6268bfdd7b419673e32e4c34fcd8ac7e",
+  "sample_interval": "5m",
+  "output_dir": "artifacts/p5-t13",
+  "evidence_path": "artifacts/p5-t13/trend.json + signed envelope",
+  "owner": "T13 owner",
+  "reference_environment": {
+    "host": "to be determined / release lab host",
+    "cpu": "Record exact vCPU count (lscpu output)",
+    "memory": "Record RAM (free -h or equivalent)",
+    "storage": "Available disk space",
+    "os": "Distribution and kernel version (uname -a)"
+  },
+  "common": {
+    "working_directory": "repository root",
+    "threshold_enforcement": "SOAK_ENFORCE_THRESHOLDS=1",
+    "output_format": "signed JSON manifest with trend points + signed evidence envelope",
+    "prohibited_claim": "local smoke runs are NOT authoritative; only lab/CI measurements count for T13 pass"
+  },
+  "gates": [
+    {
+      "id": "soak-72h",
+      "metric": "72-hour mixed-load soak with zero prohibited events (crashes, deadlocks, goroutine leaks, duplicate terminal events)",
+      "command": "go test ./tests/soak/... -run TestSoakSmokeRun -args -soak-duration=72h -soak-sample-interval=5m -soak-concurrency=256 -soak-fail-closed=true -soak-provider-count=10 -soak-auth-ratio=0.15 -soak-output=artifacts/p5-t13/trend.json",
+      "tooling": "Go test harness with injectable clock/time support for test mode",
+      "load": {
+        "duration": "72 hours continuous",
+        "concurrency": 256,
+        "error_budget": 0.01,
+        "mix": "router HTTP (60%), SSE streaming (25%), provider simulation (5%), auth/API requests (remaining)"
+      },
+      "threshold": {
+        "p95_bound_ms": 50.0,
+        "p99_bound_ms": 100.0,
+        "error_rate_ceiling": 0.01,
+        "memory_growth_percent_max": 20.0,
+        "goroutine_stability_max": 100,
+        "zero_crashes": true,
+        "zero_deadlocks": true,
+        "zero_duplicate_terminal_events": true
+      },
+      "pass_criteria": "Exit code 0 and all trend-point assertions pass: no crash indicator, no deadlock indicator, no memory/goroutine anomaly above thresholds",
+      "evidence_file": "artifacts/p5-t13/trend.json plus signed evidence envelope (HMAC-SHA256 with release key at T14/T16)",
+      "owner": "release lab operator / T13 owner"
+    }
+  ],
+  "deferred_to_t14_t16": "The actual 72-hour run is deferred to the release lab/VPS stage per task instructions. No fabricated results were claimed here.",
+  "signing_intent": "Evidence will be signed with HMAC-SHA256 using a release key (Ed25519/Ed25519 not yet provisioned). Unit tests in signed_test.go demonstrate round-trip verification with TEST KEY ONLY."
+}

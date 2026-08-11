@@ -13,6 +13,12 @@ import (
 	"gorouter/internal/domain/jobs"
 )
 
+// Job represents a scheduled or triggered background job.
+type Job = jobs.Job
+
+// JobType is an alias for jobs.JobType.
+type JobType = jobs.JobType
+
 // Handler provides HTTP endpoints for enqueuing async jobs and checking their
 // status. Routes are mountable on a chi.Router.
 type Handler struct {

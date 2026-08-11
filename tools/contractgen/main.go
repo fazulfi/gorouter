@@ -44,20 +44,7 @@ type schemaDef struct {
 	Items       *schemaDef           `yaml:"items"`
 	Properties  map[string]schemaDef `yaml:"properties"`
 	Required    []string             `yaml:"required"`
-	AllOf       []schemaRef          `yaml:"allOf"`
-	Nullable    bool                 `yaml:"nullable"`
-}
-
-type schemaRef struct {
-	Ref         string               `yaml:"$ref"`
-	Type        string               `yaml:"type"`
-	Format      string               `yaml:"format"`
-	Description string               `yaml:"description"`
-	Enum        []string             `yaml:"enum"`
-	Items       *schemaRef           `yaml:"items"`
-	Properties  map[string]schemaRef `yaml:"properties"`
-	Required    []string             `yaml:"required"`
-	AllOf       []schemaRef          `yaml:"allOf"`
+	AllOf       []schemaDef          `yaml:"allOf"`
 	Nullable    bool                 `yaml:"nullable"`
 }
 
@@ -84,7 +71,7 @@ type parameter struct {
 	Name     string    `yaml:"name"`
 	In       string    `yaml:"in"`
 	Required bool      `yaml:"required"`
-	Schema   schemaRef `yaml:"schema"`
+	Schema   schemaDef `yaml:"schema"`
 }
 
 type requestBody struct {
@@ -93,7 +80,7 @@ type requestBody struct {
 }
 
 type media struct {
-	Schema schemaRef `yaml:"schema"`
+	Schema schemaDef `yaml:"schema"`
 }
 
 type response struct {
@@ -111,8 +98,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	yamlPath := filepath.Join(repoRoot, openapiPath)
-	outPath := filepath.Join(repoRoot, outputPath)
+	yamlPath := filepath.Clean(filepath.Join(repoRoot, openapiPath))
+	outPath := filepath.Clean(filepath.Join(repoRoot, outputPath))
 
 	data, err := os.ReadFile(yamlPath)
 	if err != nil {
@@ -147,7 +134,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if err := os.WriteFile(outPath, generated, 0644); err != nil {
+	if err := os.WriteFile(outPath, generated, 0600); err != nil {
 		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", outPath, err)
 		os.Exit(1)
 	}
@@ -316,24 +303,33 @@ func schemaToTS(name string, s schemaDef, all map[string]schemaDef) (string, err
 	}
 
 	if s.Type == "object" || len(s.Properties) > 0 || len(s.AllOf) > 0 {
-		var lines []string
-		lines = append(lines, fmt.Sprintf("export interface %s {", name))
-
-		if len(s.AllOf) > 0 {
-			for _, ref := range s.AllOf {
-				if ref.Ref != "" {
-					base := refBaseName(ref.Ref)
-					lines = append(lines, fmt.Sprintf("\textends %s;", base))
-				}
+		var extends []string
+		props := make(map[string]schemaDef)
+		required := append([]string(nil), s.Required...)
+		for _, member := range s.AllOf {
+			if member.Ref != "" {
+				extends = append(extends, refBaseName(member.Ref))
+				continue
 			}
+			for pname, p := range member.Properties {
+				props[pname] = p
+			}
+			required = append(required, member.Required...)
+		}
+		for pname, p := range s.Properties {
+			props[pname] = p
 		}
 
-		props := sortedPropKeys(s.Properties)
-		for _, pname := range props {
-			p := s.Properties[pname]
+		header := "export interface " + name
+		if len(extends) > 0 {
+			header += " extends " + strings.Join(extends, ", ")
+		}
+		lines := []string{header + " {"}
+		for _, pname := range sortedPropKeys(props) {
+			p := props[pname]
 			tsType := tsTypeForDef(&p, all)
 			opt := ""
-			if !contains(s.Required, pname) {
+			if !contains(required, pname) {
 				opt = "?"
 			}
 			desc := ""
@@ -377,7 +373,7 @@ func tsTypeForDef(s *schemaDef, all map[string]schemaDef) string {
 	return tsPrimitive(s.Type, s.Format)
 }
 
-func refType(ref *schemaRef) string {
+func refType(ref *schemaDef) string {
 	if ref == nil {
 		return "void"
 	}
@@ -390,7 +386,7 @@ func refType(ref *schemaRef) string {
 	return tsPrimitive(ref.Type, ref.Format)
 }
 
-func refName(ref *schemaRef) string {
+func refName(ref *schemaDef) string {
 	if ref == nil {
 		return "unknown"
 	}
@@ -429,7 +425,7 @@ func extractPathParams(op *operation) []string {
 	return result
 }
 
-func extractBody(op *operation) *schemaRef {
+func extractBody(op *operation) *schemaDef {
 	if op.RequestBody == nil {
 		return nil
 	}
@@ -439,7 +435,7 @@ func extractBody(op *operation) *schemaRef {
 	return nil
 }
 
-func extractResponse(op *operation) *schemaRef {
+func extractResponse(op *operation) *schemaDef {
 	for _, code := range []string{"200", "201", "202"} {
 		if r, ok := op.Responses[code]; ok {
 			for _, mt := range r.Content {
@@ -455,7 +451,7 @@ func extractResponse(op *operation) *schemaRef {
 	return nil
 }
 
-func buildInitObj(method string, body *schemaRef, path string, params []string) string {
+func buildInitObj(method string, body *schemaDef, path string, params []string) string {
 	if body != nil {
 		return "{\n\t\tmethod: \"" + method + "\",\n\t\tbody: JSON.stringify(body),\n\t}"
 	}
@@ -480,7 +476,7 @@ func camelOpID(id string) string {
 	var b strings.Builder
 	upper := true
 	for _, ch := range id {
-		if ch == '_' || ch == '-' || ch == ' ' {
+		if ch == '_' || ch == '-' || ch == ' ' || ch == '/' {
 			upper = true
 			continue
 		}

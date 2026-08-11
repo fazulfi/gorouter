@@ -1,0 +1,14 @@
+{
+  "artifact": "stable-candidate-freeze",
+  "phase": "P5-T15",
+  "stable_version": "v1.2.3",
+  "candidate_sha": "715916074067bed34fa4b44a3783775d041ef3dc",
+  "candidate_tag": "v1.2.3-beta.1",
+  "defect_disposition": "No user-reported beta defects exist (beta published 2026-08-11); all beta considerations dispositioned CLOSED-NO-REPORTED-DEFECT or DEFERRED; zero fix commits required; candidate frozen at beta HEAD.",
+  "freeze_timestamp": "2026-08-11T04:46:02Z",
+  "locks": {
+    "frontend-package-lock.json": "4740e0ae92552f71ddf21659da0a431206555d9054c251c173cc808e48e746d2",
+    "go.mod": "af1c6e94f045558e06adc5b31f57e6877289055c536eec489b0711bd0ee5b904",
+    "go.sum": "571280a0ea670407fd9826c07143637f7c9eac22e3c98e8fe057be5e0b4245bf"
+  }
+}

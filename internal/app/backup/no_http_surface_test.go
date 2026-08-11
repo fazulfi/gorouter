@@ -28,10 +28,12 @@ func moduleRoot(t *testing.T) string {
 
 // allowedBackupImporters lists the only production packages allowed to
 // import the backup service package (for non-destructive operations). The
-// fail-closed bootstrap gate is the sole current importer; the API lane
-// (List/Download/Verify wiring) must extend this list with review.
+// fail-closed bootstrap gate and the reviewed adminapi/v1 List/Download/Verify
+// lanes are the only importers; further extension requires explicit review
+// (DECISIONS #202, security P1-7).
 var allowedBackupImporters = []string{
 	filepath.Join("internal", "bootstrap"),
+	filepath.Join("internal", "transport", "httpserver", "adminapi", "v1"),
 }
 
 // allowedRestoreCallers lists the only production packages allowed to invoke

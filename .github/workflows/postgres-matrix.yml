@@ -54,6 +54,50 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # Wave4 guard: the runner's default pg_dump is 16.x, which aborts against
+      # server majors 17/18 ("pg_dump: error: aborting because of server version
+      # mismatch"). Wave5: run 31321501787 proved the ubuntu-latest image does
+      # NOT ship the PGDG apt source (postgresql-client-17/18 were not
+      # locatable), so configure the official PostgreSQL PGDG repository first
+      # (official signing key into a dedicated signed-by keyring, codename from
+      # /etc/os-release), then install the client major matching the matrix
+      # server and prepend its bin dir to PATH so pg_dump/pg_restore resolve
+      # version-matched.
+      - name: Install PostgreSQL ${{ matrix.pg-version }} client (version-matched)
+        run: |
+          set -euo pipefail
+          PG_MAJOR="${{ matrix.pg-version }}"
+
+          . /etc/os-release
+          CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME}}"
+          sudo curl -fsSL --retry 3 -o /usr/share/postgresql-pgdg.asc \
+            "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+          sudo chmod 644 /usr/share/postgresql-pgdg.asc
+          sudo gpg --dearmor --yes -o /usr/share/keyrings/postgresql-pgdg.gpg \
+            /usr/share/postgresql-pgdg.asc
+          sudo rm -f /usr/share/postgresql-pgdg.asc
+          sudo chmod 644 /usr/share/keyrings/postgresql-pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql-pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}"
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+
+      - name: Assert pg_dump major matches matrix server major
+        run: |
+          set -euo pipefail
+          PG_MAJOR="${{ matrix.pg-version }}"
+          echo "resolved pg_dump: $(command -v pg_dump)"
+          DUMP_LINE="$(pg_dump --version | head -n1)"
+          echo "pg_dump --version: ${DUMP_LINE}"
+          DUMP_VERSION="$(echo "${DUMP_LINE}" | awk '{print $3}')"
+          if [ "${DUMP_VERSION%%.*}" != "${PG_MAJOR}" ]; then
+            echo "::error::pg_dump major ${DUMP_VERSION%%.*} does not match matrix server major ${PG_MAJOR}"
+            exit 1
+          fi
+          echo "::notice::pg_dump major ${PG_MAJOR} matches matrix server major (client ${DUMP_VERSION})"
+
       - name: Run integration tests ${{ matrix.race == 'on' && 'with race' || '' }}
         run: |
           RACE_FLAG="${{ matrix.race == 'on' && '-race' || '' }}"

@@ -35,6 +35,10 @@ func setupAuditRoleTestDB(t *testing.T, ctx context.Context) string {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	if err := bootstrapRolesOnCluster(t, ctx, runtimeBase); err != nil {
+		t.Fatalf("bootstrap roles: %v", err)
+	}
+
 	// The runtime role creates the database (CREATEDB) and owns it, which
 	// makes it the effective owner of the public schema; it then grants the
 	// DDL role schema-create rights for the migration batch.
@@ -150,6 +154,24 @@ func runtimeTestDSN(t *testing.T, base, dbName string) string {
 	return u.String()
 }
 
+// runtimePoolAsGorouter opens a pgxpool connected as the gorouter runtime identity.
+// It parses the base DSN, switches cfg.ConnConfig.User to "gorouter", and creates
+// the pool. This mirrors the approved pattern from repositories/bootstrap_roles_repos_test.go.
+// On error, t.Fatal is called (fail closed).
+func runtimePoolAsGorouter(t *testing.T, ctx context.Context, baseDSN string) *pgxpool.Pool {
+	t.Helper()
+	cfg, err := pgxpool.ParseConfig(baseDSN)
+	if err != nil {
+		t.Fatalf("parse DSN for runtime pool: %v", err)
+	}
+	cfg.ConnConfig.User = "gorouter"
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatalf("create runtime pool as gorouter: %v", err)
+	}
+	return pool
+}
+
 // TestJobAuditInsert proves, at the DB level, that an audit INSERT with
 // actor_kind='job', job_id=<job-type> and actor_id IS NULL succeeds with the
 // FK/CHECK/GRANT satisfied, that the inserted job row is filterable by
@@ -159,10 +181,7 @@ func TestJobAuditInsert(t *testing.T) {
 	ctx := context.Background()
 	runtimeDSN := setupAuditRoleTestDB(t, ctx)
 
-	pool, err := pgxpool.New(ctx, runtimeDSN)
-	if err != nil {
-		t.Fatalf("runtime pool: %v", err)
-	}
+	pool := runtimePoolAsGorouter(t, ctx, runtimeDSN)
 	defer pool.Close()
 
 	var currentUser string
@@ -317,10 +336,7 @@ func TestAuditRoleImmutability(t *testing.T) {
 	ctx := context.Background()
 	runtimeDSN := setupAuditRoleTestDB(t, ctx)
 
-	pool, err := pgxpool.New(ctx, runtimeDSN)
-	if err != nil {
-		t.Fatalf("runtime pool: %v", err)
-	}
+	pool := runtimePoolAsGorouter(t, ctx, runtimeDSN)
 	defer pool.Close()
 
 	// The runtime role must never be the audit log owner: ownership is the

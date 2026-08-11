@@ -14,6 +14,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// PriceOverride is an alias for pricing.PriceOverride.
+type PriceOverride = pricing.PriceOverride
+
 // PricingScope is the transaction-scoped persistence surface used by
 // PricingService. *tx.TxScope satisfies it, so the service can be wired
 // directly to TransactionManager.Begin output.

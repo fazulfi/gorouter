@@ -6,10 +6,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/backup"
+	appauth "gorouter/internal/app/auth"
+	appbackup "gorouter/internal/app/backup"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -28,9 +29,9 @@ type BackupDownload struct {
 // exposes list/download/verify only; restore is local CLI only (#202) and no
 // restore route exists.
 type BackupsService interface {
-	List(ctx context.Context, actor *auth.Actor) ([]backup.Backup, error)
-	Download(ctx context.Context, actor *auth.Actor, ip net.IP, id uuid.UUID) (*BackupDownload, error)
-	Verify(ctx context.Context, actor *auth.Actor, id uuid.UUID) error
+	List(ctx context.Context, actor *appauth.Actor) ([]appbackup.Backup, error)
+	Download(ctx context.Context, actor *appauth.Actor, ip net.IP, id uuid.UUID) (*BackupDownload, error)
+	Verify(ctx context.Context, actor *appauth.Actor, id uuid.UUID) error
 }
 
 type backupsGroup struct{ svc BackupsService }
@@ -77,7 +78,7 @@ func (g *backupsGroup) Download(w http.ResponseWriter, r *http.Request) {
 		backendUnavailable(w, r)
 		return
 	}
-	f, err := os.Open(res.Path)
+	f, err := os.Open(filepath.Clean(res.Path))
 	if err != nil {
 		writeError(w, r, err)
 		return

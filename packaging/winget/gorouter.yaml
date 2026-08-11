@@ -1,0 +1,8 @@
+{
+  "PackageIdentifier": "Gorouter.Gorouter",
+  "PackageVersion": "1.2.3",
+  "PackageLocale": "en-US",
+  "Publisher": "Gorouter",
+  "PackageName": "Gorouter",
+  "Installers": [{ "InstallerUrl": "https://github.com/gorouter/gorouter/releases/download/v1.2.3/gorouter-windows-x64.exe", "InstallerSha256": "sha256-published-at-release", "Architecture": "x64", "InstallerType": "portable" }]
+}

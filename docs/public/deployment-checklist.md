@@ -46,6 +46,7 @@
    - SSE streams connect successfully
 
 ## Rollback Procedure (If Deployment Fails)
+<a id="rollback-procedure-if-deployment-fails"></a>
 1. **Stop service**
    ```bash
    sudo systemctl stop gorouter.service
@@ -82,6 +83,7 @@
 - Validate backup job runs successfully (if scheduled)
 
 ## Security Validation
+<a id="security-validation"></a>
 - [ ] Verify PostgreSQL bound loopback only (`127.0.0.1:5442/5443/5444`)
 - [ ] Confirm non-root user running (uid 1000, group docker)
 - [ ] Test CSRF protection on mutation endpoints

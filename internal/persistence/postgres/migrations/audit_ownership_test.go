@@ -69,6 +69,10 @@ func setupOwnershipTestDB(t *testing.T, ctx context.Context, upToVersion, applie
 		t.Skip("skipping integration test in short mode")
 	}
 
+	if err := bootstrapRolesOnCluster(t, ctx, runtimeBase); err != nil {
+		t.Fatalf("bootstrap roles: %v", err)
+	}
+
 	admin, err := pgx.Connect(ctx, runtimeBase)
 	if err != nil {
 		t.Fatalf("connect as runtime role: %v", err)
@@ -92,7 +96,11 @@ func setupOwnershipTestDB(t *testing.T, ctx context.Context, upToVersion, applie
 		_, _ = cleanupConn.Exec(cleanupCtx, "DROP DATABASE IF EXISTS "+dbName)
 	})
 
-	for _, role := range []string{DDLRoleUser, nomemberDDLRole} {
+	// Grant CREATE ON SCHEMA public to roles that may apply migrations:
+	// - DDLRoleUser/nomemberDDLRole are the migration executors (per Rev3)
+	// - gorouter is granted only for the legacy-schema simulation where the
+	//   runtime role owns tables (fixtures at lines 307–346)
+	for _, role := range []string{DDLRoleUser, nomemberDDLRole, "gorouter"} {
 		freshAdmin, err := pgx.Connect(ctx, runtimeTestDSN(t, runtimeBase, dbName))
 		if err != nil {
 			t.Fatalf("connect to fresh db as runtime role: %v", err)
@@ -258,10 +266,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if len(result.Applied) != 9 {
 			t.Errorf("applied = %d, want 9", len(result.Applied))
 		}
-		pool, err := pgxpool.New(ctx, db.runtimeDSN)
-		if err != nil {
-			t.Fatalf("runtime pool: %v", err)
-		}
+		pool := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
 		defer pool.Close()
 		owner, err := auditLogOwner(ctx, pool)
 		if err != nil {
@@ -285,10 +290,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if len(result.Applied) != 1 || result.Applied[0] != "000009_backups_audit.up.sql" {
 			t.Errorf("applied = %v, want exactly 000009_backups_audit.up.sql", result.Applied)
 		}
-		pool, err := pgxpool.New(ctx, db.runtimeDSN)
-		if err != nil {
-			t.Fatalf("runtime pool: %v", err)
-		}
+		pool := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
 		defer pool.Close()
 		owner, err := auditLogOwner(ctx, pool)
 		if err != nil {
@@ -316,10 +318,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), want)
 			}
 		}
-		pool, err := pgxpool.New(ctx, db.runtimeDSN)
-		if err != nil {
-			t.Fatalf("runtime pool: %v", err)
-		}
+		pool := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
 		defer pool.Close()
 		owner, err := auditLogOwner(ctx, pool)
 		if err != nil {
@@ -355,10 +354,7 @@ func TestAuditOwnershipPrecondition(t *testing.T) {
 		if !found {
 			t.Errorf("applied = %v, want 000009 included", result.Applied)
 		}
-		pool, err := pgxpool.New(ctx, db.runtimeDSN)
-		if err != nil {
-			t.Fatalf("runtime pool: %v", err)
-		}
+		pool := runtimePoolAsGorouter(t, ctx, db.runtimeDSN)
 		defer pool.Close()
 		owner, err := auditLogOwner(ctx, pool)
 		if err != nil {

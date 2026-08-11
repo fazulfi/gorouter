@@ -1,0 +1,90 @@
+{
+  "schema_version": "p5-t12-lab-manifest.v1",
+  "task": "P5-T12",
+  "authority": "phase5-implementation-plan.md §4.12 and §7 performance-gate",
+  "status": "pending_authoritative_run",
+  "reference_environment": {
+    "host": "143.198.86.164",
+    "cpu": "4 vCPU (record lscpu output)",
+    "memory": "7.8 GiB reported by task context; plan target is 16 GiB, so record and adjudicate discrepancy",
+    "storage": "153 GiB",
+    "os": "Record exact distribution and kernel from uname -a",
+    "access": "directed lab run only; no SSH/VPS execution in T12 fix",
+    "toolchain": "pinned repository Go toolchain; record go version",
+    "rebaseline": {
+      "userApproved": true,
+      "approvalDate": "2026-08-11T02:21:23Z",
+      "host": "143.198.86.164",
+      "hostFingerprint": "SHA256:DRhiB9lHgECw7vkgMPv9jAgOPThDv/KpJ+Mu7DKPef0",
+      "effectiveReferenceSpec": {"cpu": "4 CPU", "memory": "7.8 GiB", "storage": "153 GiB", "os": "Ubuntu 24.04"},
+      "planTargetBaseline": {"cpu": "4 vCPU", "memory": "16 GiB"},
+      "variance": "4 vCPU vs 4 CPU (nominal), 16 GiB vs 7.8 GiB RAM",
+      "thresholdsRetained": true,
+      "measurementStatus": "pending",
+      "notes": "User-approved re-baseline per P5-T12 authority gap resolution. Host 143.198.86.164 authorized as reference environment while retaining original thresholds (p95 <20 ms, >=2000 concurrent streams, >=100k RPM). Authoritative measurements still pending on host; do not fabricate results."
+    }
+  },
+  "common": {
+    "working_directory": "repository root",
+    "threshold_enforcement": "PERF_ENFORCE_THRESHOLDS=1",
+    "output_format": "sanitized JSON bundle written with -perf-output; retain stdout/stderr, host inventory, command, commit SHA, and result bundle",
+    "prohibited_claim": "local httptest results are not authoritative reference-environment evidence"
+  },
+  "gates": [
+    {
+      "id": "router-overhead-p95",
+      "metric": "router-only handler p95 latency",
+      "command": "PERF_ENFORCE_THRESHOLDS=1 go test ./tests/performance/... -count=1 -run '^TestRouterOverheadP95$' -timeout 30m -args -perf-iterations=20000 -perf-concurrency=16 -perf-output=artifacts/p5-t12/router-overhead.json",
+      "tooling": "Go test harness, httptest, sanitized JSON bundle",
+      "load": {"iterations": 20000, "concurrency": 16, "provider_calls": 0},
+      "threshold": {"p95_ms": {"operator": "<", "value": 20}},
+      "pass_criteria": "command exits 0 and bundle records p95_ms < 20 with reference host metadata",
+      "evidence_file": "artifacts/p5-t12/router-overhead.json plus captured stdout/stderr and host-inventory.txt",
+      "owner": "directed lab run; T12 reviewer adjudicates"
+    },
+    {
+      "id": "concurrent-streams",
+      "metric": "peak concurrent HTTP streams observed",
+      "command": "PERF_ENFORCE_THRESHOLDS=1 go test ./tests/performance/... -count=1 -run '^TestConcurrentStreams$' -timeout 30m -args -perf-iterations=1 -perf-concurrency=2000 -perf-output=artifacts/p5-t12/concurrent-streams.json",
+      "tooling": "Go test harness, httptest, goroutines, sanitized JSON bundle",
+      "load": {"iterations": 1, "concurrency": 2000, "provider_calls": 0},
+      "threshold": {"peak_concurrent_streams": {"operator": ">=", "value": 2000}},
+      "pass_criteria": "command exits 0 and test log records peak concurrency >= 2000 with reference host metadata",
+      "evidence_file": "artifacts/p5-t12/concurrent-streams.json plus captured stdout/stderr and host-inventory.txt",
+      "owner": "directed lab run; T12 reviewer adjudicates"
+    },
+    {
+      "id": "lightweight-rpm",
+      "metric": "router-only lightweight endpoint throughput",
+      "command": "PERF_ENFORCE_THRESHOLDS=1 go test ./tests/performance/... -count=1 -run '^TestLightweightRPM$' -timeout 30m -args -perf-iterations=100000 -perf-concurrency=256 -perf-output=artifacts/p5-t12/lightweight-rpm.json",
+      "tooling": "Go test harness, httptest, sanitized JSON bundle",
+      "load": {"iterations": 100000, "concurrency": 256, "provider_calls": 0},
+      "threshold": {"requests_per_minute": {"operator": ">=", "value": 100000}},
+      "pass_criteria": "command exits 0 and bundle records requests_per_second * 60 >= 100000 with reference host metadata",
+      "evidence_file": "artifacts/p5-t12/lightweight-rpm.json plus captured stdout/stderr and host-inventory.txt",
+      "owner": "directed lab run; T12 reviewer adjudicates"
+    },
+    {
+      "id": "postgres-latency-and-pool",
+      "metric": "PostgreSQL-backed handler latency and pool behavior under load",
+      "command": "PERF_ENFORCE_THRESHOLDS=1 go test ./tests/performance/... -count=1 -run '^TestRouterOverheadP95$' -timeout 30m -args -perf-iterations=20000 -perf-concurrency=16 -perf-output=artifacts/p5-t12/postgres-latency.json",
+      "tooling": "Go test harness command is the required control run; lab operator MUST attach the authorized PostgreSQL-backed scenario output and pool telemetry to the same evidence record",
+      "load": {"iterations": 20000, "concurrency": 16, "database": "PostgreSQL 16/17/18 matrix or approved lab version; record DSN topology and pool limits"},
+      "threshold": {"value": "No numeric threshold is asserted by the T12 plan; pass requires complete latency/pool evidence and no pool exhaustion or error-rate regression"},
+      "pass_criteria": "control command exits 0; attached PostgreSQL scenario records p50/p95/p99, pool max/open/idle/wait metrics, errors, database version, and exact command; otherwise gate remains pending",
+      "evidence_file": "artifacts/p5-t12/postgres-latency.json plus postgres-scenario.json, pool-metrics.json, stdout/stderr, host-inventory.txt",
+      "owner": "CI/lab PostgreSQL job; T02/T12 owners jointly adjudicate"
+    },
+    {
+      "id": "provider-latency-separation",
+      "metric": "router overhead separated from upstream provider latency",
+      "command": "PERF_ENFORCE_THRESHOLDS=1 go test ./tests/performance/... -count=1 -run '^TestRouterOverheadIsMeasuredWithoutProvider$' -timeout 30m -args -perf-output=artifacts/p5-t12/provider-separation-control.json",
+      "tooling": "Go test harness provider-independent control plus authorized provider scenario; retain separate router, upstream, and end-to-end timings",
+      "load": {"control": "router-only handler", "provider": "approved provider matrix case; record provider/model, endpoint, credential source class, and request count"},
+      "threshold": {"value": "No fabricated numeric provider threshold; pass requires separate timing series and attributable overhead calculation"},
+      "pass_criteria": "control command exits 0; attached provider scenario contains separate router/upstream/end-to-end p50/p95/p99 series and reproducible command; otherwise gate remains pending",
+      "evidence_file": "artifacts/p5-t12/provider-separation-control.json plus provider-separation.json, stdout/stderr, host-inventory.txt",
+      "owner": "CI/lab provider job; T09/T12 owners jointly adjudicate"
+    }
+  ]
+}

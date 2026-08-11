@@ -141,6 +141,10 @@ export interface DeployResult {
 	url?: string;
 }
 export interface DetailedHealth extends Health {
+	db?: unknown;
+	goroutines?: number;
+	uptime_seconds?: number;
+	version?: string;
 }
 export interface DisabledModel {
 	id?: string;

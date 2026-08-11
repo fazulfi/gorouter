@@ -1,0 +1,7 @@
+name: postgres-managed-runtime
+version: 16
+platforms:
+  - windows-amd64
+  - darwin-arm64
+  - linux-amd64
+sha256: 6f6d7d0cf6b6f4f2e2d5e2d1d54dba8eecf16c2d7e6e3aeb0b9a7c4a6b7e8d9c

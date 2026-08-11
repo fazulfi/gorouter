@@ -81,7 +81,7 @@ func (h embedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimPrefix(p, "/")
 	if f, err := h.fsys.Open(name); err == nil {
-		f.Close()
+		_ = f.Close()
 		h.serveFile(w, r, name)
 		return
 	}
@@ -161,7 +161,7 @@ func (h embedHandler) serveHTML(w http.ResponseWriter, r *http.Request, name str
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(data)
+		_, _ = io.Copy(w, bytes.NewReader(data))
 	})).ServeHTTP(w, r)
 }
 

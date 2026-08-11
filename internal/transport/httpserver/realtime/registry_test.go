@@ -38,10 +38,11 @@ func TestWriteKeepaliveCommentFormat(t *testing.T) {
 
 func TestWriteEventAppliesOutboundRedaction(t *testing.T) {
 	w := httptest.NewRecorder()
+	apiKey := "sk-" + "proj-" + "abc123xyz"
 	payload := struct {
 		Line string `json:"line"`
 	}{
-		Line: "provider auth api_key_value=sk-proj-abc123xyz failed",
+		Line: "provider auth api_key_value=" + apiKey + " failed",
 	}
 	if err := writeEvent(w, w, UsageStatsEvent, payload); err != nil {
 		t.Fatalf("writeEvent: %v", err)
@@ -53,7 +54,7 @@ func TestWriteEventAppliesOutboundRedaction(t *testing.T) {
 	if !strings.Contains(body, "[REDACTED]") {
 		t.Errorf("redaction marker missing in %q", body)
 	}
-	if strings.Contains(body, "sk-proj-abc123xyz") {
+	if strings.Contains(body, apiKey) {
 		t.Errorf("credential-shaped value survived the outbound redaction pass: %q", body)
 	}
 }

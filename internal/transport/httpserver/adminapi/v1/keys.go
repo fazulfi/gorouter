@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"gorouter/internal/domain/keys"
+	appkeys "gorouter/internal/app/keys"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -15,10 +15,10 @@ import (
 // concrete backend service exposes create/revoke; list/get/update are wired
 // when the backend lane lands them.
 type KeysService interface {
-	List(ctx context.Context, userID uuid.UUID) ([]keys.APIKey, error)
-	Get(ctx context.Context, id uuid.UUID) (*keys.APIKey, error)
-	Create(ctx context.Context, userID uuid.UUID, name string, expiresAt *time.Time) (*keys.APIKey, string, error)
-	Update(ctx context.Context, id uuid.UUID, name string, expiresAt *time.Time) (*keys.APIKey, error)
+	List(ctx context.Context, userID uuid.UUID) ([]appkeys.APIKey, error)
+	Get(ctx context.Context, id uuid.UUID) (*appkeys.APIKey, error)
+	Create(ctx context.Context, userID uuid.UUID, name string, expiresAt *time.Time) (*appkeys.APIKey, string, error)
+	Update(ctx context.Context, id uuid.UUID, name string, expiresAt *time.Time) (*appkeys.APIKey, error)
 	Revoke(ctx context.Context, id uuid.UUID) error
 }
 
@@ -45,7 +45,7 @@ type createAPIKeyView struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func projectAPIKey(k *keys.APIKey) apiKeyView {
+func projectAPIKey(k *appkeys.APIKey) apiKeyView {
 	return apiKeyView{
 		ID: k.ID, Name: k.Name, KeyPrefix: k.KeyPrefix,
 		ExpiresAt: k.ExpiresAt, LastUsedAt: k.LastUsedAt, RevokedAt: k.RevokedAt,

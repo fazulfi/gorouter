@@ -4,16 +4,16 @@ import (
 	"context"
 	"net/http"
 
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/jobs"
+	appauth "gorouter/internal/app/auth"
+	appworker "gorouter/internal/app/worker"
 )
 
 // JobsService is the application seam for the jobs group. Run-now receives
 // the actor so the service audits with job provenance.
 type JobsService interface {
-	List(ctx context.Context) ([]jobs.Job, error)
-	History(ctx context.Context, jobType string) ([]jobs.Job, error)
-	RunNow(ctx context.Context, actor *auth.Actor, jobType string) error
+	List(ctx context.Context) ([]appworker.Job, error)
+	History(ctx context.Context, jobType string) ([]appworker.Job, error)
+	RunNow(ctx context.Context, actor *appauth.Actor, jobType string) error
 }
 
 type jobsGroup struct {

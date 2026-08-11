@@ -7,19 +7,10 @@ import (
 	"time"
 
 	"gorouter/internal/domain/auth"
-	"gorouter/internal/persistence/postgres/migrations"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-func getTestDSN() string {
-	dsn := os.Getenv("POSTGRES_TEST_DSN")
-	if dsn != "" {
-		return dsn
-	}
-	return "postgres://postgres:postgres@localhost:5432/postgres"
-}
 
 func skipIfShort(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
@@ -28,30 +19,27 @@ func skipIfShort(t *testing.T, pool *pgxpool.Pool) {
 	}
 }
 
+// FIX_A: aligned with getTestPool topology (isolation + complete fixture grants) to restore
+// least-privilege CI correctness after Wave-3 exposed true role boundaries. The historical
+// shared DB approach using POSTGRES_TEST_DSN was broken under correct topology: migrations
+// applied as postgres admin → gorouter_migrations owned by postgres; gorouter_ddl cannot SELECT.
 func testPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	dsn := getTestDSN()
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		t.Fatalf("parse test DSN: %v", err)
-	}
-	cfg.MaxConns = 5
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		t.Fatalf("create test pool: %v", err)
-	}
-	t.Cleanup(pool.Close)
-
-	// Ensure the schema is applied. This is safe to call repeatedly — already-
-	// applied migrations are skipped. Makes integration tests self-sufficient
-	// regardless of test-package execution order.
-	if _, err := migrations.NewRunner(pool).Migrate(ctx, migrations.DirectionUp); err != nil {
-		t.Fatalf("apply migrations: %v", err)
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL not set")
 	}
 
+	bootstrapRolesForRepoTest(t, ctx, dsn)
+	dbName := setupRepoTestDB(t, ctx)
+	dsn = isolatedTestDSN(t, dbName)
+
+	grantSchemaCreateToDDLRepoTest(t, ctx, dsn)
+	pool := migrateAsDDLRepoTest(t, ctx, dsn)
+	grantRuntimeFixturePrivilegesRepoTest(t, ctx, dsn)
 	return pool
 }
 

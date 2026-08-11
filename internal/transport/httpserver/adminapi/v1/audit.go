@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	appauth "gorouter/internal/app/auth"
 	"gorouter/internal/app/tx"
-	"gorouter/internal/domain/auth"
 	"gorouter/internal/shared/redact"
 
 	"github.com/go-chi/chi/v5"
@@ -17,9 +17,9 @@ import (
 // AuditService is the application seam for the read-only audit group. The
 // audit log is append-only; the contract exposes list/get/export only.
 type AuditService interface {
-	List(ctx context.Context, actor *auth.Actor, filters tx.AuditFilters, page tx.AuditPage) ([]tx.AuditEntry, error)
-	Export(ctx context.Context, actor *auth.Actor, filters tx.AuditFilters) ([]tx.AuditEntry, error)
-	Get(ctx context.Context, actor *auth.Actor, id uuid.UUID) (*tx.AuditEntry, error)
+	List(ctx context.Context, actor *appauth.Actor, filters tx.AuditFilters, page tx.AuditPage) ([]tx.AuditEntry, error)
+	Export(ctx context.Context, actor *appauth.Actor, filters tx.AuditFilters) ([]tx.AuditEntry, error)
+	Get(ctx context.Context, actor *appauth.Actor, id uuid.UUID) (*tx.AuditEntry, error)
 }
 
 type auditGroup struct{ svc AuditService }

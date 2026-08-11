@@ -21,8 +21,8 @@ import (
 	"net"
 	"net/http"
 
-	"gorouter/internal/domain/auth"
-	comboerr "gorouter/internal/domain/combo"
+	appauth "gorouter/internal/app/auth"
+	appcombo "gorouter/internal/app/combos"
 	"gorouter/internal/transport/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -38,13 +38,13 @@ const maxBodyBytes = 1 << 20 // 1 MiB
 // backend lane; a nil auditor is a no-op (audit remains the responsibility of
 // the wired application services, which receive the actor).
 type Auditor interface {
-	Audit(ctx context.Context, actor *auth.Actor, action, target string, before, after json.RawMessage) error
+	Audit(ctx context.Context, actor *appauth.Actor, action, target string, before, after json.RawMessage) error
 }
 
 // actorFrom returns the authenticated actor stamped by the session or PAT
 // middleware, or nil when no actor is present.
-func actorFrom(r *http.Request) *auth.Actor {
-	a, _ := auth.FromContext(r.Context())
+func actorFrom(r *http.Request) *appauth.Actor {
+	a, _ := appauth.FromContext(r.Context())
 	return a
 }
 
@@ -93,11 +93,11 @@ func statusFor(err error) int {
 	switch {
 	case err == nil:
 		return http.StatusOK
-	case errors.Is(err, comboerr.ErrNotFound),
+	case errors.Is(err, appcombo.ErrNotFound),
 		errors.Is(err, errNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, comboerr.ErrInvalidConfig),
-		errors.Is(err, comboerr.ErrInvalidMember),
+	case errors.Is(err, appcombo.ErrInvalidConfig),
+		errors.Is(err, appcombo.ErrInvalidMember),
 		errors.Is(err, errInvalid):
 		return http.StatusBadRequest
 	case errors.Is(err, errConflict):

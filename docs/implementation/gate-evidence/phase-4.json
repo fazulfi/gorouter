@@ -1,221 +1,188 @@
 {
   "phase": "4",
-  "status": "in-progress",
-  "timestamp": "2026-08-07T00:00:00Z",
+  "status": "pass",
+  "timestamp": "2026-08-09T17:27:33Z",
+  "duration_seconds": 953,
   "checks": [
     {
       "name": "BE-01: TxScope wiring",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-01.md",
-      "review": ".sisyphus/reviews/be-01-review.md"
+      "output": "pass — Coverage (01-go-test-short-coverage.log): `ok gorouter/internal/app/tx 2.097s coverage: 90.5% of statements` — regenerated evidence .sisyphus/evidence/be-01.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-02: Bootstrap lock ordering",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-02.md",
-      "review": ".sisyphus/reviews/be-02-review-v2.md"
+      "output": "pass — local Windows run fails pre-existingly (vet.exe: internal\\bootstrap\\modes_test.go:145:21: undefined: syscall.Kill); documented P0-B003-B/D; authoritative proof is CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec) — regenerated evidence .sisyphus/evidence/be-02.md (P0-B002)."
     },
     {
       "name": "BE-03: Domain purity guard",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-03.md",
-      "review": ".sisyphus/reviews/be-03-review.md"
+      "output": "pass — ok gorouter/internal/domain 1.287s — regenerated evidence .sisyphus/evidence/be-03.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-04: DDL-role migrations",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-04.md",
-      "review": ".sisyphus/reviews/be-04-review.md"
+      "output": "pass — Coverage (01-go-test-short-coverage.log): `ok gorouter/internal/persistence/postgres/migrations 0.454s coverage: 80.3% of statements` — regenerated evidence .sisyphus/evidence/be-04.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-05: Proxy pools/node store",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-05.md",
-      "review": ".sisyphus/reviews/be-05-review-v2.md"
+      "output": "pass — ok gorouter/internal/engine/providers/registry 6.187s coverage: 85.0% of statements — regenerated evidence .sisyphus/evidence/be-05.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-06: Usage storage",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-06.md",
-      "review": ".sisyphus/reviews/be-06-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/app/usage 2.261s coverage: 93.3%` and `ok gorouter/internal/domain/usage 1.786s coverage: 98.4%` — regenerated evidence .sisyphus/evidence/be-06.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-07: Console logs",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-07.md",
-      "review": ".sisyphus/reviews/be-07-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/app/console 1.983s coverage: 100.0% of statements` — regenerated evidence .sisyphus/evidence/be-07.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-08: Password reset (LOCAL CLI)",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-08.md",
-      "review": ".sisyphus/reviews/be-08-review.md"
+      "output": "pass — ok gorouter/internal/app/auth 8.613s coverage: 73.1% of statements — regenerated evidence .sisyphus/evidence/be-08.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-09: Backup + audit immutability",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-09.md",
-      "review": ".sisyphus/reviews/be-09-review-v2.md"
+      "output": "pass — local Windows run fails pre-existingly (--- FAIL: TestBackupService_Generate (0.91s)); documented P0-B003-B/D; authoritative proof is CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec) — regenerated evidence .sisyphus/evidence/be-09.md (P0-B002)."
     },
     {
       "name": "BE-10: Provider services",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-10.md",
-      "review": ".sisyphus/reviews/be-10-review-v2.md"
+      "output": "pass — Coverage: `ok gorouter/internal/app/providers 4.813s coverage: 81.1% of statements` PASS — regenerated evidence .sisyphus/evidence/be-10.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-11: Pricing combos",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-11.md",
-      "review": ".sisyphus/reviews/be-11-review.md"
+      "output": "pass — ok gorouter/internal/app/combos 2.782s coverage: 83.0% of statements — regenerated evidence .sisyphus/evidence/be-11.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-12: Usage pipeline ring 50",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-12.md",
-      "review": ".sisyphus/reviews/be-12-review.md"
+      "output": "pass — --- PASS: TestUsagePipelineRecord (0.00s) — regenerated evidence .sisyphus/evidence/be-12.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-13: Quota unlock/reset",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-13.md",
-      "review": ".sisyphus/reviews/be-13-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/app/quota 1.735s coverage: 96.6%` and `ok gorouter/internal/domain/quota 1.667s coverage: 100.0%` PASS — regenerated evidence .sisyphus/evidence/be-13.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-14: Console redaction/watermark",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-14.md",
-      "review": ".sisyphus/reviews/be-14-review-v4.md"
+      "output": "pass — Coverage: `ok gorouter/internal/shared/redact 0.794s coverage: 100.0% of statements` PASS — regenerated evidence .sisyphus/evidence/be-14.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "BE-15: Settings/audit/backup service",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/be-15-a4.md",
-      "review": ".sisyphus/reviews/be-15-a4-review-v2.md"
+      "output": "pass — Coverage: `ok gorouter/internal/app/settings 1.813s coverage: 89.3%` and `ok gorouter/internal/domain/settings 1.637s coverage: 100.0%` PASS — regenerated evidence .sisyphus/evidence/be-15-a4.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-01: Admin API contract",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-01.md",
-      "review": ".sisyphus/reviews/api-01-review.md"
+      "output": "pass — (api-transport-tests.log) `ok gorouter/tests/contract 1.360s` — regenerated evidence .sisyphus/evidence/api-01.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-02: Contract generator",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-02.md",
-      "review": ".sisyphus/reviews/api-02-review.md"
+      "output": "pass — PASS: frontend/src/generated/admin-v1.ts matches regenerated output — regenerated evidence .sisyphus/evidence/api-02.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-03: Actor model extension",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-03.md",
-      "review": ".sisyphus/reviews/api-03-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/domain/actor 1.406s coverage: 100.0% of statements` PASS — regenerated evidence .sisyphus/evidence/api-03.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-04: Auth middleware",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-04.md",
-      "review": ".sisyphus/reviews/api-04-review-v2.md"
+      "output": "pass — Coverage: `ok gorouter/internal/transport/middleware 2.435s coverage: 91.7%` — regenerated evidence .sisyphus/evidence/api-04.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-05: Resource group handlers",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-05.md",
-      "review": ".sisyphus/reviews/api-05-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/transport/httpserver/adminapi/v1 2.882s coverage: 83.8%` PASS — regenerated evidence .sisyphus/evidence/api-05.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-06: Auth handlers",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-06.md",
-      "review": ".sisyphus/reviews/api-06-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/transport/httpserver/auth 4.933s coverage: 74.5%` PASS — regenerated evidence .sisyphus/evidence/api-06.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-07: OIDC handlers",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-07.md",
-      "review": ".sisyphus/reviews/api-07-review.md"
+      "output": "pass — ok gorouter/internal/domain/oauth 1.677s coverage: 100.0% of statements — regenerated evidence .sisyphus/evidence/api-07.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-08: Compatibility fixtures",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-08.md",
-      "review": ".sisyphus/reviews/api-08-review.md"
+      "output": "pass — ok gorouter/tests/fixtures/upstream/compat 2.629s — regenerated evidence .sisyphus/evidence/api-08.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-09: Compat adapters",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-09.md",
-      "review": ".sisyphus/reviews/api-09-review.md"
+      "output": "pass — ok gorouter/internal/engine/translators 2.082s coverage: 83.6% of statements — regenerated evidence .sisyphus/evidence/api-09.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-10: SSE streams",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-10.md",
-      "review": ".sisyphus/reviews/api-10-review.md"
+      "output": "pass — Coverage: `ok gorouter/internal/transport/httpserver/realtime 2.497s coverage: 83.4%` and `ok gorouter/internal/domain/engine/stream 1.676s coverage: 90.4%` PASS — regenerated evidence .sisyphus/evidence/api-10.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "API-11: Embedded frontend",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/api-11.md",
-      "review": ".sisyphus/reviews/api-11-review.md"
+      "output": "pass — Coverage (01-go-test-short-coverage.log): `ok gorouter/internal/transport/httpserver 3.630s coverage: 80.4% of statements` — regenerated evidence .sisyphus/evidence/api-11.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "FE-01: Dependencies & token migration",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/fe-01.md",
-      "review": ".sisyphus/reviews/fe-02-review.md"
+      "output": "pass — 09-front-typecheck.log: > tsc --noEmit TYPECHECK EXIT: 0 — regenerated evidence .sisyphus/evidence/fe-01.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "FE-02: Router/auth shell/a11y",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/fe-02.md",
-      "review": ".sisyphus/reviews/fe-02-review.md"
+      "output": "pass — 12-front-playwright.log: shell.spec.ts — Shell, accessibility, mobile drawer, CSRF double-submit PASS; 59 passed, 1 skipped; PLAYWRIGHT EXIT: 0 — regenerated evidence .sisyphus/evidence/fe-02.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "FE-03: Theme persistence",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/fe-03.md"
+      "output": "pass — 11-front-vitest.log: Theme.test.tsx PASS; PLAYWRIGHT EXIT: 0 (59 passed) — regenerated evidence .sisyphus/evidence/fe-03.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "FE-04: i18n catalogs",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/fe-04.md"
+      "output": "pass —  `11-front-vitest.log: i18n.test.tsx PASS (part of Test Files 9 passed / Tests 72 passed; VITEST EXIT: 0)` — regenerated evidence .sisyphus/evidence/fe-04.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "FE-05: Live regions/motion/form",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/fe-05.md"
+      "output": "pass — 11-front-vitest.log: ui-components.test.tsx, Drawer.test.tsx PASS (72 tests, exit 0) — regenerated evidence .sisyphus/evidence/fe-05.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "Login page",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/login-page.md"
+      "output": "pass — (12-front-playwright.log) shell.spec.ts login-page tests PASS; overall `59 passed (53.3s), 1 skipped; PLAYWRIGHT EXIT: 0` — regenerated evidence .sisyphus/evidence/login-page.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "Dashboard page",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/dashboard.md"
+      "output": "pass — (12-front-playwright.log) shell.spec.ts dashboard-page tests PASS; overall `59 passed (53.3s), 1 skipped; PLAYWRIGHT EXIT: 0` — regenerated evidence .sisyphus/evidence/dashboard.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "Settings page",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/settings.md"
+      "output": "pass — (12-front-playwright.log) shell.spec.ts settings-page tests PASS; overall `59 passed (53.3s), 1 skipped; PLAYWRIGHT EXIT: 0` — regenerated evidence .sisyphus/evidence/settings.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "Providers page",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/providers.md"
+      "output": "pass — (12-front-playwright.log) shell.spec.ts providers-page tests PASS; overall `59 passed (53.3s), 1 skipped; PLAYWRIGHT EXIT: 0` — regenerated evidence .sisyphus/evidence/providers.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     },
     {
       "name": "Usage analytics",
       "status": "pass",
-      "evidence": ".sisyphus/evidence/usage.md"
+      "output": "pass — (12-front-playwright.log) shell.spec.ts usage-page tests PASS; overall `59 passed (53.3s), 1 skipped; PLAYWRIGHT EXIT: 0` — regenerated evidence .sisyphus/evidence/usage.md (P0-B002). CI rollup at PR #26 head 36594b77c43ef6a3d4e48b79b2cad545d73e4930 green (11 required checks + gosec)"
     }
-  ],
-  "total_checks": 35,
-  "passed": 35,
-  "failed": 0,
-  "pr_number": 25,
-  "branch": "feat/phase-4-product-surfaces",
-  "ci_status": "queued"
+  ]
 }

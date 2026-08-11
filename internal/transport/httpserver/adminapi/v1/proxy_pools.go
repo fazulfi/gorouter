@@ -4,9 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	appauth "gorouter/internal/app/auth"
 	appproviders "gorouter/internal/app/providers"
-	"gorouter/internal/domain/auth"
-	"gorouter/internal/domain/provider"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -15,11 +14,11 @@ import (
 // PoolsService is the application seam for the proxy-pools group. Mutations
 // receive the actor so the service audits with actor, origin, ip and target.
 type PoolsService interface {
-	List(ctx context.Context) ([]provider.ProxyPool, error)
-	Get(ctx context.Context, id uuid.UUID) (*provider.ProxyPool, error)
-	Create(ctx context.Context, actor *auth.Actor, pool *provider.ProxyPool) (*provider.ProxyPool, error)
-	Update(ctx context.Context, actor *auth.Actor, pool *provider.ProxyPool) (*provider.ProxyPool, error)
-	Delete(ctx context.Context, actor *auth.Actor, id uuid.UUID) error
+	List(ctx context.Context) ([]appproviders.ProxyPool, error)
+	Get(ctx context.Context, id uuid.UUID) (*appproviders.ProxyPool, error)
+	Create(ctx context.Context, actor *appauth.Actor, pool *appproviders.ProxyPool) (*appproviders.ProxyPool, error)
+	Update(ctx context.Context, actor *appauth.Actor, pool *appproviders.ProxyPool) (*appproviders.ProxyPool, error)
+	Delete(ctx context.Context, actor *appauth.Actor, id uuid.UUID) error
 }
 
 type poolsGroup struct{ svc PoolsService }
@@ -43,7 +42,7 @@ func (g *poolsGroup) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, errUnauthorized)
 		return
 	}
-	var pool provider.ProxyPool
+	var pool appproviders.ProxyPool
 	if err := decodeBody(r, &pool); err != nil {
 		writeError(w, r, err)
 		return
@@ -89,7 +88,7 @@ func (g *poolsGroup) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, errInvalid)
 		return
 	}
-	var pool provider.ProxyPool
+	var pool appproviders.ProxyPool
 	if err := decodeBody(r, &pool); err != nil {
 		writeError(w, r, err)
 		return

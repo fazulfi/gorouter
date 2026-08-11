@@ -35,6 +35,10 @@ func setupPrivilegeTestDB(t *testing.T, ctx context.Context) (runtimeDSN string,
 		t.Skip("skipping integration test in short mode")
 	}
 
+	if err := bootstrapRolesOnCluster(t, ctx, runtimeBase); err != nil {
+		t.Fatalf("bootstrap roles: %v", err)
+	}
+
 	admin, err := pgx.Connect(ctx, runtimeBase)
 	if err != nil {
 		t.Fatalf("connect as runtime role: %v", err)

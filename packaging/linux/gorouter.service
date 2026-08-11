@@ -1,0 +1,13 @@
+[Unit]
+Description=Gorouter gateway
+After=network-online.target
+
+[Service]
+Type=simple
+User=gorouter
+Group=gorouter
+ExecStart=/usr/bin/gorouter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

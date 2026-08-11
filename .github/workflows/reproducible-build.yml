@@ -1,0 +1,168 @@
+name: Reproducible Build
+
+on:
+  push:
+    branches: [master, feat/phase-5-release-readiness]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.25"
+  NODE_VERSION: "22"
+
+jobs:
+  frontend:
+    name: Build frontend (cache-keyed)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  reproducible:
+    name: Reproducible build (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: frontend
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Test embedded frontend mount (prod)
+        run: go test -tags prod -run '^TestMountFrontendServesEmbeddedIndex$' ./internal/bootstrap/...
+
+      - name: Build payload (run 1)
+        run: >
+          go run ./tools/build
+          --commit=${{ github.sha }}
+          --version=v0.0.0-ci
+          --os=${{ matrix.goos }}
+          --arch=${{ matrix.goarch }}
+          --out=dist/run1
+
+      - name: Build payload (run 2)
+        run: >
+          go run ./tools/build
+          --commit=${{ github.sha }}
+          --version=v0.0.0-ci
+          --os=${{ matrix.goos }}
+          --arch=${{ matrix.goarch }}
+          --out=dist/run2
+
+      - name: Verify two-run determinism
+        run: |
+          set -euo pipefail
+          p1=$(sha256sum dist/run1/payload* | awk '{print $1}')
+          p2=$(sha256sum dist/run2/payload* | awk '{print $1}')
+          m1=$(sha256sum dist/run1/manifest.json | awk '{print $1}')
+          m2=$(sha256sum dist/run2/manifest.json | awk '{print $1}')
+          echo "payload  run1=$p1"
+          echo "payload  run2=$p2"
+          echo "manifest run1=$m1"
+          echo "manifest run2=$m2"
+          if [ "$p1" != "$p2" ]; then
+            echo "::error::payload sha256 differs between identical builds"
+            exit 1
+          fi
+          if [ "$m1" != "$m2" ]; then
+            echo "::error::manifest sha256 differs between identical builds"
+            exit 1
+          fi
+          echo "::notice::reproducible build verified for ${{ matrix.goos }}/${{ matrix.goarch }}"
+
+      - name: Validate manifest against schema
+        run: |
+          set -euo pipefail
+          go run ./tools/build --help >/dev/null 2>&1 || true
+          node -e '
+            const fs = require("fs");
+            const schema = JSON.parse(fs.readFileSync("build/manifest.schema.json", "utf8"));
+            const manifest = JSON.parse(fs.readFileSync("dist/run1/manifest.json", "utf8"));
+            const required = schema.required;
+            for (const k of required) {
+              if (!(k in manifest)) {
+                console.error(`missing required field: ${k}`);
+                process.exit(1);
+              }
+            }
+            for (const [k, v] of Object.entries(manifest)) {
+              if (!(k in schema.properties)) {
+                console.error(`unexpected field: ${k}`);
+                process.exit(1);
+              }
+            }
+            const hex = (s, n) => typeof s === "string" && new RegExp(`^[0-9a-f]{${n}}$`).test(s);
+            if (!hex(manifest.commit, 40)) { console.error("bad commit"); process.exit(1); }
+            if (!hex(manifest.frontend_hash, 64)) { console.error("bad frontend_hash"); process.exit(1); }
+            if (!hex(manifest.payload_sha256, 64)) { console.error("bad payload_sha256"); process.exit(1); }
+            if (!schema.properties.os.enum.includes(manifest.os)) { console.error("bad os"); process.exit(1); }
+            if (!schema.properties.arch.enum.includes(manifest.arch)) { console.error("bad arch"); process.exit(1); }
+            if (manifest.signature !== null && typeof manifest.signature !== "string") { console.error("bad signature"); process.exit(1); }
+            console.log("manifest conforms to build/manifest.schema.json");
+          '
+
+      - name: Upload release payload
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/run1/payload*
+            dist/run1/manifest.json
+          retention-days: 7
+          if-no-files-found: error

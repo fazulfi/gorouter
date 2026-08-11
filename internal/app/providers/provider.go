@@ -17,6 +17,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Provider represents a configured provider.
+type Provider = provider.Provider
+
+// Account represents a provider account.
+type Account = provider.Account
+
+// ProxyPool is an alias for provider.ProxyPool.
+type ProxyPool = provider.ProxyPool
+
+// PoolMember is an alias for provider.PoolMember.
+type PoolMember = provider.PoolMember
+
 // DefaultTestBatchConcurrency is the concurrency limit applied when a
 // non-positive limit is passed to TestBatch.
 const DefaultTestBatchConcurrency = 4

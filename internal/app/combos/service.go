@@ -16,6 +16,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// Definition is an alias for combo.Definition.
+type Definition = combo.Definition
+
+// Strategy is an alias for combo.Strategy.
+type Strategy = combo.Strategy
+
+// Member is an alias for combo.Member.
+type Member = combo.Member
+
+// ErrNotFound is returned when a combo definition does not exist.
+var ErrNotFound = combo.ErrNotFound
+
+// ErrInvalidConfig is returned when a definition's JSONB config is malformed or violates strategy constraints.
+var ErrInvalidConfig = combo.ErrInvalidConfig
+
+// ErrInvalidMember is returned when a member lacks a provider or model reference.
+var ErrInvalidMember = combo.ErrInvalidMember
+
 // CapabilityChecker reports whether a member's model satisfies all requested
 // capabilities. The production wiring resolves member models through the
 // provider model catalog.

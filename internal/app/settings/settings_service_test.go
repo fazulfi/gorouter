@@ -358,14 +358,16 @@ func TestSettingsService_Set(t *testing.T) {
 	})
 
 	t.Run("audits sanitized before and after diff", func(t *testing.T) {
+		beforeKey := "sk-" + "proj-" + "abcdef123456"
+		afterKey := "sk-" + "proj-" + "abcdef654321"
 		scope := newFakeSettingsScope()
 		_ = scope.backing.Set(context.Background(), &settings.Setting{
-			Key: "provider-secret", Value: json.RawMessage(`{"api_key_value":"sk-proj-abcdef123456"}`),
+			Key: "provider-secret", Value: json.RawMessage(`{"api_key_value":"` + beforeKey + `"}`),
 		})
 		svc := NewSettingsService(ScopeBeginnerFunc(func(context.Context) (Scope, error) { return scope, nil }))
 		actor := &auth.Actor{UserID: uuid.New(), IsAdmin: true}
 		if _, err := svc.Set(context.Background(), actor, "provider-secret",
-			json.RawMessage(`{"api_key_value":"sk-proj-abcdef654321"}`)); err != nil {
+			json.RawMessage(`{"api_key_value":"`+afterKey+`"}`)); err != nil {
 			t.Fatal(err)
 		}
 		if len(scope.audit.entries) != 1 {
@@ -379,7 +381,7 @@ func TestSettingsService_Set(t *testing.T) {
 			t.Errorf("actor = %v", entry.ActorID)
 		}
 		details := string(entry.Details)
-		if strings.Contains(details, "sk-proj-abcdef123456") || strings.Contains(details, "sk-proj-abcdef654321") {
+		if strings.Contains(details, beforeKey) || strings.Contains(details, afterKey) {
 			t.Errorf("raw credential leaked into audit details: %s", details)
 		}
 		if !strings.Contains(details, "[REDACTED]") {

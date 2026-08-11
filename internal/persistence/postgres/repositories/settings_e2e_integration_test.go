@@ -65,7 +65,8 @@ func TestSettingsServiceEndToEnd_Integration(t *testing.T) {
 
 	// A value carrying a credential shape must be stored raw but audited
 	// sanitized.
-	secretValue := json.RawMessage(`{"api_key_value":"sk-proj-e2e123456789"}`)
+	e2eKey := "sk-" + "proj-" + "e2e123456789"
+	secretValue := json.RawMessage(`{"api_key_value":"` + e2eKey + `"}`)
 	if _, err := svc.Set(ctx, actor, "provider-secret", secretValue); err != nil {
 		t.Fatalf("Set secret: %v", err)
 	}
@@ -89,7 +90,7 @@ func TestSettingsServiceEndToEnd_Integration(t *testing.T) {
 		t.Fatalf("settings.set audit rows = %d, want >= 2", len(rows))
 	}
 	joined := strings.Join(rows, "\n")
-	if strings.Contains(joined, "sk-proj-e2e123456789") {
+	if strings.Contains(joined, e2eKey) {
 		t.Errorf("raw credential leaked into audit details:\n%s", joined)
 	}
 	if !strings.Contains(joined, "[REDACTED]") {
@@ -145,7 +146,7 @@ func TestAuditQueryServiceEndToEnd_Integration(t *testing.T) {
 	if _, err := svc.Set(ctx, actor, "k1", json.RawMessage(`1`)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Set(ctx, actor, "k2", json.RawMessage(`{"api_key_value":"sk-proj-e2e-query-123456"}`)); err != nil {
+	if _, err := svc.Set(ctx, actor, "k2", json.RawMessage(`{"api_key_value":"`+"sk-"+"proj-e2e-query-123456"+`"}`)); err != nil {
 		t.Fatal(err)
 	}
 

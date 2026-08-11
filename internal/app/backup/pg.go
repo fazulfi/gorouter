@@ -27,7 +27,8 @@ type realExecRunner struct{}
 // Run implements CommandRunner with exec.CommandContext and cmd.Env set to
 // the provided minimal environment.
 func (realExecRunner) Run(ctx context.Context, name string, argv []string, env []string) ([]byte, []byte, error) {
-	cmd := exec.CommandContext(ctx, name, argv...)
+	cmd := exec.CommandContext(ctx, name)
+	cmd.Args = append(cmd.Args, argv...)
 	cmd.Env = env
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
@@ -248,7 +249,7 @@ func validateShadowDB(ctx context.Context, connect func(context.Context, string,
 
 // HashFileSHA256 returns the lowercase hex sha256 of the file at path.
 func HashFileSHA256(path string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return "", err
 	}
@@ -262,7 +263,7 @@ func HashFileSHA256(path string) (string, error) {
 
 // fsyncFile flushes the file at path to stable storage.
 func fsyncFile(path string) error {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return err
 	}
@@ -272,7 +273,7 @@ func fsyncFile(path string) error {
 
 // fsyncDir flushes the directory entry metadata for path to stable storage.
 func fsyncDir(path string) error {
-	d, err := os.Open(path)
+	d, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return err
 	}

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	domauth "gorouter/internal/domain/auth"
-	domkeys "gorouter/internal/domain/keys"
+	appauth "gorouter/internal/app/auth"
+	appkeys "gorouter/internal/app/keys"
 	authhandlers "gorouter/internal/transport/httpserver/auth"
 
 	"github.com/go-chi/chi/v5"
@@ -17,15 +17,15 @@ import (
 )
 
 type adminFakeService struct {
-	loginSession *domauth.Session
+	loginSession *appauth.Session
 	loginToken   string
 	loginErr     error
-	me           *domauth.User
+	me           *appauth.User
 	meErr        error
 	logErr       error
 }
 
-func (f *adminFakeService) Login(context.Context, string, string) (*domauth.Session, string, error) {
+func (f *adminFakeService) Login(context.Context, string, string) (*appauth.Session, string, error) {
 	if f.loginErr != nil {
 		return nil, "", f.loginErr
 	}
@@ -36,13 +36,13 @@ func (f *adminFakeService) Logout(context.Context, uuid.UUID) error {
 	return f.logErr
 }
 
-func (f *adminFakeService) GetCurrentUser(context.Context, uuid.UUID) (*domauth.User, error) {
+func (f *adminFakeService) GetCurrentUser(context.Context, uuid.UUID) (*appauth.User, error) {
 	return f.me, f.meErr
 }
 
-func (f *adminFakeService) ValidateSession(context.Context, string) (*domauth.Actor, error) {
-	return &domauth.Actor{UserID: f.me.ID, SessionID: f.loginSession.ID, IsAdmin: true,
-		Kind: domauth.ActorKindSession, Origin: domauth.ActorOriginRemote}, nil
+func (f *adminFakeService) ValidateSession(context.Context, string) (*appauth.Actor, error) {
+	return &appauth.Actor{UserID: f.me.ID, SessionID: f.loginSession.ID, IsAdmin: true,
+		Kind: appauth.ActorKindSession, Origin: appauth.ActorOriginRemote}, nil
 }
 
 func newAdminTestHandler(t *testing.T, svc *adminFakeService) http.Handler {
@@ -60,9 +60,9 @@ func newAdminTestHandler(t *testing.T, svc *adminFakeService) http.Handler {
 func TestMiddlewareOrder(t *testing.T) {
 	uid := uuid.New()
 	svc := &adminFakeService{
-		loginSession: &domauth.Session{ID: uuid.New(), UserID: uid},
+		loginSession: &appauth.Session{ID: uuid.New(), UserID: uid},
 		loginToken:   "raw-token",
-		me:           &domauth.User{ID: uid, Email: "a@example.com", IsActive: true},
+		me:           &appauth.User{ID: uid, Email: "a@example.com", IsActive: true},
 	}
 	r := newAdminTestHandler(t, svc)
 
@@ -118,9 +118,9 @@ func TestMiddlewareOrder(t *testing.T) {
 func TestSessionMutationRequiresCSRF(t *testing.T) {
 	uid := uuid.New()
 	svc := &adminFakeService{
-		loginSession: &domauth.Session{ID: uuid.New(), UserID: uid},
+		loginSession: &appauth.Session{ID: uuid.New(), UserID: uid},
 		loginToken:   "raw-token",
-		me:           &domauth.User{ID: uid, Email: "a@example.com", IsActive: true},
+		me:           &appauth.User{ID: uid, Email: "a@example.com", IsActive: true},
 	}
 	r := newAdminTestHandler(t, svc)
 
@@ -164,12 +164,12 @@ func TestSessionMutationRequiresCSRF(t *testing.T) {
 func TestPATBypassesCSRF(t *testing.T) {
 	uid := uuid.New()
 	svc := &adminFakeService{
-		loginSession: &domauth.Session{ID: uuid.New(), UserID: uid},
+		loginSession: &appauth.Session{ID: uuid.New(), UserID: uid},
 		loginToken:   "raw-token",
-		me:           &domauth.User{ID: uid, Email: "a@example.com", IsActive: true},
+		me:           &appauth.User{ID: uid, Email: "a@example.com", IsActive: true},
 	}
-	patValidator := func(ctx context.Context, token string) (*domkeys.PAT, error) {
-		return &domkeys.PAT{ID: uuid.New(), UserID: uid}, nil
+	patValidator := func(ctx context.Context, token string) (*appkeys.PAT, error) {
+		return &appkeys.PAT{ID: uuid.New(), UserID: uid}, nil
 	}
 
 	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
@@ -198,8 +198,8 @@ func TestPATBypassesCSRF(t *testing.T) {
 // adminOIDCFake implements authhandlers.OIDCService for the mount test.
 type adminOIDCFake struct{}
 
-func (adminOIDCFake) LoginWithOIDC(context.Context, string) (*domauth.Session, string, error) {
-	return &domauth.Session{ID: uuid.New(), UserID: uuid.New()}, "raw-token", nil
+func (adminOIDCFake) LoginWithOIDC(context.Context, string) (*appauth.Session, string, error) {
+	return &appauth.Session{ID: uuid.New(), UserID: uuid.New()}, "raw-token", nil
 }
 
 // TestAdminOIDCMount proves the admin router exposes the three OIDC routes
@@ -208,8 +208,8 @@ func (adminOIDCFake) LoginWithOIDC(context.Context, string) (*domauth.Session, s
 func TestAdminOIDCMount(t *testing.T) {
 	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
 	svc := &adminFakeService{
-		loginSession: &domauth.Session{ID: uuid.New(), UserID: uuid.New()},
-		me:           &domauth.User{ID: uuid.New(), Email: "a@example.com", IsActive: true},
+		loginSession: &appauth.Session{ID: uuid.New(), UserID: uuid.New()},
+		me:           &appauth.User{ID: uuid.New(), Email: "a@example.com", IsActive: true},
 	}
 	base := authhandlers.New(svc, authhandlers.NewMemoryLockoutStore(), authhandlers.Config{}, func() time.Time { return now })
 	oidc := base.WithOIDC(authhandlers.OIDCConfig{

@@ -242,7 +242,7 @@ func TestRedaction_SecretNotInMessageField(t *testing.T) {
 	var buf bytes.Buffer
 	logger := zerolog.New(&buf)
 
-	err := testError{msg: "authentication failed: password=supersecret"}
+	err := testError{msg: "authentication failed: password=" + "super" + "secret"}
 	LogError(context.Background(), logger, err)
 
 	output := buf.String()

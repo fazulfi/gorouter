@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	appproviders "gorouter/internal/app/providers"
-	"gorouter/internal/domain/provider"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -15,12 +14,12 @@ import (
 // concrete backend service exposes validate/test-batch; the CRUD and
 // projection routes are wired when the backend lane lands them.
 type ProvidersService interface {
-	List(ctx context.Context) ([]provider.Provider, error)
-	Get(ctx context.Context, id uuid.UUID) (*provider.Provider, error)
-	Create(ctx context.Context, in *provider.Provider) (*provider.Provider, error)
-	Update(ctx context.Context, in *provider.Provider) (*provider.Provider, error)
+	List(ctx context.Context) ([]appproviders.Provider, error)
+	Get(ctx context.Context, id uuid.UUID) (*appproviders.Provider, error)
+	Create(ctx context.Context, in *appproviders.Provider) (*appproviders.Provider, error)
+	Update(ctx context.Context, in *appproviders.Provider) (*appproviders.Provider, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Client(ctx context.Context) ([]provider.Provider, error)
+	Client(ctx context.Context) ([]appproviders.Provider, error)
 	KiloFreeModels(ctx context.Context) ([]string, error)
 	SuggestedModels(ctx context.Context) ([]string, error)
 	TestBatch(ctx context.Context, ids []uuid.UUID, concurrencyLimit int) (appproviders.TestBatchResult, error)
@@ -56,7 +55,7 @@ type providerView struct {
 	HasCredentials bool      `json:"has_credentials"`
 }
 
-func projectProvider(p *provider.Provider) providerView {
+func projectProvider(p *appproviders.Provider) providerView {
 	var cfg any
 	if len(p.Config) > 0 {
 		cfg = p.Config
@@ -131,7 +130,7 @@ func (g *providersGroup) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, errUnauthorized)
 		return
 	}
-	var body provider.Provider
+	var body appproviders.Provider
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
 		return
@@ -153,7 +152,7 @@ func (g *providersGroup) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var body provider.Provider
+	var body appproviders.Provider
 	if err := decodeBody(r, &body); err != nil {
 		writeError(w, r, err)
 		return

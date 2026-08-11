@@ -12,6 +12,43 @@ import (
 	"github.com/google/uuid"
 )
 
+// Actor represents the authenticated principal making a request.
+type Actor = domain.Actor
+
+// Session represents an active user session.
+type Session = domain.Session
+
+// User represents an authenticated user in the system.
+type User = domain.User
+
+// ActorKind identifies the credential kind of an authenticated principal.
+type ActorKind = domain.ActorKind
+
+// ActorOrigin identifies where a principal's identity was established.
+type ActorOrigin = domain.ActorOrigin
+
+const (
+	ActorKindUser     = domain.ActorKindUser
+	ActorKindSession  = domain.ActorKindSession
+	ActorKindPAT      = domain.ActorKindPAT
+	ActorKindCLI      = domain.ActorKindCLI
+	ActorKindJob      = domain.ActorKindJob
+	ActorOriginLocal  = domain.ActorOriginLocal
+	ActorOriginRemote = domain.ActorOriginRemote
+)
+
+// FromContext extracts an Actor from the context. Returns nil, false when no
+// actor is present.
+func FromContext(ctx context.Context) (*Actor, bool) {
+	return domain.FromContext(ctx)
+}
+
+// ContextWithActor stores the given Actor in the context and returns the new
+// context value. Use FromContext to retrieve it.
+func ContextWithActor(ctx context.Context, actor *Actor) context.Context {
+	return domain.ContextWithActor(ctx, actor)
+}
+
 var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrUserInactive       = errors.New("user account is inactive")
