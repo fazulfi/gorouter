@@ -66,20 +66,29 @@ type ddlConn interface {
 }
 
 // ddlConnConfig derives the pgx connection config for the dedicated
-// DDL-role connection from the DDLConfig transport settings.
+// DDL-role connection from the DDLConfig transport settings. pgx v5
+// requires every ConnConfig to be created by pgx.ParseConfig or it panics
+// with "config must be created by ParseConfig". Parse an empty DSN to
+// obtain a parse-created config with defaults, then apply the DDL transport
+// settings (Host/Port/Database/User/Password/TLS/Fallbacks/RuntimeParams)
+// field-for-field so DSN semantics are preserved.
 func ddlConnConfig(cfg DDLConfig) *pgx.ConnConfig {
-	return &pgx.ConnConfig{
-		Config: pgconn.Config{
-			Host:          cfg.Host,
-			Port:          cfg.Port,
-			Database:      cfg.Database,
-			User:          cfg.User,
-			Password:      cfg.Password,
-			TLSConfig:     cfg.TLSConfig,
-			Fallbacks:     cfg.Fallbacks,
-			RuntimeParams: cfg.RuntimeParams,
-		},
+	parsed, err := pgx.ParseConfig("")
+	if err != nil {
+		// An empty DSN always parses to defaults and cannot fail; this is
+		// purely defensive. Fail closed rather than hand-build a config
+		// that pgx would reject at runtime.
+		panic(fmt.Sprintf("ddlConnConfig: parse empty DSN: %v (bug)", err))
 	}
+	parsed.Host = cfg.Host
+	parsed.Port = cfg.Port
+	parsed.Database = cfg.Database
+	parsed.User = cfg.User
+	parsed.Password = cfg.Password
+	parsed.TLSConfig = cfg.TLSConfig
+	parsed.Fallbacks = cfg.Fallbacks
+	parsed.RuntimeParams = cfg.RuntimeParams
+	return parsed
 }
 
 // openDDL opens the dedicated DDL-role connection for migration batches.
