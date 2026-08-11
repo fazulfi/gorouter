@@ -1,0 +1,50 @@
+{
+  "betaRelease": "v1.2.3-beta.1",
+  "phase": "P5-T14",
+  "buildCommit": "715916074067bed34fa4b44a3783775d041ef3dc",
+  "stableCandidateFreeze": {
+    "artifact": "stable-candidate-freeze",
+    "phase": "P5-T15",
+    "stableVersion": "v1.2.3",
+    "candidateSha": "715916074067bed34fa4b44a3783775d041ef3dc",
+    "candidateTag": "v1.2.3-beta.1",
+    "freezeTimestamp": "2026-08-11T04:46:02Z",
+    "freezeManifest": "freeze-manifest.json",
+    "defectDisposition": "No user-reported beta defects exist (beta published 2026-08-11); all beta considerations dispositioned CLOSED-NO-REPORTED-DEFECT or DEFERRED; zero fix commits required; candidate frozen at beta HEAD."
+  },
+  "platforms": [
+    {
+      "name": "windows-amd64",
+      "binary": "gorouter-windows-amd64.exe",
+      "sha256": "66b6e1f1a2b14ea7b829e0b6a9d5f31d2f9ae2799919ad03fa242932c0dd0ac0",
+      "size": 14191616
+    },
+    {
+      "name": "linux-amd64",
+      "binary": "gorouter-linux-amd64",
+      "sha256": "9e4ba88110ee35dcc3caeb035e2c4e6f62ee9739bf53d3940ede07747e9a3274",
+      "size": 13729976
+    },
+    {
+      "name": "linux-arm64",
+      "binary": "gorouter-linux-arm64",
+      "sha256": "5f8230498e1a753bebc5a19f81e1e67d27b36cefff44728d90f7e9e22ea08e31",
+      "size": 13107384
+    },
+    {
+      "name": "darwin-amd64",
+      "binary": "gorouter-darwin-amd64",
+      "sha256": "4224af051845b9d9e50e76299e7613f2f65e8a88d4750769df92adaccfef5e40",
+      "size": 14016112
+    },
+    {
+      "name": "darwin-arm64",
+      "binary": "gorouter-darwin-arm64",
+      "sha256": "6a7206004cc9ddd61333b8b52bd1891c2447d68f7c62fb040bbfb72b63bafd97",
+      "size": 13415474
+    }
+  ],
+  "signingKey": "TEST-KEY-NOT-PUBLISHED-DO-NOT-USE",
+  "signingNote": "Production signing BLOCKED-KEYMATERIAL until T16",
+  "githubRelease": "https://github.com/fazulfi/gorouter/releases/tag/v1.2.3-beta.1"
+}
