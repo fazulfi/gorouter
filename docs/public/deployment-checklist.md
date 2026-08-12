@@ -4,7 +4,7 @@
 - [ ] Verify production `/opt/gorouter` backed up to remote storage
 - [ ] Confirm previous known-good SHA recorded for rollback
 - [ ] Test all migrations in staging environment first
-- [ ] Verify health endpoint returns 200: `GET /healthz`
+- [ ] Verify health endpoint returns 200: `GET /health`
 - [ ] Confirm database schema matches expected migration version
 - [ ] Review all pending PRs merged and CI green
 
@@ -40,9 +40,9 @@
    ```
 
 6. **Verify deployment**
-   - Health check: `curl http://localhost:8080/healthz` should return 200
+   - Health check: `curl http://localhost:8080/health` should return 200
    - Frontend served at `/` with SPA fallback for client routes
-   - Admin API responds: `GET /api/v1/healthz`
+   - Admin API responds: `GET /api/admin/v1/health`
    - SSE streams connect successfully
 
 ## Rollback Procedure (If Deployment Fails)

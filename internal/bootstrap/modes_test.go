@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -87,6 +86,23 @@ func waitForStep(t *testing.T, rec *stepRecorder, step string, timeout time.Dura
 	t.Fatalf("timed out waiting for step %q; recorded: %v", step, rec.snapshot())
 }
 
+// deliverShutdownSignal fires the serve-mode drain path
+// (signal.NotifyContext on SIGINT/SIGTERM in dispatchServer). It uses the
+// portable os.Process.Signal(os.Interrupt): on unix this delivers SIGINT;
+// on Windows non-Kill signals are unsupported, and the ordering contract is
+// exercised in linux CI, so the subtest skips with a documented reason
+// instead of hanging (pre-existing portability block noted in phase5-t01).
+func deliverShutdownSignal(t *testing.T) {
+	t.Helper()
+	proc, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("find self process: %v", err)
+	}
+	if err := proc.Signal(os.Interrupt); err != nil {
+		t.Skipf("self-signal delivery unsupported on this platform: %v (drain ordering covered in linux CI)", err)
+	}
+}
+
 // TestDispatchServerOrdering pins the serve-mode lifecycle contract: the
 // validated-backup precondition passes before the DDL-role migration batch
 // runs, the batch completes before the runtime-exclusivity lock is acquired,
@@ -142,9 +158,7 @@ func TestDispatchServerOrdering(t *testing.T) {
 		}()
 
 		waitForStep(t, rec, "listen begins", 10*time.Second)
-		if err := syscall.Kill(os.Getpid(), syscall.SIGTERM); err != nil {
-			t.Fatalf("sending SIGTERM: %v", err)
-		}
+		deliverShutdownSignal(t)
 
 		var res result
 		select {

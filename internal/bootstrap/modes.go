@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	frontendassets "gorouter"
+	appauth "gorouter/internal/app/auth"
 	"gorouter/internal/app/backup"
 	"gorouter/internal/app/cooldown"
 	"gorouter/internal/app/orchestrator"
@@ -22,6 +23,7 @@ import (
 	"gorouter/internal/app/routing"
 	"gorouter/internal/app/tx"
 	"gorouter/internal/app/worker"
+	domainauth "gorouter/internal/domain/auth"
 	"gorouter/internal/domain/engine"
 	"gorouter/internal/domain/jobs"
 	"gorouter/internal/domain/keys"
@@ -34,6 +36,7 @@ import (
 	"gorouter/internal/shared"
 	"gorouter/internal/transport/httpserver"
 	"gorouter/internal/transport/httpserver/api"
+	authhandlers "gorouter/internal/transport/httpserver/auth"
 	"gorouter/internal/transport/httpserver/health"
 	"gorouter/internal/transport/middleware"
 )
@@ -87,7 +90,12 @@ func mountFrontend(router chi.Router) {
 	router.Mount("/", httpserver.EmbedHandler(frontendassets.FS))
 }
 
-func dispatchServer(app *App) (int, error) {
+// buildServerHandler assembles the server-mode HTTP routing surface in the
+// documented mount order (embed.go): public /health, the model API group
+// behind ModelKeyAuth, the administration router under /api/* and the SPA
+// embed mounted last. It is a package-level function so bootstrap tests
+// probe the exact wiring dispatchServer serves without opening a listener.
+func buildServerHandler(app *App, orch engine.Orchestrator) (http.Handler, error) {
 	router := httpserver.New(
 		middleware.Correlation,
 		middleware.Recovery,
@@ -96,6 +104,108 @@ func dispatchServer(app *App) (int, error) {
 
 	router.Get("/health", health.PublicHandler())
 	modelKeyValidator := buildKeyValidator(app)
+
+	apiHandler := api.New(api.DefaultConfig(), orch, app.Logger)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.ModelKeyAuth(modelKeyValidator))
+		apiHandler.RegisterRoutes(r)
+	})
+
+	adminHandler := httpserver.NewAdminRouter(httpserver.AdminConfig{
+		Auth:         buildAdminAuth(app),
+		CookieSecure: false,
+	})
+	// The admin router is a self-contained mux whose routes are absolute
+	// (/api/admin/v1/* and /api/compat/*); compose it as a wildcard handler
+	// so the child mux keeps its full paths (a chi Mount would strip the
+	// prefix and re-route the child on its own absolute paths).
+	router.Handle("/api/*", adminHandler)
+
+	mountFrontend(router)
+
+	return router, nil
+}
+
+// buildAdminAuth wires the administrative auth surface backed by the
+// runtime database: sessions and users persist in PostgreSQL, so every auth
+// call opens a transaction-scoped set of repositories (the same pattern as
+// buildKeyValidator / poolAccountRepo).
+func buildAdminAuth(app *App) httpserver.AuthEndpoints {
+	return authhandlers.New(&poolAuthService{db: app.DB}, nil, authhandlers.Config{}, nil)
+}
+
+// poolAuthService implements the admin auth transport surface by acquiring
+// a pool connection and opening a transaction per method call, mirroring
+// poolAccountRepo and poolJobRepo.
+type poolAuthService struct {
+	db *pgxpool.Pool
+}
+
+func (s *poolAuthService) withScope(ctx context.Context, fn func(*tx.TxScope) error) error {
+	conn, err := s.db.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	pgTx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer pgTx.Rollback(ctx)
+	scope := repositories.NewTxScope(pgTx)
+	if err := fn(scope); err != nil {
+		return err
+	}
+	return pgTx.Commit(ctx)
+}
+
+func (s *poolAuthService) authService(scope *tx.TxScope) *appauth.Service {
+	return appauth.NewAuthService(
+		domainauth.NewPasswordService(),
+		domainauth.NewSessionService(scope.Sessions(), 0),
+		scope.Users(),
+		scope.Sessions(),
+	)
+}
+
+func (s *poolAuthService) Login(ctx context.Context, email, password string) (*appauth.Session, string, error) {
+	var sess *appauth.Session
+	var raw string
+	err := s.withScope(ctx, func(scope *tx.TxScope) error {
+		var err error
+		sess, raw, err = s.authService(scope).Login(ctx, email, password)
+		return err
+	})
+	return sess, raw, err
+}
+
+func (s *poolAuthService) Logout(ctx context.Context, sessionID uuid.UUID) error {
+	return s.withScope(ctx, func(scope *tx.TxScope) error {
+		return s.authService(scope).Logout(ctx, sessionID)
+	})
+}
+
+func (s *poolAuthService) ValidateSession(ctx context.Context, rawToken string) (*appauth.Actor, error) {
+	var actor *appauth.Actor
+	err := s.withScope(ctx, func(scope *tx.TxScope) error {
+		var err error
+		actor, err = s.authService(scope).ValidateSession(ctx, rawToken)
+		return err
+	})
+	return actor, err
+}
+
+func (s *poolAuthService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*appauth.User, error) {
+	var user *appauth.User
+	err := s.withScope(ctx, func(scope *tx.TxScope) error {
+		var err error
+		user, err = s.authService(scope).GetCurrentUser(ctx, userID)
+		return err
+	})
+	return user, err
+}
+
+func dispatchServer(app *App) (int, error) {
 	detector := formats.NewDetector()
 
 	orch, cd, err := buildOrchestrator(app, detector)
@@ -103,12 +213,11 @@ func dispatchServer(app *App) (int, error) {
 		return 1, fmt.Errorf("build orchestrator: %w", err)
 	}
 
-	apiHandler := api.New(api.DefaultConfig(), orch, app.Logger)
-	router.Group(func(r chi.Router) {
-		r.Use(middleware.ModelKeyAuth(modelKeyValidator))
-		apiHandler.RegisterRoutes(r)
-	})
-	mountFrontend(router)
+	router, err := buildServerHandler(app, orch)
+	if err != nil {
+		cd.Stop()
+		return 1, fmt.Errorf("build server handler: %w", err)
+	}
 
 	addr := app.Config.Host + ":" + strconv.Itoa(app.Config.Port)
 

@@ -23,7 +23,7 @@ Gorouter is a production-ready API routing platform with Admin API, compatibilit
 1. Backup production `/opt/gorouter` before deployment
 2. Deploy merged master SHA via manual rsync/git clone
 3. Run database migrations (`gorouter migrate up`)
-4. Verify health endpoint: `GET /healthz`
+4. Verify health endpoint: `GET /health`
 5. Confirm frontend served at `/` with SPA fallback
 6. Test Admin API authentication flow
 7. Validate SSE streams connect successfully
@@ -48,8 +48,8 @@ If deployment fails:
 - Enable audit logging for sensitive operations
 
 ## Monitoring & Observability
-- Health endpoint: `GET /healthz` returns 200 when ready
-- SSE streams: `/api/v1/stream/usage`, `/api/v1/stream/console`, etc.
+- Health endpoint: `GET /health` returns 200 when ready
+- SSE streams: `/api/admin/v1/usage/stream`, `/api/admin/v1/console/stream`, `/api/admin/v1/providers/stream`, `/api/admin/v1/jobs/stream`
 - Log aggregation: Configure log forwarding to central collection
 - Metrics: Prometheus-compatible metrics at `/metrics` (if enabled)
 
