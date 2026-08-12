@@ -10,4 +10,4 @@ Install Go 1.25 and PostgreSQL. Keep credentials in environment variables; never
 go run ./cmd/gorouter
 ```
 
-Verify `GET /healthz` returns HTTP 200, then configure a provider using the [configuration guide](configuration.md).
+Verify `GET /health` returns HTTP 200, then configure a provider using the [configuration guide](configuration.md).
